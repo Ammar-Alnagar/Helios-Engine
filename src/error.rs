@@ -25,6 +25,9 @@ pub enum HeliosError {
 
     #[error("TOML parsing error: {0}")]
     TomlError(#[from] toml::de::Error),
+
+    #[error("Llama C++ error: {0}")]
+    LlamaCppError(String),
 }
 
 pub type Result<T> = std::result::Result<T, HeliosError>;
