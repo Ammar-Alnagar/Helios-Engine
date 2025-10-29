@@ -1,36 +1,38 @@
-# 🚀 Helios Engine - LLM Agent Framework
+# 🔥 Helios Engine - LLM Agent Framework
 
 <p align="center">
   <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
 </p>
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](LICENSE)
 
-**Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context.
+**Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
 
-## ✨ Features
+##  Features
 
-- 🤖 **Agent System**: Create multiple agents with different personalities and capabilities
-- 🛠️ **Tool Registry**: Extensible tool system for adding custom functionality
-- 💬 **Chat Management**: Built-in conversation history and session management
-- ⚡ **Streaming Support**: Real-time response streaming with thinking tag detection
-- ⚙️ **Configuration**: TOML-based configuration for LLM settings
-- 🔌 **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models via llama.cpp
-- 🔄 **Async/Await**: Built on Tokio for high-performance async operations
-- 🎯 **Type-Safe**: Leverages Rust's type system for safe and reliable code
-- 📦 **Extensible**: Easy to add custom tools and extend functionality
-- 💭 **Thinking Tags**: Automatic detection and display of model reasoning process
-- 🏠 **Offline Mode**: Run local models without internet connection
-- 🚀 **Clean Output**: Suppresses verbose debugging in offline mode for clean user experience
+-  **Agent System**: Create multiple agents with different personalities and capabilities
+-   **Tool Registry**: Extensible tool system for adding custom functionality
+-  **Chat Management**: Built-in conversation history and session management
+-  **Streaming Support**: Real-time response streaming with thinking tag detection
+-  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
+-  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
+-  **Async/Await**: Built on Tokio for high-performance async operations
+-  **Type-Safe**: Leverages Rust's type system for safe and reliable code
+-  **Extensible**: Easy to add custom tools and extend functionality
+-  **Thinking Tags**: Automatic detection and display of model reasoning process
+-  **Dual Mode Support**: Auto, online (remote API), and offline (local) modes
+-  **Clean Output**: Suppresses verbose debugging in offline mode for clean user experience
+-  **CLI & Library**: Use as both a command-line tool and a Rust library crate
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
   - [Using as a Library Crate](#using-as-a-library-crate)
   - [Using Offline Mode with Local Models](#using-offline-mode-with-local-models)
   - [Using with Agent System](#using-with-agent-system)
+- [CLI Usage](#cli-usage)
 - [Configuration](#configuration)
 - [Local Inference Setup](#local-inference-setup)
 - [Architecture](#architecture)
@@ -42,7 +44,7 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🔧 Installation
+##  Installation
 
 Helios Engine can be used both as a **command-line tool** and as a **library crate** in your Rust projects.
 
@@ -60,7 +62,9 @@ Then use anywhere:
 # Initialize configuration
 helios-engine init
 
-# Start interactive chat
+# Start interactive chat (default command)
+helios-engine
+# or explicitly
 helios-engine chat
 
 # Ask a quick question
@@ -69,14 +73,23 @@ helios-engine ask "What is Rust?"
 # Get help
 helios-engine --help
 
-# 🚀 NEW: Use offline mode with local models (no internet required)
+#  NEW: Use offline mode with local models (no internet required)
 helios-engine --mode offline chat
 
-# Use online mode (default - uses remote APIs)
+# Use online mode (forces remote API usage)
 helios-engine --mode online chat
 
 # Auto mode (uses local if configured, otherwise remote)
 helios-engine --mode auto chat
+
+# Verbose logging for debugging
+helios-engine --verbose chat
+
+# Custom system prompt
+helios-engine chat --system-prompt "You are a Python expert"
+
+# One-off question with custom config
+helios-engine --config /path/to/config.toml ask "Calculate 15 * 7"
 ```
 
 ### As a Library Crate
@@ -85,7 +98,7 @@ Add Helios-Engine to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios-engine = "0.1.7"
+helios-engine = "0.1.9"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -108,14 +121,14 @@ cargo build --release
 cargo install --path .
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Using as a Library Crate
 
 The simplest way to use Helios Engine is to call LLM models directly:
 
 ```rust
-use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::{LLMClient, ChatMessage, llm::LLMProviderType};
 use helios_engine::config::LLMConfig;
 
 #[tokio::main]
@@ -129,8 +142,8 @@ async fn main() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    // Create client
-    let client = LLMClient::new(llm_config);
+    // Create client with remote provider type
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
 
     // Make a call
     let messages = vec![
@@ -145,14 +158,14 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-**📚 For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
+** For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md) **
 
 ### Using Offline Mode with Local Models
 
 Run models locally without internet connection:
 
 ```rust
-use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::{LLMClient, ChatMessage, llm::LLMProviderType};
 use helios_engine::config::LocalConfig;
 
 #[tokio::main]
@@ -166,7 +179,7 @@ async fn main() -> helios_engine::Result<()> {
     };
 
     // Create client with local provider
-    let client = LLMClient::new(local_config.into()).await?;
+    let client = LLMClient::new(LLMProviderType::Local(local_config)).await?;
 
     let messages = vec![
         ChatMessage::system("You are a helpful AI assistant."),
@@ -221,7 +234,8 @@ async fn main() -> helios_engine::Result<()> {
         .config(config)
         .system_prompt("You are a helpful AI assistant.")
         .tool(Box::new(CalculatorTool))
-        .build()?;
+        .build()
+        .await?;
 
     // Chat with the agent
     let response = agent.chat("What is 15 * 7?").await?;
@@ -237,9 +251,69 @@ async fn main() -> helios_engine::Result<()> {
 cargo run
 ```
 
-## ⚙️ Configuration
+##  CLI Usage
 
-Helios Engine uses TOML for configuration. You can configure either remote API access or local model inference.
+Helios Engine provides a powerful command-line interface with multiple modes and options:
+
+### Interactive Chat Mode
+Start an interactive chat session:
+```bash
+# Default chat session
+helios-engine
+
+# With custom system prompt
+helios-engine chat --system-prompt "You are a helpful coding assistant"
+
+# With custom max iterations for tool calls
+helios-engine chat --max-iterations 10
+
+# With verbose logging for debugging
+helios-engine --verbose chat
+```
+
+### One-off Questions
+Ask a single question without interactive mode:
+```bash
+# Ask a single question
+helios-engine ask "What is the capital of France?"
+
+# Ask with custom config file
+helios-engine --config /path/to/config.toml ask "Calculate 123 * 456"
+```
+
+### Configuration Management
+Initialize and manage configuration:
+```bash
+# Create a new configuration file
+helios-engine init
+
+# Create config in custom location
+helios-engine init --output ~/.helios/config.toml
+```
+
+### Mode Selection
+Choose between different operation modes:
+```bash
+# Auto mode (uses local if configured, otherwise remote API)
+helios-engine --mode auto chat
+
+# Online mode (forces remote API usage)
+helios-engine --mode online chat
+
+# Offline mode (uses local models only)
+helios-engine --mode offline chat
+```
+
+### Interactive Commands
+During an interactive session, use these commands:
+- `exit` or `quit` - Exit the chat session
+- `clear` - Clear conversation history
+- `history` - Show conversation history
+- `help` - Show help message
+
+##  Configuration
+
+Helios Engine uses TOML for configuration. You can configure either remote API access or local model inference with the dual LLMProviderType system.
 
 ### Remote API Configuration (Default)
 
@@ -252,7 +326,7 @@ model_name = "gpt-3.5-turbo"
 base_url = "https://api.openai.com/v1"
 
 # Your API key
-api_key = "sk-..."
+api_key = "your-api-key-here"
 
 # Temperature for response generation (0.0 - 2.0)
 temperature = 0.7
@@ -261,24 +335,44 @@ temperature = 0.7
 max_tokens = 2048
 ```
 
-### Local Model Configuration (Offline Mode)
+### Local Model Configuration (Offline Mode with llama.cpp)
 
 ```toml
 [llm]
 # Remote config still needed for auto mode fallback
 model_name = "gpt-3.5-turbo"
 base_url = "https://api.openai.com/v1"
-api_key = "sk-..."
+api_key = "your-api-key-here"
 temperature = 0.7
 max_tokens = 2048
 
-# Local model configuration
+# Local model configuration for offline mode
 [local]
 # HuggingFace repository and model file
 huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
 model_file = "Qwen3-0.6B-Q4_K_M.gguf"
 
 # Local model settings
+temperature = 0.7
+max_tokens = 2048
+```
+
+### Auto Mode Configuration (Remote + Local)
+
+For maximum flexibility, configure both remote and local models to enable auto mode:
+
+```toml
+[llm]
+model_name = "gpt-3.5-turbo"
+base_url = "https://api.openai.com/v1"
+api_key = "your-api-key-here"
+temperature = 0.7
+max_tokens = 2048
+
+# Local model as fallback
+[local]
+huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
+model_file = "Qwen3-0.6B-Q4_K_M.gguf"
 temperature = 0.7
 max_tokens = 2048
 ```
@@ -310,9 +404,9 @@ Run models locally using llama.cpp without internet connection:
 - Local GGUF files
 - Automatic model caching
 
-## 🏠 Local Inference Setup
+##  Local Inference Setup
 
-Helios Engine supports running large language models locally using llama.cpp, providing privacy, offline capability, and no API costs.
+Helios Engine supports running large language models locally using llama.cpp through the LLMProviderType system, providing privacy, offline capability, and no API costs.
 
 ### Prerequisites
 
@@ -353,18 +447,19 @@ Helios Engine supports running large language models locally using llama.cpp, pr
 | Llama-3.2-1B | ~700MB | Balanced performance | `unsloth/Llama-3.2-1B-Instruct-GGUF` |
 | Mistral-7B | ~4GB | High quality | `TheBloke/Mistral-7B-Instruct-v0.1-GGUF` |
 
-### Performance Tips
+### Performance & Features
 
-- **GPU Acceleration**: Models automatically use GPU if available
+- **GPU Acceleration**: Models automatically use GPU if available via llama.cpp's n_gpu_layers parameter
 - **Model Caching**: Downloaded models are cached locally (~/.cache/huggingface)
 - **Memory Usage**: Larger models need more RAM/VRAM
 - **First Run**: Initial model download may take time depending on connection
+- **Clean Output Mode**: Suppresses verbose debugging from llama.cpp for clean user experience
 
-### Clean Output Mode
+### Streaming Support with Local Models
 
-In offline mode, Helios Engine suppresses all debugging output from llama.cpp, providing a clean chat experience without verbose loading messages or layer information.
+While streaming is available for remote models, local models currently provide full responses. The LLMClient automatically handles both streaming (remote) and non-streaming (local) modes consistently through the same API.
 
-## 🏗️ Architecture
+##  Architecture
 
 ### System Overview
 
@@ -400,8 +495,10 @@ classDiagram
     }
 
     class LLMClient {
-        +config: LLMConfig
+        +provider: LLMProvider
+        +provider_type: LLMProviderType
         +chat(messages, tools) ChatMessage
+        +chat_stream(messages, tools, callback) ChatMessage
         +generate(request) LLMResponse
     }
 
@@ -491,7 +588,7 @@ flowchart LR
     style H fill:#2196F3
 ```
 
-## 📚 Usage Examples
+##  Usage Examples
 
 ### Basic Chat
 
@@ -568,7 +665,46 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-## 🛠️ Creating Custom Tools
+### Streaming Chat (Direct LLM Usage)
+
+Use streaming to receive responses in real-time:
+
+```rust
+use helios_engine::{LLMClient, ChatMessage, llm::LLMProviderType};
+use helios_engine::config::LLMConfig;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    // Create client with remote provider type (streaming enabled)
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+
+    let messages = vec![
+        ChatMessage::system("You are a helpful assistant that responds concisely."),
+        ChatMessage::user("Write a short poem about programming."),
+    ];
+
+    println!("🤖: ");
+    let response = client
+        .chat_stream(messages, None, |chunk| {
+            print!("{}", chunk);
+            std::io::stdout().flush().unwrap(); // For immediate output
+        })
+        .await?;
+    println!(); // New line after streaming completes
+
+    Ok(())
+}
+```
+
+##  Creating Custom Tools
 
 Implement the `Tool` trait to create custom tools:
 
@@ -630,7 +766,7 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-## 📖 API Documentation
+##  API Documentation
 
 ### Core Types
 
@@ -654,6 +790,24 @@ Configuration management for LLM settings.
 - `from_file(path)` - Load config from TOML file
 - `default()` - Create default configuration
 - `save(path)` - Save config to file
+
+#### `LLMClient`
+
+Client for interacting with LLM providers (remote or local).
+
+**Methods:**
+- `new(provider_type)` - Create client with LLMProviderType (Remote or Local)
+- `chat(messages, tools)` - Send messages and get response
+- `chat_stream(messages, tools, callback)` - Send messages and stream response with callback function
+- `generate(request)` - Low-level generation method
+
+#### `LLMProviderType`
+
+Enumeration for different LLM provider types.
+
+**Variants:**
+- `Remote(LLMConfig)` - For remote API providers (OpenAI, Azure, etc.)
+- `Local(LocalConfig)` - For local llama.cpp models
 
 #### `ToolRegistry`
 
@@ -702,7 +856,7 @@ Echoes back a message.
 agent.tool(Box::new(EchoTool));
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 helios/
@@ -740,15 +894,15 @@ helios/
 ```
 helios-engine/
 │
-├── 📦 agent           - Agent system and builder pattern
-├── 🤖 llm             - LLM client and API communication
-├── 🛠️ tools           - Tool registry and implementations
-├── 💬 chat            - Chat messages and session management
-├── ⚙️ config          - TOML configuration loading/saving
-└── ❌ error           - Error types and Result alias
+├──  agent           - Agent system and builder pattern
+├──  llm             - LLM client and API communication
+├── ️ tools           - Tool registry and implementations
+├──  chat            - Chat messages and session management
+├──  config          - TOML configuration loading/saving
+└──  error           - Error types and Result alias
 ```
 
-## 🎯 Examples
+##  Examples
 
 Run the included examples:
 
@@ -766,7 +920,7 @@ cargo run --example custom_tool
 cargo run --example multiple_agents
 ```
 
-## 🧪 Testing
+##  Testing
 
 Run tests:
 
@@ -812,6 +966,15 @@ let response = agent.chat(
 ).await?;
 ```
 
+### Thinking Tags Display
+
+Helios Engine automatically detects and displays thinking tags from LLM responses:
+
+- The CLI displays thinking tags with visual indicators: `💭 [Thinking...]`
+- Streaming responses show thinking tags in real-time
+- Supports both `<thinking>` and `<think>` tag formats
+- In offline mode, thinking tags are processed and removed from final output
+
 ### Conversation Context
 
 Maintain conversation history:
@@ -823,7 +986,16 @@ agent.chat("My name is Alice").await?;
 agent.chat("What is my name?").await?; // Agent remembers: "Alice"
 ```
 
-## 🤝 Contributing
+### Clean Output Mode
+
+In offline mode, Helios Engine suppresses all verbose debugging output from llama.cpp:
+
+- No model loading messages
+- No layer information display
+- No verbose internal operations
+- Clean, user-focused experience during local inference
+
+##  Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -855,7 +1027,7 @@ cargo fmt
 cargo clippy
 ```
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
