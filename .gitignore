@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+config.toml
+*.swp
+*.swo
+*~
+.DS_Store
