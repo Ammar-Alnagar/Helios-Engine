@@ -9,7 +9,8 @@ async fn main() -> helios_engine::Result<()> {
     let mut agent = Agent::builder("BasicAgent")
         .config(config)
         .system_prompt("You are a helpful assistant.")
-        .build()?;
+        .build()
+        .await?;
 
     // Send a message
     let response = agent.chat("Hello! How are you?").await?;

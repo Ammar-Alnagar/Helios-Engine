@@ -1,10 +1,9 @@
+use helios_engine::config::LLMConfig;
 /// Example: Using streaming responses with Helios Engine
-/// 
+///
 /// This example demonstrates how to use the streaming API to get
 /// real-time responses from the LLM, including detection of thinking tags.
-
-use helios_engine::{LLMClient, ChatMessage, ChatSession};
-use helios_engine::config::LLMConfig;
+use helios_engine::{ChatMessage, ChatSession, LLMClient};
 use std::io::{self, Write};
 
 #[tokio::main]
@@ -22,11 +21,11 @@ async fn main() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    let client = LLMClient::new(llm_config);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     println!("Example 1: Simple Streaming Response");
     println!("======================================\n");
-    
+
     let messages = vec![
         ChatMessage::system("You are a helpful assistant."),
         ChatMessage::user("Write a short poem about coding."),
@@ -35,18 +34,19 @@ async fn main() -> helios_engine::Result<()> {
     print!("Assistant: ");
     io::stdout().flush()?;
 
-    let response = client.chat_stream(messages, None, |chunk| {
-        print!("{}", chunk);
-        io::stdout().flush().unwrap();
-    }).await?;
+    let response = client
+        .chat_stream(messages, None, |chunk| {
+            print!("{}", chunk);
+            io::stdout().flush().unwrap();
+        })
+        .await?;
 
     println!("\n\n");
 
     println!("Example 2: Interactive Streaming Chat");
     println!("======================================\n");
 
-    let mut session = ChatSession::new()
-        .with_system_prompt("You are a helpful coding assistant.");
+    let mut session = ChatSession::new().with_system_prompt("You are a helpful coding assistant.");
 
     let questions = vec![
         "What is Rust?",
@@ -61,10 +61,12 @@ async fn main() -> helios_engine::Result<()> {
         print!("Assistant: ");
         io::stdout().flush()?;
 
-        let response = client.chat_stream(session.get_messages(), None, |chunk| {
-            print!("{}", chunk);
-            io::stdout().flush().unwrap();
-        }).await?;
+        let response = client
+            .chat_stream(session.get_messages(), None, |chunk| {
+                print!("{}", chunk);
+                io::stdout().flush().unwrap();
+            })
+            .await?;
 
         session.add_assistant_message(&response.content);
         println!("\n");
@@ -127,19 +129,21 @@ async fn main() -> helios_engine::Result<()> {
         }
     }
 
-    let messages = vec![
-        ChatMessage::user("Solve this problem: What is 15 * 234 + 89?"),
-    ];
+    let messages = vec![ChatMessage::user(
+        "Solve this problem: What is 15 * 234 + 89?",
+    )];
 
     let mut tracker = ThinkingTracker::new();
     print!("Assistant: ");
     io::stdout().flush()?;
 
-    let _response = client.chat_stream(messages, None, |chunk| {
-        let output = tracker.process_chunk(chunk);
-        print!("{}", output);
-        io::stdout().flush().unwrap();
-    }).await?;
+    let _response = client
+        .chat_stream(messages, None, |chunk| {
+            let output = tracker.process_chunk(chunk);
+            print!("{}", output);
+            io::stdout().flush().unwrap();
+        })
+        .await?;
 
     println!("\n\n✅ Streaming examples completed!");
     println!("\nKey benefits of streaming:");

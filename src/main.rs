@@ -44,6 +44,23 @@ impl ThinkingTracker {
                         chars.next();
                     }
                     continue;
+                } else if remaining.starts_with("think>") {
+                    self.in_thinking = true;
+                    self.thinking_buffer.clear();
+                    output.push_str("\n💭 [Thinking");
+                    // Skip "think>"
+                    for _ in 0..6 {
+                        chars.next();
+                    }
+                    continue;
+                } else if remaining.starts_with("/think>") {
+                    self.in_thinking = false;
+                    output.push_str("]\n");
+                    // Skip "/think>"
+                    for _ in 0..7 {
+                        chars.next();
+                    }
+                    continue;
                 }
             }
 

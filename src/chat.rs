@@ -123,11 +123,11 @@ impl ChatSession {
 
     pub fn get_messages(&self) -> Vec<ChatMessage> {
         let mut messages = Vec::new();
-        
+
         if let Some(ref system_prompt) = self.system_prompt {
             messages.push(ChatMessage::system(system_prompt.clone()));
         }
-        
+
         messages.extend(self.messages.clone());
         messages
     }
@@ -140,5 +140,111 @@ impl ChatSession {
 impl Default for ChatSession {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_role_from_str() {
+        assert_eq!(Role::from("system"), Role::System);
+        assert_eq!(Role::from("user"), Role::User);
+        assert_eq!(Role::from("assistant"), Role::Assistant);
+        assert_eq!(Role::from("tool"), Role::Tool);
+        assert_eq!(Role::from("unknown"), Role::Assistant); // default case
+        assert_eq!(Role::from("SYSTEM"), Role::System); // case insensitive
+    }
+
+    #[test]
+    fn test_chat_message_constructors() {
+        let system_msg = ChatMessage::system("System message");
+        assert_eq!(system_msg.role, Role::System);
+        assert_eq!(system_msg.content, "System message");
+        assert!(system_msg.name.is_none());
+        assert!(system_msg.tool_calls.is_none());
+        assert!(system_msg.tool_call_id.is_none());
+
+        let user_msg = ChatMessage::user("User message");
+        assert_eq!(user_msg.role, Role::User);
+        assert_eq!(user_msg.content, "User message");
+
+        let assistant_msg = ChatMessage::assistant("Assistant message");
+        assert_eq!(assistant_msg.role, Role::Assistant);
+        assert_eq!(assistant_msg.content, "Assistant message");
+
+        let tool_msg = ChatMessage::tool("Tool result", "tool_call_123");
+        assert_eq!(tool_msg.role, Role::Tool);
+        assert_eq!(tool_msg.content, "Tool result");
+        assert_eq!(tool_msg.tool_call_id, Some("tool_call_123".to_string()));
+    }
+
+    #[test]
+    fn test_chat_session_new() {
+        let session = ChatSession::new();
+        assert!(session.messages.is_empty());
+        assert!(session.system_prompt.is_none());
+    }
+
+    #[test]
+    fn test_chat_session_with_system_prompt() {
+        let session = ChatSession::new().with_system_prompt("Test system prompt");
+        assert_eq!(
+            session.system_prompt,
+            Some("Test system prompt".to_string())
+        );
+    }
+
+    #[test]
+    fn test_chat_session_add_message() {
+        let mut session = ChatSession::new();
+        let msg = ChatMessage::user("Test message");
+        session.add_message(msg);
+        assert_eq!(session.messages.len(), 1);
+    }
+
+    #[test]
+    fn test_chat_session_add_user_message() {
+        let mut session = ChatSession::new();
+        session.add_user_message("Test user message");
+        assert_eq!(session.messages.len(), 1);
+        assert_eq!(session.messages[0].role, Role::User);
+        assert_eq!(session.messages[0].content, "Test user message");
+    }
+
+    #[test]
+    fn test_chat_session_add_assistant_message() {
+        let mut session = ChatSession::new();
+        session.add_assistant_message("Test assistant message");
+        assert_eq!(session.messages.len(), 1);
+        assert_eq!(session.messages[0].role, Role::Assistant);
+        assert_eq!(session.messages[0].content, "Test assistant message");
+    }
+
+    #[test]
+    fn test_chat_session_get_messages() {
+        let mut session = ChatSession::new().with_system_prompt("System prompt");
+        session.add_user_message("User message");
+        session.add_assistant_message("Assistant message");
+
+        let messages = session.get_messages();
+        assert_eq!(messages.len(), 3); // system + user + assistant
+        assert_eq!(messages[0].role, Role::System);
+        assert_eq!(messages[0].content, "System prompt");
+        assert_eq!(messages[1].role, Role::User);
+        assert_eq!(messages[1].content, "User message");
+        assert_eq!(messages[2].role, Role::Assistant);
+        assert_eq!(messages[2].content, "Assistant message");
+    }
+
+    #[test]
+    fn test_chat_session_clear() {
+        let mut session = ChatSession::new();
+        session.add_user_message("Test message");
+        assert!(!session.messages.is_empty());
+
+        session.clear();
+        assert!(session.messages.is_empty());
     }
 }

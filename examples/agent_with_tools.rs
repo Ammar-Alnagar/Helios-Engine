@@ -1,4 +1,4 @@
-use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, CalculatorTool, Config, EchoTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -12,16 +12,22 @@ async fn main() -> helios_engine::Result<()> {
         .tool(Box::new(CalculatorTool))
         .tool(Box::new(EchoTool))
         .max_iterations(5)
-        .build()?;
+        .build()
+        .await?;
 
-    println!("Available tools: {:?}\n", agent.tool_registry().list_tools());
+    println!(
+        "Available tools: {:?}\n",
+        agent.tool_registry().list_tools()
+    );
 
     // Test calculator tool
     let response = agent.chat("What is 25 * 4 + 10?").await?;
     println!("Agent: {}\n", response);
 
     // Test echo tool
-    let response = agent.chat("Can you echo this message: 'Hello from Helios!'").await?;
+    let response = agent
+        .chat("Can you echo this message: 'Hello from Helios!'")
+        .await?;
     println!("Agent: {}\n", response);
 
     Ok(())

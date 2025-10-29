@@ -74,7 +74,7 @@ impl Agent {
 
         // Execute agent loop with tool calling
         let response = self.execute_with_tools().await?;
-        
+
         Ok(response)
     }
 
@@ -118,10 +118,7 @@ impl Agent {
                         });
 
                     // Add tool result message
-                    let tool_message = ChatMessage::tool(
-                        tool_result.output,
-                        tool_call.id.clone(),
-                    );
+                    let tool_message = ChatMessage::tool(tool_result.output, tool_call.id.clone());
                     self.chat_session.add_message(tool_message);
                 }
 
@@ -141,6 +138,121 @@ impl Agent {
 
     pub fn set_max_iterations(&mut self, max: usize) {
         self.max_iterations = max;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::tools::{CalculatorTool, Tool, ToolParameter, ToolResult};
+    use serde_json::Value;
+    use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn test_agent_new() {
+        let config = Config::new_default();
+        let agent = Agent::new("test_agent", config).await;
+        assert!(agent.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_agent_builder() {
+        let config = Config::new_default();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .system_prompt("You are a helpful assistant")
+            .max_iterations(5)
+            .tool(Box::new(CalculatorTool))
+            .build()
+            .await
+            .unwrap();
+
+        assert_eq!(agent.name(), "test_agent");
+        assert_eq!(agent.max_iterations, 5);
+        assert_eq!(
+            agent.tool_registry().list_tools(),
+            vec!["calculator".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_agent_system_prompt() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        agent.set_system_prompt("You are a test agent");
+
+        // Check that the system prompt is set in chat session
+        let session = agent.chat_session();
+        assert_eq!(
+            session.system_prompt,
+            Some("You are a test agent".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_agent_tool_registry() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+
+        // Initially no tools
+        assert!(agent.tool_registry().list_tools().is_empty());
+
+        // Register a tool
+        agent.register_tool(Box::new(CalculatorTool));
+        assert_eq!(
+            agent.tool_registry().list_tools(),
+            vec!["calculator".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_agent_clear_history() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+
+        // Add a message to the chat session
+        agent.chat_session_mut().add_user_message("Hello");
+        assert!(!agent.chat_session().messages.is_empty());
+
+        // Clear history
+        agent.clear_history();
+        assert!(agent.chat_session().messages.is_empty());
+    }
+
+    // Mock tool for testing
+    struct MockTool;
+
+    #[async_trait::async_trait]
+    impl Tool for MockTool {
+        fn name(&self) -> &str {
+            "mock_tool"
+        }
+
+        fn description(&self) -> &str {
+            "A mock tool for testing"
+        }
+
+        fn parameters(&self) -> HashMap<String, ToolParameter> {
+            let mut params = HashMap::new();
+            params.insert(
+                "input".to_string(),
+                ToolParameter {
+                    param_type: "string".to_string(),
+                    description: "Input parameter".to_string(),
+                    required: Some(true),
+                },
+            );
+            params
+        }
+
+        async fn execute(&self, args: Value) -> crate::Result<ToolResult> {
+            let input = args
+                .get("input")
+                .and_then(|v| v.as_str())
+                .unwrap_or("default");
+            Ok(ToolResult::success(format!("Mock tool output: {}", input)))
+        }
     }
 }
 

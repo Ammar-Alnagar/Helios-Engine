@@ -31,3 +31,41 @@ pub enum HeliosError {
 }
 
 pub type Result<T> = std::result::Result<T, HeliosError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_types() {
+        let config_error = HeliosError::ConfigError("Config issue".to_string());
+        assert!(matches!(config_error, HeliosError::ConfigError(_)));
+
+        let llm_error = HeliosError::LLMError("LLM issue".to_string());
+        assert!(matches!(llm_error, HeliosError::LLMError(_)));
+
+        let tool_error = HeliosError::ToolError("Tool issue".to_string());
+        assert!(matches!(tool_error, HeliosError::ToolError(_)));
+
+        let agent_error = HeliosError::AgentError("Agent issue".to_string());
+        assert!(matches!(agent_error, HeliosError::AgentError(_)));
+    }
+
+    #[test]
+    fn test_error_display() {
+        let config_error = HeliosError::ConfigError("Config issue".to_string());
+        assert_eq!(
+            format!("{}", config_error),
+            "Configuration error: Config issue"
+        );
+
+        let llm_error = HeliosError::LLMError("LLM issue".to_string());
+        assert_eq!(format!("{}", llm_error), "LLM error: LLM issue");
+
+        let tool_error = HeliosError::ToolError("Tool issue".to_string());
+        assert_eq!(format!("{}", tool_error), "Tool error: Tool issue");
+
+        let agent_error = HeliosError::AgentError("Agent issue".to_string());
+        assert_eq!(format!("{}", agent_error), "Agent error: Agent issue");
+    }
+}

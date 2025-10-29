@@ -42,7 +42,7 @@ impl Tool for WeatherTool {
             .get("location")
             .and_then(|v| v.as_str())
             .unwrap_or("Unknown");
-        
+
         let unit = args
             .get("unit")
             .and_then(|v| v.as_str())
@@ -71,7 +71,8 @@ async fn main() -> helios_engine::Result<()> {
         .config(config)
         .system_prompt("You are a helpful weather assistant. Use the weather tool to answer questions about weather.")
         .tool(Box::new(WeatherTool))
-        .build()?;
+        .build()
+        .await?;
 
     // Ask about weather
     let response = agent.chat("What's the weather like in New York?").await?;

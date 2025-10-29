@@ -1,10 +1,9 @@
+use helios_engine::config::LLMConfig;
 /// Example: Using Helios as a crate for direct LLM calls
-/// 
+///
 /// This example demonstrates how to use Helios as a library to make
 /// direct calls to LLM models without using the Agent abstraction.
-
-use helios_engine::{LLMClient, ChatMessage, ChatSession};
-use helios_engine::config::LLMConfig;
+use helios_engine::{ChatMessage, ChatSession, LLMClient};
 use std::io::{self, Write};
 
 #[tokio::main]
@@ -33,10 +32,10 @@ async fn main() -> helios_engine::Result<()> {
     println!("🎮 Example 4: Interactive Chat");
     println!("{}", "=".repeat(50));
     println!("Would you like to start an interactive chat? (y/n)");
-    
+
     let mut choice = String::new();
     io::stdin().read_line(&mut choice)?;
-    
+
     if choice.trim().to_lowercase() == "y" {
         interactive_chat().await?;
     } else {
@@ -60,7 +59,7 @@ async fn simple_call() -> helios_engine::Result<()> {
     };
 
     // Create client
-    let client = LLMClient::new(llm_config);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     // Prepare messages
     let messages = vec![
@@ -94,7 +93,7 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    let client = LLMClient::new(llm_config);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     // Use ChatSession to manage conversation
     let mut session = ChatSession::new()
@@ -104,7 +103,7 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
     println!("Turn 1:");
     session.add_user_message("What is 15 * 23?");
     print!("  User: What is 15 * 23?\n  ");
-    
+
     match client.chat(session.get_messages(), None).await {
         Ok(response) => {
             session.add_assistant_message(&response.content);
@@ -120,7 +119,7 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
     println!("\nTurn 2:");
     session.add_user_message("Now divide that by 5.");
     print!("  User: Now divide that by 5.\n  ");
-    
+
     match client.chat(session.get_messages(), None).await {
         Ok(response) => {
             session.add_assistant_message(&response.content);
@@ -188,9 +187,9 @@ async fn interactive_chat() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    let client = LLMClient::new(llm_config);
-    let mut session = ChatSession::new()
-        .with_system_prompt("You are a friendly and helpful AI assistant.");
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
+    let mut session =
+        ChatSession::new().with_system_prompt("You are a friendly and helpful AI assistant.");
 
     println!("Chat started! Type 'exit' or 'quit' to end the conversation.\n");
 

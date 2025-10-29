@@ -1,8 +1,8 @@
+use crate::error::{HeliosError, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use crate::error::{HeliosError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
@@ -81,7 +81,11 @@ pub trait Tool: Send + Sync {
                 parameters: ParametersSchema {
                     schema_type: "object".to_string(),
                     properties: self.parameters(),
-                    required: if required.is_empty() { None } else { Some(required) },
+                    required: if required.is_empty() {
+                        None
+                    } else {
+                        Some(required)
+                    },
                 },
             },
         }
@@ -113,7 +117,7 @@ impl ToolRegistry {
             .tools
             .get(name)
             .ok_or_else(|| HeliosError::ToolError(format!("Tool '{}' not found", name)))?;
-        
+
         tool.execute(args).await
     }
 
@@ -176,7 +180,7 @@ impl Tool for CalculatorTool {
 
 fn evaluate_expression(expr: &str) -> Result<f64> {
     let expr = expr.replace(" ", "");
-    
+
     // Simple parsing for basic operations
     for op in &['*', '/', '+', '-'] {
         if let Some(pos) = expr.rfind(*op) {
@@ -185,10 +189,10 @@ fn evaluate_expression(expr: &str) -> Result<f64> {
             }
             let left = &expr[..pos];
             let right = &expr[pos + 1..];
-            
+
             let left_val = evaluate_expression(left)?;
             let right_val = evaluate_expression(right)?;
-            
+
             return Ok(match op {
                 '+' => left_val + right_val,
                 '-' => left_val - right_val,
@@ -203,7 +207,7 @@ fn evaluate_expression(expr: &str) -> Result<f64> {
             });
         }
     }
-    
+
     expr.parse::<f64>()
         .map_err(|_| HeliosError::ToolError(format!("Invalid expression: {}", expr)))
 }
@@ -240,5 +244,159 @@ impl Tool for EchoTool {
             .ok_or_else(|| HeliosError::ToolError("Missing 'message' parameter".to_string()))?;
 
         Ok(ToolResult::success(format!("Echo: {}", message)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_tool_result_success() {
+        let result = ToolResult::success("test output");
+        assert!(result.success);
+        assert_eq!(result.output, "test output");
+    }
+
+    #[test]
+    fn test_tool_result_error() {
+        let result = ToolResult::error("test error");
+        assert!(!result.success);
+        assert_eq!(result.output, "test error");
+    }
+
+    #[tokio::test]
+    async fn test_calculator_tool() {
+        let tool = CalculatorTool;
+        assert_eq!(tool.name(), "calculator");
+        assert_eq!(
+            tool.description(),
+            "Perform basic arithmetic operations. Supports +, -, *, / operations."
+);
+
+        let args = json!({"expression": "2 + 2"});
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.output, "4");
+    }
+
+    #[tokio::test]
+    async fn test_calculator_tool_multiplication() {
+        let tool = CalculatorTool;
+        let args = json!({"expression": "3 * 4"});
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.output, "12");
+    }
+
+    #[tokio::test]
+    async fn test_calculator_tool_division() {
+        let tool = CalculatorTool;
+        let args = json!({"expression": "8 / 2"});
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.output, "4");
+    }
+
+    #[tokio::test]
+    async fn test_calculator_tool_division_by_zero() {
+        let tool = CalculatorTool;
+        let args = json!({"expression": "8 / 0"});
+        let result = tool.execute(args).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_calculator_tool_invalid_expression() {
+        let tool = CalculatorTool;
+        let args = json!({"expression": "invalid"});
+        let result = tool.execute(args).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_echo_tool() {
+        let tool = EchoTool;
+        assert_eq!(tool.name(), "echo");
+        assert_eq!(tool.description(), "Echo back the provided message.");
+
+        let args = json!({"message": "Hello, world!"});
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.output, "Echo: Hello, world!");
+    }
+
+    #[tokio::test]
+    async fn test_echo_tool_missing_parameter() {
+        let tool = EchoTool;
+        let args = json!({});
+        let result = tool.execute(args).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tool_registry_new() {
+        let registry = ToolRegistry::new();
+        assert!(registry.tools.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_tool_registry_register_and_get() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(CalculatorTool));
+
+        let tool = registry.get("calculator");
+        assert!(tool.is_some());
+        assert_eq!(tool.unwrap().name(), "calculator");
+    }
+
+    #[tokio::test]
+    async fn test_tool_registry_execute() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(CalculatorTool));
+
+        let args = json!({"expression": "5 * 6"});
+        let result = registry.execute("calculator", args).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.output, "30");
+    }
+
+    #[tokio::test]
+    async fn test_tool_registry_execute_nonexistent_tool() {
+        let registry = ToolRegistry::new();
+        let args = json!({"expression": "5 * 6"});
+        let result = registry.execute("nonexistent", args).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tool_registry_get_definitions() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(CalculatorTool));
+        registry.register(Box::new(EchoTool));
+
+        let definitions = registry.get_definitions();
+        assert_eq!(definitions.len(), 2);
+
+        // Check that we have both tools
+        let names: Vec<String> = definitions
+            .iter()
+            .map(|d| d.function.name.clone())
+            .collect();
+        assert!(names.contains(&"calculator".to_string()));
+        assert!(names.contains(&"echo".to_string()));
+    }
+
+    #[test]
+    fn test_tool_registry_list_tools() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(CalculatorTool));
+        registry.register(Box::new(EchoTool));
+
+        let tools = registry.list_tools();
+        assert_eq!(tools.len(), 2);
+        assert!(tools.contains(&"calculator".to_string()));
+        assert!(tools.contains(&"echo".to_string()));
     }
 }

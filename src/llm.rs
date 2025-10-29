@@ -303,19 +303,33 @@ impl LocalLLMProvider {
         let mut formatted = String::new();
 
         // Use Qwen chat template format
-        formatted.push_str("<|im_start|>system\n");
-        if let Some(system_msg) = messages.iter().find(|m| m.role == crate::chat::Role::System) {
-            formatted.push_str(&system_msg.content);
-        } else {
-            formatted.push_str("You are a helpful AI assistant. Provide direct, concise answers.");
+        for message in messages {
+            match message.role {
+                crate::chat::Role::System => {
+                    formatted.push_str("<|im_start|>system\n");
+                    formatted.push_str(&message.content);
+                    formatted.push_str("\n<|im_end|>\n");
+                }
+                crate::chat::Role::User => {
+                    formatted.push_str("<|im_start|>user\n");
+                    formatted.push_str(&message.content);
+                    formatted.push_str("\n<|im_end|>\n");
+                }
+                crate::chat::Role::Assistant => {
+                    formatted.push_str("<|im_start|>assistant\n");
+                    formatted.push_str(&message.content);
+                    formatted.push_str("\n<|im_end|>\n");
+                }
+                crate::chat::Role::Tool => {
+                    // For tool messages, include them as assistant responses
+                    formatted.push_str("<|im_start|>assistant\n");
+                    formatted.push_str(&message.content);
+                    formatted.push_str("\n<|im_end|>\n");
+                }
+            }
         }
-        formatted.push_str("\n<|im_end|>\n");
 
-        // Add user message
-        if let Some(user_msg) = messages.iter().find(|m| m.role == crate::chat::Role::User) {
-            formatted.push_str(&format!("<|im_start|>user\n{}\n<|im_end|>\n", user_msg.content));
-        }
-
+        // Start the assistant's response
         formatted.push_str("<|im_start|>assistant\n");
 
         formatted
@@ -659,7 +673,7 @@ impl LLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
-        on_chunk: F,
+        mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
         F: FnMut(&str) + Send,
@@ -671,10 +685,14 @@ impl LLMClient {
                 remote_client.chat_stream(messages, tools, on_chunk).await
             }
             LLMProviderType::Local(_) => {
-                // For now, local models don't support streaming
-                // TODO: Implement streaming for local models
-                self.chat(messages, tools).await
+                // For now, local models don't support streaming, so we call the callback
+                // with the full response content to maintain compatibility
+                let response = self.chat(messages, tools).await?;
+                on_chunk(&response.content);
+                Ok(response)
             }
         }
     }
 }
+
+// Test module added
