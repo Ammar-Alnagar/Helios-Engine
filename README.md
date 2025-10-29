@@ -16,19 +16,23 @@
 - 💬 **Chat Management**: Built-in conversation history and session management
 - ⚡ **Streaming Support**: Real-time response streaming with thinking tag detection
 - ⚙️ **Configuration**: TOML-based configuration for LLM settings
-- 🔌 **LLM Support**: Compatible with OpenAI API and any OpenAI-compatible API
+- 🔌 **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models via llama.cpp
 - 🔄 **Async/Await**: Built on Tokio for high-performance async operations
 - 🎯 **Type-Safe**: Leverages Rust's type system for safe and reliable code
 - 📦 **Extensible**: Easy to add custom tools and extend functionality
 - 💭 **Thinking Tags**: Automatic detection and display of model reasoning process
+- 🏠 **Offline Mode**: Run local models without internet connection
+- 🚀 **Clean Output**: Suppresses verbose debugging in offline mode for clean user experience
 
 ## 📋 Table of Contents
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
   - [Using as a Library Crate](#using-as-a-library-crate)
+  - [Using Offline Mode with Local Models](#using-offline-mode-with-local-models)
   - [Using with Agent System](#using-with-agent-system)
 - [Configuration](#configuration)
+- [Local Inference Setup](#local-inference-setup)
 - [Architecture](#architecture)
 - [Usage Examples](#usage-examples)
 - [Creating Custom Tools](#creating-custom-tools)
@@ -64,6 +68,15 @@ helios-engine ask "What is Rust?"
 
 # Get help
 helios-engine --help
+
+# 🚀 NEW: Use offline mode with local models (no internet required)
+helios-engine --mode offline chat
+
+# Use online mode (default - uses remote APIs)
+helios-engine --mode online chat
+
+# Auto mode (uses local if configured, otherwise remote)
+helios-engine --mode auto chat
 ```
 
 ### As a Library Crate
@@ -72,7 +85,7 @@ Add Helios-Engine to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios-engine = "0.1.0"
+helios-engine = "0.1.7"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -134,19 +147,61 @@ async fn main() -> helios_engine::Result<()> {
 
 **📚 For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
 
+### Using Offline Mode with Local Models
+
+Run models locally without internet connection:
+
+```rust
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LocalConfig;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    // Configure local model
+    let local_config = LocalConfig {
+        huggingface_repo: "unsloth/Qwen3-0.6B-GGUF".to_string(),
+        model_file: "Qwen3-0.6B-Q4_K_M.gguf".to_string(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    // Create client with local provider
+    let client = LLMClient::new(local_config.into()).await?;
+
+    let messages = vec![
+        ChatMessage::system("You are a helpful AI assistant."),
+        ChatMessage::user("What is Rust programming?"),
+    ];
+
+    let response = client.chat(messages, None).await?;
+    println!("Response: {}", response.content);
+
+    Ok(())
+}
+```
+
+**Note**: First run downloads the model. Subsequent runs use the cached model.
+
 ### Using with Agent System
 
 For more advanced use cases with tools and persistent conversation:
 
 #### 1. Configure Your LLM
 
-Create a `config.toml` file:
+Create a `config.toml` file (supports both remote and local):
 
 ```toml
 [llm]
 model_name = "gpt-3.5-turbo"
 base_url = "https://api.openai.com/v1"
 api_key = "your-api-key-here"
+temperature = 0.7
+max_tokens = 2048
+
+# Optional: Add local configuration for offline mode
+[local]
+huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
+model_file = "Qwen3-0.6B-Q4_K_M.gguf"
 temperature = 0.7
 max_tokens = 2048
 ```
@@ -184,7 +239,9 @@ cargo run
 
 ## ⚙️ Configuration
 
-Helios Engine  uses TOML for configuration. Here's a complete configuration example:
+Helios Engine uses TOML for configuration. You can configure either remote API access or local model inference.
+
+### Remote API Configuration (Default)
 
 ```toml
 [llm]
@@ -204,8 +261,33 @@ temperature = 0.7
 max_tokens = 2048
 ```
 
+### Local Model Configuration (Offline Mode)
+
+```toml
+[llm]
+# Remote config still needed for auto mode fallback
+model_name = "gpt-3.5-turbo"
+base_url = "https://api.openai.com/v1"
+api_key = "sk-..."
+temperature = 0.7
+max_tokens = 2048
+
+# Local model configuration
+[local]
+# HuggingFace repository and model file
+huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
+model_file = "Qwen3-0.6B-Q4_K_M.gguf"
+
+# Local model settings
+temperature = 0.7
+max_tokens = 2048
+```
+
 ### Supported LLM Providers
 
+Helios Engine supports both remote APIs and local model inference:
+
+#### Remote APIs (Online Mode)
 Helios Engine works with any OpenAI-compatible API:
 
 - **OpenAI**: `https://api.openai.com/v1`
@@ -213,6 +295,74 @@ Helios Engine works with any OpenAI-compatible API:
 - **Local Models (LM Studio)**: `http://localhost:1234/v1`
 - **Ollama with OpenAI compatibility**: `http://localhost:11434/v1`
 - **Any OpenAI-compatible API**
+
+#### Local Models (Offline Mode)
+Run models locally using llama.cpp without internet connection:
+
+- **GGUF Models**: Compatible with all GGUF format models from HuggingFace
+- **Automatic Download**: Models are downloaded automatically from HuggingFace
+- **GPU Acceleration**: Uses GPU if available (via llama.cpp)
+- **Clean Output**: Suppresses verbose debugging for clean user experience
+- **Popular Models**: Works with Qwen, Llama, Mistral, and other GGUF models
+
+**Supported Model Sources:**
+- HuggingFace Hub repositories
+- Local GGUF files
+- Automatic model caching
+
+## 🏠 Local Inference Setup
+
+Helios Engine supports running large language models locally using llama.cpp, providing privacy, offline capability, and no API costs.
+
+### Prerequisites
+
+- **HuggingFace Account**: Sign up at [huggingface.co](https://huggingface.co) (free)
+- **HuggingFace CLI**: Install the CLI tool:
+  ```bash
+  pip install huggingface_hub
+  huggingface-cli login  # Login with your token
+  ```
+
+### Setting Up Local Models
+
+1. **Find a GGUF Model**: Browse [HuggingFace Models](https://huggingface.co/models?library=gguf) for compatible models
+
+2. **Update Configuration**: Add local model config to your `config.toml`:
+   ```toml
+   [local]
+   huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
+   model_file = "Qwen3-0.6B-Q4_K_M.gguf"
+   temperature = 0.7
+   max_tokens = 2048
+   ```
+
+3. **Run in Offline Mode**:
+   ```bash
+   # First run downloads the model
+   helios-engine --mode offline ask "Hello world"
+
+   # Subsequent runs use cached model
+   helios-engine --mode offline chat
+   ```
+
+### Recommended Models
+
+| Model | Size | Use Case | Repository |
+|-------|------|----------|------------|
+| Qwen3-0.6B | ~400MB | Fast, good quality | `unsloth/Qwen3-0.6B-GGUF` |
+| Llama-3.2-1B | ~700MB | Balanced performance | `unsloth/Llama-3.2-1B-Instruct-GGUF` |
+| Mistral-7B | ~4GB | High quality | `TheBloke/Mistral-7B-Instruct-v0.1-GGUF` |
+
+### Performance Tips
+
+- **GPU Acceleration**: Models automatically use GPU if available
+- **Model Caching**: Downloaded models are cached locally (~/.cache/huggingface)
+- **Memory Usage**: Larger models need more RAM/VRAM
+- **First Run**: Initial model download may take time depending on connection
+
+### Clean Output Mode
+
+In offline mode, Helios Engine suppresses all debugging output from llama.cpp, providing a clean chat experience without verbose loading messages or layer information.
 
 ## 🏗️ Architecture
 
