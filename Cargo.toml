@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Ammar Alnagar <ammaralnagar416@gmail.com>"]
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support"
