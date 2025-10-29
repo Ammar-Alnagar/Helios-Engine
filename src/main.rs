@@ -1,5 +1,7 @@
-use helios_engine::{Agent, Config, CalculatorTool, EchoTool, LLMClient, LLMProvider, ChatMessage};
 use clap::{Parser, Subcommand};
+#[allow(unused_imports)]
+#[allow(unused_variables)]
+use helios_engine::{Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMClient, LLMProvider};
 use std::io::{self, Write};
 
 /// Helper to track and display thinking tags
@@ -91,14 +93,14 @@ enum Commands {
         #[arg(short, long, default_value = "5")]
         max_iterations: usize,
     },
-    
+
     /// Initialize a new config file
     Init {
         /// Path where to create the config file
         #[arg(short, long, default_value = "config.toml")]
         output: String,
     },
-    
+
     /// Send a single message and exit
     Ask {
         /// The message to send
@@ -128,7 +130,10 @@ async fn main() -> helios_engine::Result<()> {
         Some(Commands::Ask { message }) => {
             ask_once(&cli.config, message).await?;
         }
-        Some(Commands::Chat { system_prompt, max_iterations }) => {
+        Some(Commands::Chat {
+            system_prompt,
+            max_iterations,
+        }) => {
             let sys_prompt = system_prompt.as_ref().map(|s| s.as_str()).unwrap_or(
                 "You are a helpful AI assistant with access to various tools. Use them when needed to help the user."
             );
@@ -150,10 +155,10 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
         println!("⚠ Configuration file '{}' already exists!", output);
         print!("Overwrite? (y/N): ");
         io::stdout().flush()?;
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        
+
         if !input.trim().eq_ignore_ascii_case("y") {
             println!("Cancelled.");
             return Ok(());
@@ -162,7 +167,7 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
 
     let default_config = Config::new_default();
     default_config.save(output)?;
-    
+
     println!("✓ Created configuration file: {}", output);
     println!("\nNext steps:");
     println!("1. Edit {} and add your API key", output);
@@ -172,14 +177,14 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
     println!("  model_name = \"gpt-3.5-turbo\"");
     println!("  base_url = \"https://api.openai.com/v1\"");
     println!("  api_key = \"your-api-key-here\"");
-    
+
     Ok(())
 }
 
 /// Send a single message and exit
 async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()> {
     let config = load_config(config_path)?;
-    
+
     // Use streaming for direct LLM call
     let client = LLMClient::new(config.llm);
     let messages = vec![
@@ -188,24 +193,30 @@ async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()>
     ];
 
     let mut tracker = ThinkingTracker::new();
-    
+
     print!("🤖: ");
     io::stdout().flush().unwrap();
 
-    let response = client.chat_stream(messages, None, |chunk| {
-        if let Some(output) = tracker.process_chunk(chunk) {
-            print!("{}", output);
-            io::stdout().flush().unwrap();
-        }
-    }).await?;
+    let response = client
+        .chat_stream(messages, None, |chunk| {
+            if let Some(output) = tracker.process_chunk(chunk) {
+                print!("{}", output);
+                io::stdout().flush().unwrap();
+            }
+        })
+        .await?;
 
     println!("\n");
-    
+
     Ok(())
 }
 
 /// Start an interactive chat session
-async fn interactive_chat(config_path: &str, system_prompt: &str, _max_iterations: usize) -> helios_engine::Result<()> {
+async fn interactive_chat(
+    config_path: &str,
+    system_prompt: &str,
+    _max_iterations: usize,
+) -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - LLM Agent Framework");
     println!("========================================\n");
 
@@ -213,8 +224,7 @@ async fn interactive_chat(config_path: &str, system_prompt: &str, _max_iteration
 
     // Create LLM client for streaming
     let client = LLMClient::new(config.llm);
-    let mut session = helios_engine::ChatSession::new()
-        .with_system_prompt(system_prompt);
+    let mut session = helios_engine::ChatSession::new().with_system_prompt(system_prompt);
 
     println!("✓ Streaming mode enabled");
     println!("✓ Thinking tags will be shown when available");
@@ -267,12 +277,15 @@ async fn interactive_chat(config_path: &str, system_prompt: &str, _max_iteration
         print!("\n🤖: ");
         io::stdout().flush()?;
 
-        match client.chat_stream(session.get_messages(), None, |chunk| {
-            if let Some(output) = tracker.process_chunk(chunk) {
-                print!("{}", output);
-                io::stdout().flush().unwrap();
-            }
-        }).await {
+        match client
+            .chat_stream(session.get_messages(), None, |chunk| {
+                if let Some(output) = tracker.process_chunk(chunk) {
+                    print!("{}", output);
+                    io::stdout().flush().unwrap();
+                }
+            })
+            .await
+        {
             Ok(response) => {
                 session.add_assistant_message(&response.content);
                 println!("\n");
@@ -293,16 +306,16 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
     match Config::from_file(config_path) {
         Ok(cfg) => {
             println!("✓ Loaded configuration from {}\n", config_path);
-            
+
             // Check if API key is set
             if cfg.llm.api_key == "your-api-key-here" {
                 eprintln!("⚠ Warning: API key not configured!");
                 eprintln!("Please edit {} and set your API key.\n", config_path);
                 return Err(helios_engine::HeliosError::ConfigError(
-                    "API key not configured".to_string()
+                    "API key not configured".to_string(),
                 ));
             }
-            
+
             Ok(cfg)
         }
         Err(_) => {
@@ -311,9 +324,10 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
             eprintln!("  helios-engine init");
             eprintln!("\nOr specify a different config file:");
             eprintln!("  helios-engine --config /path/to/config.toml chat\n");
-            Err(helios_engine::HeliosError::ConfigError(
-                format!("Configuration file '{}' not found", config_path)
-            ))
+            Err(helios_engine::HeliosError::ConfigError(format!(
+                "Configuration file '{}' not found",
+                config_path
+            )))
         }
     }
 }
