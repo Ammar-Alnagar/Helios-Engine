@@ -1,5 +1,9 @@
 # 🚀 Helios - LLM Agent Framework
 
+<p align="center">
+  <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
+</p>
+
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -224,7 +228,7 @@ graph TB
     LLM -->|Response| Agent
     Agent -->|Output| User
     Config[Config TOML] -->|Load| Agent
-    
+
     style Agent fill:#4CAF50
     style LLM fill:#2196F3
     style Registry fill:#FF9800
@@ -244,20 +248,20 @@ classDiagram
         +register_tool(tool) void
         +clear_history() void
     }
-    
+
     class LLMClient {
         +config: LLMConfig
         +chat(messages, tools) ChatMessage
         +generate(request) LLMResponse
     }
-    
+
     class ToolRegistry {
         +tools: HashMap
         +register(tool) void
         +execute(name, args) ToolResult
         +get_definitions() Vec
     }
-    
+
     class Tool {
         <<interface>>
         +name() String
@@ -265,20 +269,20 @@ classDiagram
         +parameters() HashMap
         +execute(args) ToolResult
     }
-    
+
     class ChatSession {
         +messages: Vec
         +system_prompt: Option
         +add_message(msg) void
         +clear() void
     }
-    
+
     class Config {
         +llm: LLMConfig
         +from_file(path) Config
         +save(path) void
     }
-    
+
     Agent --> LLMClient
     Agent --> ToolRegistry
     Agent --> ChatSession
@@ -301,11 +305,11 @@ sequenceDiagram
 
     User->>Agent: Send Message
     Agent->>Agent: Add to Chat History
-    
+
     loop Until No Tool Calls
         Agent->>LLM: Send Messages + Tool Definitions
         LLM->>Agent: Response (with/without tool calls)
-        
+
         alt Has Tool Calls
             Agent->>ToolRegistry: Execute Tool
             ToolRegistry->>Tool: Call with Arguments
@@ -331,7 +335,7 @@ flowchart LR
     G --> B
     B -->|No Tool Needed| H[Return Response]
     H --> I[User]
-    
+
     style B fill:#FFD700
     style E fill:#4CAF50
     style H fill:#2196F3
@@ -347,15 +351,15 @@ use helios_engine::{Agent, Config};
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("Assistant")
         .config(config)
         .system_prompt("You are a helpful assistant.")
         .build()?;
-    
+
     let response = agent.chat("Hello!").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
@@ -368,7 +372,7 @@ use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("ToolAgent")
         .config(config)
         .system_prompt("You have access to tools. Use them wisely.")
@@ -376,11 +380,11 @@ async fn main() -> helios_engine::Result<()> {
         .tool(Box::new(EchoTool))
         .max_iterations(5)
         .build()?;
-    
+
     // The agent will automatically use the calculator
     let response = agent.chat("What is 123 * 456?").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
@@ -393,23 +397,23 @@ use helios_engine::{Agent, Config};
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut poet = Agent::builder("Poet")
         .config(config.clone())
         .system_prompt("You are a creative poet.")
         .build()?;
-    
+
     let mut scientist = Agent::builder("Scientist")
         .config(config)
         .system_prompt("You are a knowledgeable scientist.")
         .build()?;
-    
+
     let poem = poet.chat("Write a haiku about code").await?;
     let fact = scientist.chat("Explain quantum physics").await?;
-    
+
     println!("Poet: {}\n", poem);
     println!("Scientist: {}", fact);
-    
+
     Ok(())
 }
 ```
@@ -451,10 +455,10 @@ impl Tool for WeatherTool {
 
     async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let location = args["location"].as_str().unwrap_or("Unknown");
-        
+
         // Your weather API logic here
         let weather = format!("Weather in {}: Sunny, 72°F", location);
-        
+
         Ok(ToolResult::success(weather))
     }
 }
@@ -463,15 +467,15 @@ impl Tool for WeatherTool {
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("WeatherAgent")
         .config(config)
         .tool(Box::new(WeatherTool))
         .build()?;
-    
+
     let response = agent.chat("What's the weather in Tokyo?").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
