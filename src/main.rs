@@ -1,6 +1,8 @@
-#[allow(unused_imports, unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 use clap::{Parser, Subcommand};
-use helios_engine::{Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMClient, LLMProvider};
+use helios_engine::{ChatMessage, Config, LLMClient};
 use std::io::{self, Write};
 
 /// Helper to track and display thinking tags
