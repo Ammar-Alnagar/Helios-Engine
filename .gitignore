@@ -8,3 +8,6 @@ config.toml
 .gitignore
 .cache
 .cache
+.cache/models/Qwen3-0.6B-Q4_K_M.gguf
+.cache/models/.cache/huggingface
+.cache/models/.cache
