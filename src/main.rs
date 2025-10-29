@@ -1,6 +1,5 @@
+#[allow(unused_imports, unused_variables)]
 use clap::{Parser, Subcommand};
-#[allow(unused_imports)]
-#[allow(unused_variables)]
 use helios_engine::{Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMClient, LLMProvider};
 use std::io::{self, Write};
 
