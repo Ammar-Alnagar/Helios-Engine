@@ -1,10 +1,10 @@
-use helios::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
 use clap::{Parser, Subcommand};
 use std::io::{self, Write};
 
-/// Helios - A powerful LLM Agent Framework
+/// Helios Engine - A powerful LLM Agent Framework
 #[derive(Parser)]
-#[command(name = "helios")]
+#[command(name = "helios-engine")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Path to configuration file
@@ -47,7 +47,7 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let cli = Cli::parse();
 
     // Initialize tracing
@@ -85,7 +85,7 @@ async fn main() -> helios::Result<()> {
 }
 
 /// Initialize a new configuration file
-fn init_config(output: &str) -> helios::Result<()> {
+fn init_config(output: &str) -> helios_engine::Result<()> {
     if std::path::Path::new(output).exists() {
         println!("⚠ Configuration file '{}' already exists!", output);
         print!("Overwrite? (y/N): ");
@@ -106,7 +106,7 @@ fn init_config(output: &str) -> helios::Result<()> {
     println!("✓ Created configuration file: {}", output);
     println!("\nNext steps:");
     println!("1. Edit {} and add your API key", output);
-    println!("2. Run: helios chat");
+    println!("2. Run: helios-engine chat");
     println!("\nExample config structure:");
     println!("  [llm]");
     println!("  model_name = \"gpt-3.5-turbo\"");
@@ -117,7 +117,7 @@ fn init_config(output: &str) -> helios::Result<()> {
 }
 
 /// Send a single message and exit
-async fn ask_once(config_path: &str, message: &str) -> helios::Result<()> {
+async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()> {
     let config = load_config(config_path)?;
     
     let mut agent = Agent::builder("HeliosAgent")
@@ -135,7 +135,7 @@ async fn ask_once(config_path: &str, message: &str) -> helios::Result<()> {
 }
 
 /// Start an interactive chat session
-async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations: usize) -> helios::Result<()> {
+async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations: usize) -> helios_engine::Result<()> {
     println!("🚀 Helios - LLM Agent Framework");
     println!("================================\n");
 
@@ -204,7 +204,7 @@ async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations
 }
 
 /// Load configuration from file
-fn load_config(config_path: &str) -> helios::Result<Config> {
+fn load_config(config_path: &str) -> helios_engine::Result<Config> {
     match Config::from_file(config_path) {
         Ok(cfg) => {
             println!("✓ Loaded configuration from {}\n", config_path);
@@ -213,7 +213,7 @@ fn load_config(config_path: &str) -> helios::Result<Config> {
             if cfg.llm.api_key == "your-api-key-here" {
                 eprintln!("⚠ Warning: API key not configured!");
                 eprintln!("Please edit {} and set your API key.\n", config_path);
-                return Err(helios::HeliosError::ConfigError(
+                return Err(helios_engine::HeliosError::ConfigError(
                     "API key not configured".to_string()
                 ));
             }
@@ -223,10 +223,10 @@ fn load_config(config_path: &str) -> helios::Result<Config> {
         Err(_) => {
             eprintln!("❌ Configuration file '{}' not found!", config_path);
             eprintln!("\nTo create a new config file, run:");
-            eprintln!("  helios init");
+            eprintln!("  helios-engine init");
             eprintln!("\nOr specify a different config file:");
-            eprintln!("  helios --config /path/to/config.toml chat\n");
-            Err(helios::HeliosError::ConfigError(
+            eprintln!("  helios-engine --config /path/to/config.toml chat\n");
+            Err(helios_engine::HeliosError::ConfigError(
                 format!("Configuration file '{}' not found", config_path)
             ))
         }

@@ -6,21 +6,21 @@ Quick reference for using Helios both as a CLI tool and as a library.
 
 ### Installation
 ```bash
-cargo install helios
+cargo install helios-engine
 ```
 
 ### Setup
 ```bash
-helios init              # Create config.toml
+helios-engine init              # Create config.toml
 # Edit config.toml with your API key
 ```
 
 ### Commands
 ```bash
 helios                   # Interactive chat (default)
-helios chat              # Interactive chat explicitly
-helios ask "question"    # One-off question
-helios --help            # Show help
+helios-engine chat              # Interactive chat explicitly
+helios-engine ask "question"    # One-off question
+helios-engine --help            # Show help
 ```
 
 ### Options
@@ -41,8 +41,8 @@ helios --help            # Show help
 
 ### Basic Setup
 ```rust
-use helios::{LLMClient, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LLMConfig;
 
 let config = LLMConfig {
     model_name: "gpt-3.5-turbo".to_string(),

@@ -10,7 +10,7 @@ Add Helios to your `Cargo.toml`:
 [dependencies]
 helios = { path = "../helios" }  # If using locally
 # or
-helios = "0.1.0"  # Once published to crates.io
+helios-engine = "0.1.0"  # Once published to crates.io
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -21,11 +21,11 @@ tokio = { version = "1.35", features = ["full"] }
 The simplest way to call models directly without the Agent abstraction:
 
 ```rust
-use helios::{LLMClient, LLMProvider, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, LLMProvider, ChatMessage};
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Create LLM configuration
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
@@ -57,10 +57,10 @@ async fn main() -> helios::Result<()> {
 Load configuration from a TOML file:
 
 ```rust
-use helios::{Config, LLMClient, LLMProvider, ChatMessage};
+use helios_engine::{Config, LLMClient, LLMProvider, ChatMessage};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load from config file
     let config = Config::from_file("config.toml")?;
     
@@ -84,11 +84,11 @@ async fn main() -> helios::Result<()> {
 Building a conversation with context:
 
 ```rust
-use helios::{LLMClient, ChatMessage, ChatSession};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage, ChatSession};
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-4".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -124,12 +124,12 @@ async fn main() -> helios::Result<()> {
 For maximum control, use the `generate` method directly:
 
 ```rust
-use helios::{LLMClient, LLMProvider, ChatMessage};
-use helios::llm::LLMRequest;
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, LLMProvider, ChatMessage};
+use helios_engine::llm::LLMRequest;
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let client = LLMClient::new(LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -214,12 +214,12 @@ let llm_config = LLMConfig {
 ### Interactive CLI Chat
 
 ```rust
-use helios::{LLMClient, ChatSession};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatSession};
+use helios_engine::config::LLMConfig;
 use std::io::{self, Write};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let client = LLMClient::new(LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -266,11 +266,11 @@ async fn main() -> helios::Result<()> {
 ### Batch Processing
 
 ```rust
-use helios::{LLMClient, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let client = LLMClient::new(LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -299,12 +299,12 @@ async fn main() -> helios::Result<()> {
 ### Parallel Requests
 
 ```rust
-use helios::{LLMClient, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LLMConfig;
 use tokio::task;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -406,7 +406,7 @@ impl ChatSession {
 Helios uses the `Result<T>` type with `HeliosError`:
 
 ```rust
-use helios::{LLMClient, ChatMessage, HeliosError};
+use helios_engine::{LLMClient, ChatMessage, HeliosError};
 
 match client.chat(messages, None).await {
     Ok(response) => {
@@ -478,12 +478,12 @@ tokio = { version = "1.35", features = ["full"] }
 Create `src/main.rs`:
 
 ```rust
-use helios::{LLMClient, ChatSession};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatSession};
+use helios_engine::config::LLMConfig;
 use std::io::{self, Write};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Setup
     let client = LLMClient::new(LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),

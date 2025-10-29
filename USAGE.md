@@ -17,13 +17,13 @@ This guide covers all the ways to use Helios - both as a CLI tool and as a libra
 Once published to crates.io, install globally:
 
 ```bash
-cargo install helios
+cargo install helios-engine
 ```
 
 Then use anywhere:
 
 ```bash
-helios --help
+helios-engine --help
 ```
 
 ### Use as Library
@@ -32,7 +32,7 @@ Add to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios = "0.1.0"
+helios-engine = "0.1.0"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -57,7 +57,7 @@ cargo build --release
 Create a new config file:
 
 ```bash
-helios init
+helios-engine init
 ```
 
 This creates `config.toml` with default settings. Edit it to add your API key.
@@ -65,7 +65,7 @@ This creates `config.toml` with default settings. Edit it to add your API key.
 Create config in a custom location:
 
 ```bash
-helios init --output ~/.helios/config.toml
+helios-engine init --output ~/.helios/config.toml
 ```
 
 ### Interactive Chat
@@ -73,27 +73,27 @@ helios init --output ~/.helios/config.toml
 Start an interactive chat session (default command):
 
 ```bash
-helios
+helios-engine
 # or explicitly
-helios chat
+helios-engine chat
 ```
 
 With custom config file:
 
 ```bash
-helios --config /path/to/config.toml chat
+helios-engine --config /path/to/config.toml chat
 ```
 
 With custom system prompt:
 
 ```bash
-helios chat --system-prompt "You are a Python expert"
+helios-engine chat --system-prompt "You are a Python expert"
 ```
 
 With custom max iterations:
 
 ```bash
-helios chat --max-iterations 10
+helios-engine chat --max-iterations 10
 ```
 
 ### One-Off Questions
@@ -101,13 +101,13 @@ helios chat --max-iterations 10
 Ask a single question without interactive mode:
 
 ```bash
-helios ask "What is the capital of France?"
+helios-engine ask "What is the capital of France?"
 ```
 
 With custom config:
 
 ```bash
-helios --config my-config.toml ask "Calculate 123 * 456"
+helios-engine --config my-config.toml ask "Calculate 123 * 456"
 ```
 
 ### Verbose Mode
@@ -115,23 +115,23 @@ helios --config my-config.toml ask "Calculate 123 * 456"
 Enable debug logging:
 
 ```bash
-helios --verbose chat
+helios-engine --verbose chat
 ```
 
 ### CLI Examples
 
 ```bash
 # Initialize config
-helios init
+helios-engine init
 
 # Start chat with default settings
-helios
+helios-engine
 
 # Chat with custom prompt
-helios chat -s "You are a Rust expert"
+helios-engine chat -s "You are a Rust expert"
 
 # Single question
-helios ask "What is 2+2?"
+helios-engine ask "What is 2+2?"
 
 # Verbose logging
 helios -v chat
@@ -144,12 +144,12 @@ helios -c ~/.config/helios.toml chat
 
 ```bash
 # General help
-helios --help
+helios-engine --help
 
 # Help for specific command
-helios chat --help
-helios init --help
-helios ask --help
+helios-engine chat --help
+helios-engine init --help
+helios-engine ask --help
 ```
 
 ## Library Usage
@@ -159,10 +159,10 @@ helios ask --help
 For simple, direct calls to LLM models:
 
 ```rust
-use helios::{LLMClient, ChatMessage, LLMConfig};
+use helios_engine::{LLMClient, ChatMessage, LLMConfig};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Configure LLM
     let config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
@@ -193,10 +193,10 @@ async fn main() -> helios::Result<()> {
 Manage multi-turn conversations:
 
 ```rust
-use helios::{LLMClient, ChatSession, LLMConfig};
+use helios_engine::{LLMClient, ChatSession, LLMConfig};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -232,10 +232,10 @@ async fn main() -> helios::Result<()> {
 For advanced use cases with tools:
 
 ```rust
-use helios::{Agent, Config, CalculatorTool};
+use helios_engine::{Agent, Config, CalculatorTool};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load config from file
     let config = Config::from_file("config.toml")?;
 
@@ -260,7 +260,7 @@ async fn main() -> helios::Result<()> {
 Create your own tools:
 
 ```rust
-use helios::{Tool, ToolParameter, ToolResult, Agent, Config};
+use helios_engine::{Tool, ToolParameter, ToolResult, Agent, Config};
 use async_trait::async_trait;
 use serde_json::json;
 
@@ -298,7 +298,7 @@ impl Tool for WeatherTool {
 }
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     let mut agent = Agent::builder("WeatherAgent")
@@ -319,10 +319,10 @@ async fn main() -> helios::Result<()> {
 Create and manage multiple agents:
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     let mut math_agent = Agent::builder("MathExpert")
@@ -365,7 +365,7 @@ max_tokens = 2048
 Create config programmatically:
 
 ```rust
-use helios::config::LLMConfig;
+use helios_engine::config::LLMConfig;
 
 let config = LLMConfig {
     model_name: "gpt-3.5-turbo".to_string(),
@@ -415,7 +415,7 @@ api_key = "not-needed"
 Use environment variables for sensitive data:
 
 ```rust
-use helios::config::LLMConfig;
+use helios_engine::config::LLMConfig;
 
 let config = LLMConfig {
     model_name: "gpt-3.5-turbo".to_string(),
@@ -435,40 +435,40 @@ let config = LLMConfig {
 #### Quick Setup
 ```bash
 # Initialize and configure
-helios init
+helios-engine init
 # Edit config.toml with your API key
 nano config.toml
 # Start chatting
-helios
+helios-engine
 ```
 
 #### One-Off Tasks
 ```bash
 # Quick question
-helios ask "Explain async/await in Rust"
+helios-engine ask "Explain async/await in Rust"
 
 # With calculation
-helios ask "What is 15% of 230?"
+helios-engine ask "What is 15% of 230?"
 ```
 
 #### Custom Sessions
 ```bash
 # Code review session
-helios chat -s "You are a code reviewer. Be thorough and constructive."
+helios-engine chat -s "You are a code reviewer. Be thorough and constructive."
 
 # Math tutor session
-helios chat -s "You are a patient math tutor for beginners."
+helios-engine chat -s "You are a patient math tutor for beginners."
 ```
 
 ### Library Examples
 
 #### Simple CLI App
 ```rust
-use helios::{LLMClient, ChatMessage, LLMConfig};
+use helios_engine::{LLMClient, ChatMessage, LLMConfig};
 use std::env;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <question>", args[0]);
@@ -496,7 +496,7 @@ async fn main() -> helios::Result<()> {
 
 #### Web Service Integration
 ```rust
-use helios::{LLMClient, ChatMessage, LLMConfig};
+use helios_engine::{LLMClient, ChatMessage, LLMConfig};
 use std::sync::Arc;
 
 // In your web service
@@ -551,7 +551,7 @@ async fn main() {
 ```rust
 match client.chat(messages, None).await {
     Ok(response) => println!("{}", response.content),
-    Err(helios::HeliosError::LLMError(e)) => {
+    Err(helios_engine::HeliosError::LLMError(e)) => {
         eprintln!("LLM error: {}", e);
     }
     Err(e) => eprintln!("Other error: {}", e),
@@ -569,9 +569,9 @@ match client.chat(messages, None).await {
 
 **"Configuration file not found"**
 ```bash
-helios init
+helios-engine init
 # Edit config.toml
-helios chat
+helios-engine chat
 ```
 
 **"API key not configured"**
@@ -581,7 +581,7 @@ helios chat
 ### Library Issues
 
 **"Cannot find module helios"**
-- Add to Cargo.toml: `helios = "0.1.0"`
+- Add to Cargo.toml: `helios-engine = "0.1.0"`
 - Run: `cargo build`
 
 **Connection errors**

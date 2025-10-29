@@ -1,7 +1,7 @@
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load configuration
     let config = Config::from_file("config.toml")?;
 

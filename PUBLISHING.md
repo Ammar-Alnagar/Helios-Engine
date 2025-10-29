@@ -104,13 +104,13 @@ cargo publish
 Users can now install Helios as a command-line tool:
 
 ```bash
-cargo install helios
+cargo install helios-engine
 ```
 
 Then use it:
 
 ```bash
-helios
+helios-engine
 ```
 
 ### Using as a Library
@@ -119,18 +119,18 @@ Users can add it to their `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios = "0.1.0"
+helios-engine = "0.1.0"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
 And use it in code:
 
 ```rust
-use helios::{LLMClient, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),

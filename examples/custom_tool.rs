@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use helios::{Agent, Config, Tool, ToolParameter, ToolResult};
+use helios_engine::{Agent, Config, Tool, ToolParameter, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -37,7 +37,7 @@ impl Tool for WeatherTool {
         params
     }
 
-    async fn execute(&self, args: Value) -> helios::Result<ToolResult> {
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let location = args
             .get("location")
             .and_then(|v| v.as_str())
@@ -62,7 +62,7 @@ impl Tool for WeatherTool {
 }
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load configuration
     let config = Config::from_file("config.toml")?;
 

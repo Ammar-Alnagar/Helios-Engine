@@ -1,5 +1,5 @@
 [package]
-name = "helios"
+name = "helios-engine"
 version = "0.1.0"
 edition = "2021"
 authors = ["Ammar Alnagar <ammaralnagar416@gmail.com>"]
@@ -7,18 +7,18 @@ description = "A powerful and flexible Rust framework for building LLM-powered a
 license = "Apache 2.0"
 repository = "https://github.com/Ammar-Alnagar/Helios.git"
 homepage = "https://github.com/Ammar-Alnagar/Helios.git"
-documentation = "https://docs.rs/helios"
+documentation = "https://docs.rs/helios-engine"
 readme = "README.md"
 keywords = ["agent", "ai", "chatgpt", "llm", "openai"]
 categories = ["api-bindings", "asynchronous", "command-line-utilities"]
 rust-version = "1.70"
 
 [lib]
-name = "helios"
+name = "helios_engine"
 path = "src/lib.rs"
 
 [[bin]]
-name = "helios"
+name = "helios-engine"
 path = "src/main.rs"
 
 [dependencies]

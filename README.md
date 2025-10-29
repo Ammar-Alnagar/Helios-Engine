@@ -41,23 +41,23 @@ Helios can be used both as a **command-line tool** and as a **library crate** in
 Install globally using Cargo (once published):
 
 ```bash
-cargo install helios
+cargo install helios-engine
 ```
 
 Then use anywhere:
 
 ```bash
 # Initialize configuration
-helios init
+helios-engine init
 
 # Start interactive chat
-helios chat
+helios-engine chat
 
 # Ask a quick question
-helios ask "What is Rust?"
+helios-engine ask "What is Rust?"
 
 # Get help
-helios --help
+helios-engine --help
 ```
 
 ### As a Library Crate
@@ -66,7 +66,7 @@ Add Helios to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios = "0.1.0"
+helios-engine = "0.1.0"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -96,11 +96,11 @@ cargo install --path .
 The simplest way to use Helios is to call LLM models directly:
 
 ```rust
-use helios::{LLMClient, ChatMessage};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage};
+use helios_engine::config::LLMConfig;
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Configure the LLM
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
@@ -148,10 +148,10 @@ max_tokens = 2048
 #### 2. Create Your First Agent
 
 ```rust
-use helios::{Agent, Config, CalculatorTool};
+use helios_engine::{Agent, Config, CalculatorTool};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load configuration
     let config = Config::from_file("config.toml")?;
 
@@ -340,10 +340,10 @@ flowchart LR
 ### Basic Chat
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     let mut agent = Agent::builder("Assistant")
@@ -361,10 +361,10 @@ async fn main() -> helios::Result<()> {
 ### Agent with Built-in Tools
 
 ```rust
-use helios::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     let mut agent = Agent::builder("ToolAgent")
@@ -386,10 +386,10 @@ async fn main() -> helios::Result<()> {
 ### Multiple Agents
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     let mut poet = Agent::builder("Poet")
@@ -418,7 +418,7 @@ Implement the `Tool` trait to create custom tools:
 
 ```rust
 use async_trait::async_trait;
-use helios::{Tool, ToolParameter, ToolResult};
+use helios_engine::{Tool, ToolParameter, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -447,7 +447,7 @@ impl Tool for WeatherTool {
         params
     }
 
-    async fn execute(&self, args: Value) -> helios::Result<ToolResult> {
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let location = args["location"].as_str().unwrap_or("Unknown");
         
         // Your weather API logic here
@@ -459,7 +459,7 @@ impl Tool for WeatherTool {
 
 // Use your custom tool
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     let mut agent = Agent::builder("WeatherAgent")
@@ -632,13 +632,13 @@ Implement the `LLMProvider` trait for custom backends:
 
 ```rust
 use async_trait::async_trait;
-use helios::{LLMProvider, LLMRequest, LLMResponse};
+use helios_engine::{LLMProvider, LLMRequest, LLMResponse};
 
 struct CustomProvider;
 
 #[async_trait]
 impl LLMProvider for CustomProvider {
-    async fn generate(&self, request: LLMRequest) -> helios::Result<LLMResponse> {
+    async fn generate(&self, request: LLMRequest) -> helios_engine::Result<LLMResponse> {
         // Your custom implementation
         todo!()
     }

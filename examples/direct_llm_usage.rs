@@ -3,12 +3,12 @@
 /// This example demonstrates how to use Helios as a library to make
 /// direct calls to LLM models without using the Agent abstraction.
 
-use helios::{LLMClient, ChatMessage, ChatSession};
-use helios::config::LLMConfig;
+use helios_engine::{LLMClient, ChatMessage, ChatSession};
+use helios_engine::config::LLMConfig;
 use std::io::{self, Write};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Direct LLM Usage Examples\n");
 
     // Example 1: Simple single call
@@ -48,7 +48,7 @@ async fn main() -> helios::Result<()> {
 }
 
 /// Example 1: Simple single call to the LLM
-async fn simple_call() -> helios::Result<()> {
+async fn simple_call() -> helios_engine::Result<()> {
     // Create configuration
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
@@ -84,7 +84,7 @@ async fn simple_call() -> helios::Result<()> {
 }
 
 /// Example 2: Multi-turn conversation with context
-async fn conversation_with_context() -> helios::Result<()> {
+async fn conversation_with_context() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -178,7 +178,7 @@ fn different_providers_info() {
 }
 
 /// Example 4: Interactive chat session
-async fn interactive_chat() -> helios::Result<()> {
+async fn interactive_chat() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
