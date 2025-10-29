@@ -9,7 +9,7 @@ pub struct ToolParameter {
     #[serde(rename = "type")]
     pub param_type: String,
     pub description: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip)]
     pub required: Option<bool>,
 }
 
