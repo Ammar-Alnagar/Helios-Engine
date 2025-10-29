@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Helios! This document provides gu
 
 ## How to Contribute
 
+
 ### Reporting Bugs
 
 1. Check if the bug has already been reported in [Issues](https://github.com/yourusername/helios/issues)
