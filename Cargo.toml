@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Ammar Alnagar <ammaralnagar416@gmail.com>"]
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support"
@@ -27,6 +27,7 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"
+libc = "0.2"
 llama-cpp-2 = "0.1"
 reqwest = { version = "0.11", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }

@@ -251,7 +251,7 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     };
     let client = LLMClient::new(provider_type).await?;
     let messages = vec![
-        ChatMessage::system("You are a helpful AI assistant."),
+        ChatMessage::system("You are a helpful AI assistant. Provide direct, concise answers without internal reasoning or thinking tags."),
         ChatMessage::user(message),
     ];
 

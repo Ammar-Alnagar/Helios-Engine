@@ -14,6 +14,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::task;
+use std::fs::File;
+use std::os::fd::AsRawFd;
 
 // Add From trait for LLamaCppError to convert to HeliosError
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
@@ -141,25 +143,66 @@ impl RemoteLLMClient {
     }
 }
 
+/// Helper function to suppress stdout and stderr during model loading
+fn suppress_output() -> (i32, i32) {
+    // Open /dev/null for writing
+    let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
+
+    // Duplicate current stdout and stderr file descriptors
+    let stdout_backup = unsafe { libc::dup(1) };
+    let stderr_backup = unsafe { libc::dup(2) };
+
+    // Redirect stdout and stderr to /dev/null
+    unsafe {
+        libc::dup2(dev_null.as_raw_fd(), 1); // stdout
+        libc::dup2(dev_null.as_raw_fd(), 2); // stderr
+    }
+
+    (stdout_backup, stderr_backup)
+}
+
+/// Helper function to restore stdout and stderr
+fn restore_output(stdout_backup: i32, stderr_backup: i32) {
+    unsafe {
+        libc::dup2(stdout_backup, 1); // restore stdout
+        libc::dup2(stderr_backup, 2); // restore stderr
+        libc::close(stdout_backup);
+        libc::close(stderr_backup);
+    }
+}
+
 pub struct LocalLLMProvider {
     model: Arc<LlamaModel>,
 }
 
 impl LocalLLMProvider {
     pub async fn new(config: LocalConfig) -> Result<Self> {
+        // Suppress verbose output during model loading in offline mode
+        let (stdout_backup, stderr_backup) = suppress_output();
+
         // Initialize llama backend
         let backend = LlamaBackend::init().map_err(|e| {
+            restore_output(stdout_backup, stderr_backup);
             HeliosError::LLMError(format!("Failed to initialize llama backend: {:?}", e))
         })?;
 
         // Download model from HuggingFace if needed
-        let model_path = Self::download_model(&config).await?;
+        let model_path = Self::download_model(&config).await.map_err(|e| {
+            restore_output(stdout_backup, stderr_backup);
+            e
+        })?;
 
         // Load the model
         let model_params = LlamaModelParams::default().with_n_gpu_layers(99); // Use GPU if available
 
         let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
-            .map_err(|e| HeliosError::LLMError(format!("Failed to load model: {:?}", e)))?;
+            .map_err(|e| {
+                restore_output(stdout_backup, stderr_backup);
+                HeliosError::LLMError(format!("Failed to load model: {:?}", e))
+            })?;
+
+        // Restore output
+        restore_output(stdout_backup, stderr_backup);
 
         Ok(Self {
             model: Arc::new(model),
@@ -169,7 +212,15 @@ impl LocalLLMProvider {
     async fn download_model(config: &LocalConfig) -> Result<std::path::PathBuf> {
         use std::process::Command;
 
-        // Use huggingface_hub to download the model
+        // Check if model is already in HuggingFace cache
+        if let Some(cached_path) = Self::find_model_in_cache(&config.huggingface_repo, &config.model_file) {
+            // Model found in cache - no output needed in offline mode
+            return Ok(cached_path);
+        }
+
+        // Model not found in cache - suppress download output in offline mode
+
+        // Use huggingface_hub to download the model (suppress output)
         let output = Command::new("huggingface-cli")
             .args(&[
                 "download",
@@ -180,6 +231,8 @@ impl LocalLLMProvider {
                 "--local-dir-use-symlinks",
                 "False",
             ])
+            .stdout(std::process::Stdio::null()) // Suppress stdout
+            .stderr(std::process::Stdio::null()) // Suppress stderr
             .output()
             .map_err(|e| HeliosError::LLMError(format!("Failed to run huggingface-cli: {}", e)))?;
 
@@ -201,25 +254,70 @@ impl LocalLLMProvider {
         Ok(model_path)
     }
 
-    fn format_messages(&self, messages: &[ChatMessage]) -> String {
-        let mut formatted = String::new();
-        for message in messages {
-            match message.role {
-                crate::chat::Role::System => {
-                    formatted.push_str(&format!("<|im_start|>system\n{}\n<|im_end|>\n", message.content));
-                }
-                crate::chat::Role::User => {
-                    formatted.push_str(&format!("<|im_start|>user\n{}\n<|im_end|>\n", message.content));
-                }
-                crate::chat::Role::Assistant => {
-                    formatted.push_str(&format!("<|im_start|>assistant\n{}\n<|im_end|>\n", message.content));
-                }
-                crate::chat::Role::Tool => {
-                    formatted.push_str(&format!("Tool result: {}\n", message.content));
+    fn find_model_in_cache(repo: &str, model_file: &str) -> Option<std::path::PathBuf> {
+        // Check HuggingFace cache directory
+        let cache_dir = std::env::var("HF_HOME")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                std::path::PathBuf::from(home).join(".cache").join("huggingface")
+            });
+
+        let hub_dir = cache_dir.join("hub");
+
+        // Convert repo name to HuggingFace cache format
+        // e.g., "unsloth/Qwen3-0.6B-GGUF" -> "models--unsloth--Qwen3-0.6B-GGUF"
+        let cache_repo_name = format!("models--{}", repo.replace("/", "--"));
+        let repo_dir = hub_dir.join(&cache_repo_name);
+
+        if !repo_dir.exists() {
+            return None;
+        }
+
+        // Check in snapshots directory (newer cache format)
+        let snapshots_dir = repo_dir.join("snapshots");
+        if snapshots_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&snapshots_dir) {
+                for entry in entries.flatten() {
+                    if let Ok(snapshot_path) = entry.path().join(model_file).canonicalize() {
+                        if snapshot_path.exists() {
+                            return Some(snapshot_path);
+                        }
+                    }
                 }
             }
         }
+
+        // Check in blobs directory (alternative cache format)
+        let blobs_dir = repo_dir.join("blobs");
+        if blobs_dir.exists() {
+            // For blobs, we need to find the blob file by hash
+            // This is more complex, so for now we'll skip this check
+            // The snapshots approach should cover most cases
+        }
+
+        None
+    }
+
+    fn format_messages(&self, messages: &[ChatMessage]) -> String {
+        let mut formatted = String::new();
+
+        // Use Qwen chat template format
+        formatted.push_str("<|im_start|>system\n");
+        if let Some(system_msg) = messages.iter().find(|m| m.role == crate::chat::Role::System) {
+            formatted.push_str(&system_msg.content);
+        } else {
+            formatted.push_str("You are a helpful AI assistant. Provide direct, concise answers.");
+        }
+        formatted.push_str("\n<|im_end|>\n");
+
+        // Add user message
+        if let Some(user_msg) = messages.iter().find(|m| m.role == crate::chat::Role::User) {
+            formatted.push_str(&format!("<|im_start|>user\n{}\n<|im_end|>\n", user_msg.content));
+        }
+
         formatted.push_str("<|im_start|>assistant\n");
+
         formatted
     }
 }
@@ -379,6 +477,9 @@ impl LLMProvider for LocalLLMProvider {
         let prompt = self.format_messages(&request.messages);
         let model = Arc::clone(&self.model);
 
+        // Suppress output during inference in offline mode
+        let (stdout_backup, stderr_backup) = suppress_output();
+
         // Run inference in a blocking task
         let result = task::spawn_blocking(move || {
             // Initialize backend
@@ -446,8 +547,10 @@ impl LLMProvider for LocalLLMProvider {
                 }
 
                 // Convert token back to text
-                match context.model.token_to_str(token, Special::Tokenize) {
-                    Ok(text) => generated_text.push_str(&text),
+                match context.model.token_to_str(token, Special::Plaintext) {
+                    Ok(text) => {
+                        generated_text.push_str(&text);
+                    },
                     Err(_) => continue, // Skip invalid tokens
                 }
 
@@ -471,7 +574,13 @@ impl LLMProvider for LocalLLMProvider {
             Ok::<String, HeliosError>(generated_text)
         })
         .await
-        .map_err(|e| HeliosError::LLMError(format!("Task failed: {}", e)))??;
+        .map_err(|e| {
+            restore_output(stdout_backup, stderr_backup);
+            HeliosError::LLMError(format!("Task failed: {}", e))
+        })??;
+
+        // Restore output after inference completes
+        restore_output(stdout_backup, stderr_backup);
 
         let response = LLMResponse {
             id: format!("local-{}", chrono::Utc::now().timestamp()),
