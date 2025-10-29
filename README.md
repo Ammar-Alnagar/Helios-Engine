@@ -1,4 +1,4 @@
-# 🚀 Helios - LLM Agent Framework
+# 🚀 Helios Engine - LLM Agent Framework
 
 <p align="center">
   <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
@@ -7,7 +7,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Helios** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context.
+**Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context.
 
 ## ✨ Features
 
@@ -40,7 +40,7 @@
 
 ## 🔧 Installation
 
-Helios can be used both as a **command-line tool** and as a **library crate** in your Rust projects.
+Helios Engine can be used both as a **command-line tool** and as a **library crate** in your Rust projects.
 
 ### As a CLI Tool (Recommended for Quick Start)
 
@@ -68,7 +68,7 @@ helios-engine --help
 
 ### As a Library Crate
 
-Add Helios to your `Cargo.toml`:
+Add Helios-Engine to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -80,15 +80,15 @@ Or use a local path during development:
 
 ```toml
 [dependencies]
-helios = { path = "../helios" }
+helios-engine = { path = "../helios" }
 tokio = { version = "1.35", features = ["full"] }
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/yourusername/helios.git
-cd helios
+git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
+cd Helios-Engine
 cargo build --release
 
 # Install locally
@@ -99,7 +99,7 @@ cargo install --path .
 
 ### Using as a Library Crate
 
-The simplest way to use Helios is to call LLM models directly:
+The simplest way to use Helios Engine is to call LLM models directly:
 
 ```rust
 use helios_engine::{LLMClient, ChatMessage};
@@ -132,7 +132,7 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-**📚 For detailed examples of using Helios as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
+**📚 For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
 
 ### Using with Agent System
 
@@ -184,7 +184,7 @@ cargo run
 
 ## ⚙️ Configuration
 
-Helios uses TOML for configuration. Here's a complete configuration example:
+Helios Engine  uses TOML for configuration. Here's a complete configuration example:
 
 ```toml
 [llm]
@@ -206,7 +206,7 @@ max_tokens = 2048
 
 ### Supported LLM Providers
 
-Helios works with any OpenAI-compatible API:
+Helios Engine works with any OpenAI-compatible API:
 
 - **OpenAI**: `https://api.openai.com/v1`
 - **Azure OpenAI**: `https://your-resource.openai.azure.com/openai/deployments/your-deployment`
@@ -588,7 +588,7 @@ helios/
 ### Module Overview
 
 ```
-helios/
+helios-engine/
 │
 ├── 📦 agent           - Agent system and builder pattern
 ├── 🤖 llm             - LLM client and API communication
@@ -709,18 +709,6 @@ cargo clippy
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
 
-- Built with [Tokio](https://tokio.rs/) for async runtime
-- Uses [reqwest](https://github.com/seanmonstar/reqwest) for HTTP client
-- Configuration with [toml-rs](https://github.com/toml-rs/toml)
-
-## 📞 Support
-
-- 📧 Email: support@helios.dev
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/helios/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/helios/discussions)
-
----
 
 Made with ❤️ in Rust
