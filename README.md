@@ -10,11 +10,13 @@
 - 🤖 **Agent System**: Create multiple agents with different personalities and capabilities
 - 🛠️ **Tool Registry**: Extensible tool system for adding custom functionality
 - 💬 **Chat Management**: Built-in conversation history and session management
+- ⚡ **Streaming Support**: Real-time response streaming with thinking tag detection
 - ⚙️ **Configuration**: TOML-based configuration for LLM settings
 - 🔌 **LLM Support**: Compatible with OpenAI API and any OpenAI-compatible API
 - 🔄 **Async/Await**: Built on Tokio for high-performance async operations
 - 🎯 **Type-Safe**: Leverages Rust's type system for safe and reliable code
 - 📦 **Extensible**: Easy to add custom tools and extend functionality
+- 💭 **Thinking Tags**: Automatic detection and display of model reasoning process
 
 ## 📋 Table of Contents
 

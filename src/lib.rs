@@ -73,7 +73,7 @@ pub mod error;
 // Re-export core types for convenient access
 pub use config::{Config, LLMConfig};
 pub use agent::{Agent, AgentBuilder};
-pub use llm::{LLMClient, LLMProvider, LLMRequest, LLMResponse};
+pub use llm::{LLMClient, LLMProvider, LLMRequest, LLMResponse, StreamChunk, StreamChoice, Delta};
 pub use tools::{Tool, ToolRegistry, ToolParameter, ToolResult, CalculatorTool, EchoTool};
 pub use chat::{ChatMessage, ChatSession, Role};
 pub use error::{HeliosError, Result};

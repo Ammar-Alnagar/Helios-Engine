@@ -9,6 +9,18 @@ pub enum Role {
     Tool,
 }
 
+impl From<&str> for Role {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "system" => Role::System,
+            "user" => Role::User,
+            "assistant" => Role::Assistant,
+            "tool" => Role::Tool,
+            _ => Role::Assistant, // Default to assistant
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub role: Role,

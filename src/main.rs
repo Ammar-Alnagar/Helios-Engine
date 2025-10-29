@@ -1,6 +1,66 @@
-use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, Config, CalculatorTool, EchoTool, LLMClient, LLMProvider, ChatMessage};
 use clap::{Parser, Subcommand};
 use std::io::{self, Write};
+
+/// Helper to track and display thinking tags
+struct ThinkingTracker {
+    in_thinking: bool,
+    thinking_buffer: String,
+}
+
+impl ThinkingTracker {
+    fn new() -> Self {
+        Self {
+            in_thinking: false,
+            thinking_buffer: String::new(),
+        }
+    }
+
+    fn process_chunk(&mut self, chunk: &str) -> Option<String> {
+        let mut output = String::new();
+        let mut chars = chunk.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            if c == '<' {
+                // Check if this is start of a thinking tag
+                let remaining: String = chars.clone().collect();
+                if remaining.starts_with("thinking>") {
+                    self.in_thinking = true;
+                    self.thinking_buffer.clear();
+                    output.push_str("\n💭 [Thinking");
+                    // Skip "thinking>"
+                    for _ in 0..9 {
+                        chars.next();
+                    }
+                    continue;
+                } else if remaining.starts_with("/thinking>") {
+                    self.in_thinking = false;
+                    output.push_str("]\n");
+                    // Skip "/thinking>"
+                    for _ in 0..10 {
+                        chars.next();
+                    }
+                    continue;
+                }
+            }
+
+            if self.in_thinking {
+                self.thinking_buffer.push(c);
+                if self.thinking_buffer.len() % 3 == 0 {
+                    output.push('.');
+                }
+            } else {
+                output.push(c);
+            }
+        }
+
+        if !output.is_empty() {
+            Some(output)
+        } else {
+            None
+        }
+    }
+}
 
 /// Helios Engine - A powerful LLM Agent Framework
 #[derive(Parser)]
@@ -120,39 +180,45 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
 async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()> {
     let config = load_config(config_path)?;
     
-    let mut agent = Agent::builder("HeliosAgent")
-        .config(config)
-        .system_prompt("You are a helpful AI assistant.")
-        .tool(Box::new(CalculatorTool))
-        .tool(Box::new(EchoTool))
-        .max_iterations(5)
-        .build()?;
+    // Use streaming for direct LLM call
+    let client = LLMClient::new(config.llm);
+    let messages = vec![
+        ChatMessage::system("You are a helpful AI assistant."),
+        ChatMessage::user(message),
+    ];
 
-    let response = agent.chat(message).await?;
-    println!("{}", response);
+    let mut tracker = ThinkingTracker::new();
+    
+    print!("🤖: ");
+    io::stdout().flush().unwrap();
+
+    let response = client.chat_stream(messages, None, |chunk| {
+        if let Some(output) = tracker.process_chunk(chunk) {
+            print!("{}", output);
+            io::stdout().flush().unwrap();
+        }
+    }).await?;
+
+    println!("\n");
     
     Ok(())
 }
 
 /// Start an interactive chat session
-async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations: usize) -> helios_engine::Result<()> {
-    println!("🚀 Helios - LLM Agent Framework");
-    println!("================================\n");
+async fn interactive_chat(config_path: &str, system_prompt: &str, _max_iterations: usize) -> helios_engine::Result<()> {
+    println!("🚀 Helios Engine - LLM Agent Framework");
+    println!("========================================\n");
 
     let config = load_config(config_path)?;
 
-    // Create an agent with tools
-    let mut agent = Agent::builder("HeliosAgent")
-        .config(config)
-        .system_prompt(system_prompt)
-        .tool(Box::new(CalculatorTool))
-        .tool(Box::new(EchoTool))
-        .max_iterations(max_iterations)
-        .build()?;
+    // Create LLM client for streaming
+    let client = LLMClient::new(config.llm);
+    let mut session = helios_engine::ChatSession::new()
+        .with_system_prompt(system_prompt);
 
-    println!("✓ Agent initialized with tools: {:?}", agent.tool_registry().list_tools());
-    println!("✓ Max iterations: {}", max_iterations);
-    println!("\n💬 Chat with the agent (type 'exit' to quit, 'clear' to clear history, 'help' for commands):\n");
+    println!("✓ Streaming mode enabled");
+    println!("✓ Thinking tags will be shown when available");
+    println!("\n💬 Chat with the AI (type 'exit' to quit, 'clear' to clear history, 'help' for commands):\n");
 
     // Interactive chat loop
     loop {
@@ -174,7 +240,7 @@ async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations
                 break;
             }
             "clear" => {
-                agent.clear_history();
+                session.clear();
                 println!("✓ Chat history cleared\n");
                 continue;
             }
@@ -182,20 +248,39 @@ async fn interactive_chat(config_path: &str, system_prompt: &str, max_iterations
                 print_help();
                 continue;
             }
-            "tools" => {
-                println!("Available tools: {:?}\n", agent.tool_registry().list_tools());
+            "history" => {
+                println!("\n📜 Conversation history:");
+                for (i, msg) in session.messages.iter().enumerate() {
+                    println!("  {}. {:?}: {}", i + 1, msg.role, msg.content);
+                }
+                println!();
                 continue;
             }
             _ => {}
         }
 
-        // Send message to agent
-        match agent.chat(input).await {
+        // Add user message to session
+        session.add_user_message(input);
+
+        // Stream response
+        let mut tracker = ThinkingTracker::new();
+        print!("\n🤖: ");
+        io::stdout().flush()?;
+
+        match client.chat_stream(session.get_messages(), None, |chunk| {
+            if let Some(output) = tracker.process_chunk(chunk) {
+                print!("{}", output);
+                io::stdout().flush().unwrap();
+            }
+        }).await {
             Ok(response) => {
-                println!("\n🤖: {}\n", response);
+                session.add_assistant_message(&response.content);
+                println!("\n");
             }
             Err(e) => {
-                eprintln!("❌ Error: {}\n", e);
+                eprintln!("\n❌ Error: {}\n", e);
+                // Remove the last user message since it failed
+                session.messages.pop();
             }
         }
     }
@@ -238,7 +323,11 @@ fn print_help() {
     println!("\n📖 Interactive Commands:");
     println!("  exit, quit  - Exit the chat session");
     println!("  clear       - Clear conversation history");
-    println!("  tools       - List available tools");
+    println!("  history     - Show conversation history");
     println!("  help        - Show this help message");
+    println!("\n💡 Features:");
+    println!("  • Streaming responses for real-time output");
+    println!("  • Thinking tags displayed when model uses them");
+    println!("  • Full conversation context maintained");
     println!();
 }
