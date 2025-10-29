@@ -2,18 +2,16 @@
 name = "helios"
 version = "0.1.0"
 edition = "2021"
-
-[dependencies]
-tokio = { version = "1.35", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-reqwest = { version = "0.11", features = ["json"] }
-toml = "0.8"
-anyhow = "1.0"
-thiserror = "1.0"
-async-trait = "0.1"
-tracing = "0.1"
-tracing-subscriber = "0.3"
+authors = ["Ammar Alnagar <ammaralnagar416@gmail.com>"]
+description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support"
+license = "Apache 2.0"
+repository = "https://github.com/Ammar-Alnagar/Helios.git"
+homepage = "https://github.com/Ammar-Alnagar/Helios.git"
+documentation = "https://docs.rs/helios"
+readme = "README.md"
+keywords = ["agent", "ai", "chatgpt", "llm", "openai"]
+categories = ["api-bindings", "asynchronous", "command-line-utilities"]
+rust-version = "1.70"
 
 [lib]
 name = "helios"
@@ -22,3 +20,16 @@ path = "src/lib.rs"
 [[bin]]
 name = "helios"
 path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+clap = { version = "4.4", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = "0.3"

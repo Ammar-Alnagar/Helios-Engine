@@ -20,6 +20,8 @@
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+  - [Using as a Library Crate](#using-as-a-library-crate)
+  - [Using with Agent System](#using-with-agent-system)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Usage Examples](#usage-examples)
@@ -32,6 +34,34 @@
 
 ## 🔧 Installation
 
+Helios can be used both as a **command-line tool** and as a **library crate** in your Rust projects.
+
+### As a CLI Tool (Recommended for Quick Start)
+
+Install globally using Cargo (once published):
+
+```bash
+cargo install helios
+```
+
+Then use anywhere:
+
+```bash
+# Initialize configuration
+helios init
+
+# Start interactive chat
+helios chat
+
+# Ask a quick question
+helios ask "What is Rust?"
+
+# Get help
+helios --help
+```
+
+### As a Library Crate
+
 Add Helios to your `Cargo.toml`:
 
 ```toml
@@ -40,17 +70,69 @@ helios = "0.1.0"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
-Or use it as a standalone application:
+Or use a local path during development:
+
+```toml
+[dependencies]
+helios = { path = "../helios" }
+tokio = { version = "1.35", features = ["full"] }
+```
+
+### Build from Source
 
 ```bash
 git clone https://github.com/yourusername/helios.git
 cd helios
 cargo build --release
+
+# Install locally
+cargo install --path .
 ```
 
 ## 🚀 Quick Start
 
-### 1. Configure Your LLM
+### Using as a Library Crate
+
+The simplest way to use Helios is to call LLM models directly:
+
+```rust
+use helios::{LLMClient, ChatMessage};
+use helios::config::LLMConfig;
+
+#[tokio::main]
+async fn main() -> helios::Result<()> {
+    // Configure the LLM
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    // Create client
+    let client = LLMClient::new(llm_config);
+
+    // Make a call
+    let messages = vec![
+        ChatMessage::system("You are a helpful assistant."),
+        ChatMessage::user("What is the capital of France?"),
+    ];
+
+    let response = client.chat(messages, None).await?;
+    println!("Response: {}", response.content);
+
+    Ok(())
+}
+```
+
+**📚 For detailed examples of using Helios as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
+
+### Using with Agent System
+
+For more advanced use cases with tools and persistent conversation:
+
+#### 1. Configure Your LLM
 
 Create a `config.toml` file:
 
@@ -63,7 +145,7 @@ temperature = 0.7
 max_tokens = 2048
 ```
 
-### 2. Create Your First Agent
+#### 2. Create Your First Agent
 
 ```rust
 use helios::{Agent, Config, CalculatorTool};
@@ -88,7 +170,7 @@ async fn main() -> helios::Result<()> {
 }
 ```
 
-### 3. Run the Interactive Demo
+#### 3. Run the Interactive Demo
 
 ```bash
 cargo run
@@ -483,11 +565,18 @@ helios/
 │   ├── config.rs          # Configuration management
 │   └── error.rs           # Error types
 │
+├── docs/
+│   ├── API.md                    # API reference
+│   ├── QUICKSTART.md             # Quick start guide
+│   ├── TUTORIAL.md               # Detailed tutorial
+│   └── USING_AS_CRATE.md         # Using Helios as a library
+│
 └── examples/
-    ├── basic_chat.rs      # Simple chat example
-    ├── agent_with_tools.rs # Tool usage example
-    ├── custom_tool.rs     # Custom tool implementation
-    └── multiple_agents.rs # Multiple agents example
+    ├── basic_chat.rs             # Simple chat example
+    ├── agent_with_tools.rs       # Tool usage example
+    ├── custom_tool.rs            # Custom tool implementation
+    ├── multiple_agents.rs        # Multiple agents example
+    └── direct_llm_usage.rs       # Direct LLM client usage
 ```
 
 ### Module Overview

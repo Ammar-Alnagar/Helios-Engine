@@ -5,3 +5,4 @@ config.toml
 *.swo
 *~
 .DS_Store
+.gitignore
