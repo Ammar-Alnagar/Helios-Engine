@@ -4,3 +4,10 @@ base_url = "https://api.openai.com/v1"
 api_key = "your-api-key-here"
 temperature = 0.7
 max_tokens = 2048
+
+[local]
+huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
+model_file = "Qwen3-0.6B-Q4_K_M.gguf"
+context_size = 2048
+temperature = 0.7
+max_tokens = 2048

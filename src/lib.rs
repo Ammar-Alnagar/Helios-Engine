@@ -41,13 +41,14 @@
 //! #[tokio::main]
 //! async fn main() -> helios::Result<()> {
 //!     let config = Config::from_file("config.toml")?;
-//!     
+//!
 //!     let mut agent = Agent::builder("MyAgent")
 //!         .config(config)
 //!         .system_prompt("You are a helpful assistant.")
 //!         .tool(Box::new(CalculatorTool))
-//!         .build()?;
-//!     
+//!         .build()
+//!         .await?;
+//!
 //!     let response = agent.chat("What is 15 * 7?").await?;
 //!     println!("Agent: {}", response);
 //!     Ok(())
@@ -71,9 +72,9 @@ pub mod chat;
 pub mod error;
 
 // Re-export core types for convenient access
-pub use config::{Config, LLMConfig};
+pub use config::{Config, LLMConfig, LocalConfig};
 pub use agent::{Agent, AgentBuilder};
-pub use llm::{LLMClient, LLMProvider, LLMRequest, LLMResponse, StreamChunk, StreamChoice, Delta};
+pub use llm::{LLMClient, LocalLLMProvider, LLMProvider, LLMRequest, LLMResponse, StreamChunk, StreamChoice, Delta};
 pub use tools::{Tool, ToolRegistry, ToolParameter, ToolResult, CalculatorTool, EchoTool};
 pub use chat::{ChatMessage, ChatSession, Role};
 pub use error::{HeliosError, Result};

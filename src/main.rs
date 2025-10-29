@@ -65,6 +65,55 @@ impl ThinkingTracker {
     }
 }
 
+/// Process thinking tags in response content for non-streaming responses
+fn process_thinking_tags_in_content(content: &str) -> String {
+    let mut result = String::new();
+    let mut in_thinking = false;
+    let mut chars = content.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '<' {
+            // Check if this is a thinking tag
+            let remaining: String = chars.clone().collect();
+            if remaining.starts_with("thinking>") {
+                in_thinking = true;
+                // Skip "thinking>"
+                for _ in 0..9 {
+                    chars.next();
+                }
+                continue;
+            } else if remaining.starts_with("/thinking>") {
+                in_thinking = false;
+                // Skip "/thinking>"
+                for _ in 0..10 {
+                    chars.next();
+                }
+                continue;
+            } else if remaining.starts_with("think>") {
+                in_thinking = true;
+                // Skip "think>"
+                for _ in 0..6 {
+                    chars.next();
+                }
+                continue;
+            } else if remaining.starts_with("/think>") {
+                in_thinking = false;
+                // Skip "/think>"
+                for _ in 0..7 {
+                    chars.next();
+                }
+                continue;
+            }
+        }
+
+        if !in_thinking {
+            result.push(c);
+        }
+    }
+
+    result
+}
+
 /// Helios Engine - A powerful LLM Agent Framework
 #[derive(Parser)]
 #[command(name = "helios-engine")]
@@ -77,6 +126,10 @@ struct Cli {
     /// Enable verbose logging
     #[arg(short, long)]
     verbose: bool,
+
+    /// LLM mode: auto (use local if configured), online (force remote API), offline (force local models)
+    #[arg(long, default_value = "auto")]
+    mode: String,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -129,7 +182,7 @@ async fn main() -> helios_engine::Result<()> {
             init_config(output)?;
         }
         Some(Commands::Ask { message }) => {
-            ask_once(&cli.config, message).await?;
+            ask_once(&cli.config, message, &cli.mode).await?;
         }
         Some(Commands::Chat {
             system_prompt,
@@ -138,12 +191,12 @@ async fn main() -> helios_engine::Result<()> {
             let sys_prompt = system_prompt.as_ref().map(|s| s.as_str()).unwrap_or(
                 "You are a helpful AI assistant with access to various tools. Use them when needed to help the user."
             );
-            interactive_chat(&cli.config, sys_prompt, *max_iterations).await?;
+            interactive_chat(&cli.config, sys_prompt, *max_iterations, &cli.mode).await?;
         }
         None => {
             // Default to chat command
             let sys_prompt = "You are a helpful AI assistant with access to various tools. Use them when needed to help the user.";
-            interactive_chat(&cli.config, sys_prompt, 5).await?;
+            interactive_chat(&cli.config, sys_prompt, 5, &cli.mode).await?;
         }
     }
 
@@ -183,11 +236,20 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
 }
 
 /// Send a single message and exit
-async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()> {
-    let config = load_config(config_path)?;
+async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine::Result<()> {
+    let mut config = load_config(config_path)?;
+    apply_mode_override(&mut config, mode);
+
+    // Determine if we're using local or remote
+    let is_local = config.local.is_some();
 
     // Use streaming for direct LLM call
-    let client = LLMClient::new(config.llm);
+    let provider_type = if is_local {
+        helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
+    } else {
+        helios_engine::llm::LLMProviderType::Remote(config.llm)
+    };
+    let client = LLMClient::new(provider_type).await?;
     let messages = vec![
         ChatMessage::system("You are a helpful AI assistant."),
         ChatMessage::user(message),
@@ -198,16 +260,30 @@ async fn ask_once(config_path: &str, message: &str) -> helios_engine::Result<()>
     print!("🤖: ");
     io::stdout().flush().unwrap();
 
-    let response = client
-        .chat_stream(messages, None, |chunk| {
-            if let Some(output) = tracker.process_chunk(chunk) {
-                print!("{}", output);
-                io::stdout().flush().unwrap();
-            }
-        })
-        .await?;
+    // Use streaming for remote models, regular chat for local models
+    let response = if is_local {
+        // Local model - use regular chat
+        client.chat(messages, None).await?
+    } else {
+        // Remote model - use streaming
+        client
+            .chat_stream(messages, None, |chunk| {
+                if let Some(output) = tracker.process_chunk(chunk) {
+                    print!("{}", output);
+                    io::stdout().flush().unwrap();
+                }
+            })
+            .await?
+    };
 
-    println!("\n");
+    // Print the response content if it wasn't streamed
+    if is_local {
+        // For local models, process thinking tags in the response content
+        let processed_content = process_thinking_tags_in_content(&response.content);
+        println!("{}", processed_content);
+    } else {
+        println!("\n");
+    }
 
     Ok(())
 }
@@ -217,14 +293,21 @@ async fn interactive_chat(
     config_path: &str,
     system_prompt: &str,
     _max_iterations: usize,
+    mode: &str,
 ) -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - LLM Agent Framework");
     println!("========================================\n");
 
-    let config = load_config(config_path)?;
+    let mut config = load_config(config_path)?;
+    apply_mode_override(&mut config, mode);
 
     // Create LLM client for streaming
-    let client = LLMClient::new(config.llm);
+    let provider_type = if config.local.is_some() {
+        helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
+    } else {
+        helios_engine::llm::LLMProviderType::Remote(config.llm)
+    };
+    let client = LLMClient::new(provider_type).await?;
     let mut session = helios_engine::ChatSession::new().with_system_prompt(system_prompt);
 
     println!("✓ Streaming mode enabled");
@@ -307,16 +390,6 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
     match Config::from_file(config_path) {
         Ok(cfg) => {
             println!("✓ Loaded configuration from {}\n", config_path);
-
-            // Check if API key is set
-            if cfg.llm.api_key == "your-api-key-here" {
-                eprintln!("⚠ Warning: API key not configured!");
-                eprintln!("Please edit {} and set your API key.\n", config_path);
-                return Err(helios_engine::HeliosError::ConfigError(
-                    "API key not configured".to_string(),
-                ));
-            }
-
             Ok(cfg)
         }
         Err(_) => {
@@ -329,6 +402,54 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
                 "Configuration file '{}' not found",
                 config_path
             )))
+        }
+    }
+}
+
+/// Apply mode override to config
+fn apply_mode_override(config: &mut Config, mode: &str) {
+    match mode {
+        "online" => {
+            // Force online mode by removing local config
+            config.local = None;
+            println!("🌐 Online mode: Using remote API");
+
+            // Check if API key is set for online mode
+            if config.llm.api_key == "your-api-key-here" {
+                eprintln!("⚠ Warning: API key not configured!");
+                eprintln!("Please edit your config file and set your API key.\n");
+                std::process::exit(1);
+            }
+        }
+        "offline" => {
+            // Force offline mode - require local config to be present
+            if config.local.is_none() {
+                eprintln!("❌ Offline mode requested but no [local] section found in config");
+                eprintln!("💡 Add a [local] section to your config.toml for offline mode");
+                std::process::exit(1);
+            }
+            println!("🏠 Offline mode: Using local models");
+        }
+        "auto" => {
+            // Use existing logic (local if present, otherwise remote)
+            if config.local.is_some() {
+                println!("🔄 Auto mode: Using local models (configured)");
+            } else {
+                println!("🔄 Auto mode: Using remote API (no local config)");
+                // Check if API key is set for remote mode in auto mode
+                if config.llm.api_key == "your-api-key-here" {
+                    eprintln!("⚠ Warning: API key not configured!");
+                    eprintln!("Please edit your config file and set your API key.\n");
+                    std::process::exit(1);
+                }
+            }
+        }
+        _ => {
+            eprintln!(
+                "❌ Invalid mode '{}'. Valid options: auto, online, offline",
+                mode
+            );
+            std::process::exit(1);
         }
     }
 }

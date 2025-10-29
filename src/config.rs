@@ -6,6 +6,8 @@ use crate::error::{HeliosError, Result};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub llm: LLMConfig,
+    #[serde(default)]
+    pub local: Option<LocalConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,11 +21,27 @@ pub struct LLMConfig {
     pub max_tokens: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalConfig {
+    pub huggingface_repo: String,
+    pub model_file: String,
+    #[serde(default = "default_context_size")]
+    pub context_size: usize,
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+    #[serde(default = "default_max_tokens")]
+    pub max_tokens: u32,
+}
+
 fn default_temperature() -> f32 {
     0.7
 }
 
 fn default_max_tokens() -> u32 {
+    2048
+}
+
+fn default_context_size() -> usize {
     2048
 }
 
@@ -47,6 +65,7 @@ impl Config {
                 temperature: 0.7,
                 max_tokens: 2048,
             },
+            local: None,
         }
     }
 

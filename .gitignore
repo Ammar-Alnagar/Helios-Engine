@@ -6,3 +6,5 @@ config.toml
 *~
 .DS_Store
 .gitignore
+.cache
+.cache

@@ -1,7 +1,7 @@
 use crate::chat::{ChatMessage, ChatSession};
 use crate::config::Config;
 use crate::error::{HeliosError, Result};
-use crate::llm::LLMClient;
+use crate::llm::{LLMClient, LLMProviderType};
 use crate::tools::{ToolRegistry, ToolResult};
 use serde_json::Value;
 
@@ -14,14 +14,22 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(name: impl Into<String>, config: Config) -> Self {
-        Self {
+    pub async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
+        let provider_type = if let Some(local_config) = config.local {
+            LLMProviderType::Local(local_config)
+        } else {
+            LLMProviderType::Remote(config.llm)
+        };
+
+        let llm_client = LLMClient::new(provider_type).await?;
+
+        Ok(Self {
             name: name.into(),
-            llm_client: LLMClient::new(config.llm),
+            llm_client,
             tool_registry: ToolRegistry::new(),
             chat_session: ChatSession::new(),
             max_iterations: 10,
-        }
+        })
     }
 
     pub fn builder(name: impl Into<String>) -> AgentBuilder {
@@ -175,12 +183,12 @@ impl AgentBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Agent> {
+    pub async fn build(self) -> Result<Agent> {
         let config = self
             .config
             .ok_or_else(|| HeliosError::AgentError("Config is required".to_string()))?;
 
-        let mut agent = Agent::new(self.name, config);
+        let mut agent = Agent::new(self.name, config).await?;
 
         if let Some(prompt) = self.system_prompt {
             agent.set_system_prompt(prompt);
