@@ -537,7 +537,7 @@ impl LLMProvider for LocalLLMProvider {
 
             // Generate response tokens
             let mut generated_text = String::new();
-            let max_new_tokens = 128; // Limit response length
+            let max_new_tokens = 512; // Increased limit for better responses
             let mut next_pos = tokens.len() as i32; // Start after the prompt tokens
 
             for _ in 0..max_new_tokens {
@@ -623,6 +623,137 @@ impl LLMProvider for LocalLLMProvider {
     }
 }
 
+impl LocalLLMProvider {
+    // Add streaming support for local models
+    async fn chat_stream_local<F>(
+        &self,
+        messages: Vec<ChatMessage>,
+        mut on_chunk: F,
+    ) -> Result<ChatMessage>
+    where
+        F: FnMut(&str) + Send,
+    {
+        let prompt = self.format_messages(&messages);
+        let model = Arc::clone(&self.model);
+
+        // Create a channel for streaming tokens
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+
+        // Spawn blocking task for generation
+        let generation_task = task::spawn_blocking(move || {
+            // Initialize backend (without suppressing output - let llama handle it)
+            let backend = LlamaBackend::init().map_err(|e| {
+                HeliosError::LLMError(format!("Failed to initialize backend: {:?}", e))
+            })?;
+
+            // Create context
+            use std::num::NonZeroU32;
+            let ctx_params =
+                LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(2048).unwrap()));
+
+            let mut context = model
+                .new_context(&backend, ctx_params)
+                .map_err(|e| HeliosError::LLMError(format!("Failed to create context: {:?}", e)))?;
+
+            // Tokenize the prompt
+            let tokens = context
+                .model
+                .str_to_token(&prompt, AddBos::Always)
+                .map_err(|e| HeliosError::LLMError(format!("Tokenization failed: {:?}", e)))?;
+
+            // Create batch for prompt
+            let mut prompt_batch = LlamaBatch::new(tokens.len(), 1);
+            for (i, &token) in tokens.iter().enumerate() {
+                let compute_logits = true;
+                prompt_batch
+                    .add(token, i as i32, &[0], compute_logits)
+                    .map_err(|e| {
+                        HeliosError::LLMError(format!(
+                            "Failed to add prompt token to batch: {:?}",
+                            e
+                        ))
+                    })?;
+            }
+
+            // Decode the prompt
+            context
+                .decode(&mut prompt_batch)
+                .map_err(|e| HeliosError::LLMError(format!("Failed to decode prompt: {:?}", e)))?;
+
+            // Generate response tokens with streaming
+            let mut generated_text = String::new();
+            let max_new_tokens = 512;
+            let mut next_pos = tokens.len() as i32;
+
+            for _ in 0..max_new_tokens {
+                let logits = context.get_logits();
+
+                let token_idx = logits
+                    .iter()
+                    .enumerate()
+                    .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                    .map(|(idx, _)| idx)
+                    .unwrap_or_else(|| {
+                        let eos = context.model.token_eos();
+                        eos.0 as usize
+                    });
+                let token = LlamaToken(token_idx as i32);
+
+                // Check for end of sequence
+                if token == context.model.token_eos() {
+                    break;
+                }
+
+                // Convert token back to text
+                match context.model.token_to_str(token, Special::Plaintext) {
+                    Ok(text) => {
+                        generated_text.push_str(&text);
+                        // Send token through channel
+                        let _ = tx.send(text);
+                    },
+                    Err(_) => continue,
+                }
+
+                // Create a new batch with just this token
+                let mut gen_batch = LlamaBatch::new(1, 1);
+                gen_batch.add(token, next_pos, &[0], true).map_err(|e| {
+                    HeliosError::LLMError(format!(
+                        "Failed to add generated token to batch: {:?}",
+                        e
+                    ))
+                })?;
+
+                // Decode the new token
+                context.decode(&mut gen_batch).map_err(|e| {
+                    HeliosError::LLMError(format!("Failed to decode token: {:?}", e))
+                })?;
+
+                next_pos += 1;
+            }
+
+            Ok::<String, HeliosError>(generated_text)
+        });
+
+        // Receive and process tokens as they arrive
+        while let Some(token) = rx.recv().await {
+            on_chunk(&token);
+        }
+
+        // Wait for generation to complete and get the result
+        let result = generation_task.await.map_err(|e| {
+            HeliosError::LLMError(format!("Task failed: {}", e))
+        })??;
+
+        Ok(ChatMessage {
+            role: crate::chat::Role::Assistant,
+            content: result,
+            name: None,
+            tool_calls: None,
+            tool_call_id: None,
+        })
+    }
+}
+
 #[async_trait]
 impl LLMProvider for LLMClient {
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
@@ -673,23 +804,20 @@ impl LLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
-        mut on_chunk: F,
+        on_chunk: F,
     ) -> Result<ChatMessage>
     where
         F: FnMut(&str) + Send,
     {
-        // For local models, streaming is not yet implemented, so fall back to regular chat
         match &self.provider_type {
             LLMProviderType::Remote(config) => {
                 let remote_client = RemoteLLMClient::new(config.clone());
                 remote_client.chat_stream(messages, tools, on_chunk).await
             }
-            LLMProviderType::Local(_) => {
-                // For now, local models don't support streaming, so we call the callback
-                // with the full response content to maintain compatibility
-                let response = self.chat(messages, tools).await?;
-                on_chunk(&response.content);
-                Ok(response)
+            LLMProviderType::Local(config) => {
+                // Use the new streaming implementation for local models
+                let local_provider = LocalLLMProvider::new(config.clone()).await?;
+                local_provider.chat_stream_local(messages, on_chunk).await
             }
         }
     }

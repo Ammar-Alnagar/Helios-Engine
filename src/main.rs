@@ -83,6 +83,7 @@ impl ThinkingTracker {
 }
 
 /// Process thinking tags in response content for non-streaming responses
+#[allow(dead_code)]
 fn process_thinking_tags_in_content(content: &str) -> String {
     let mut result = String::new();
     let mut in_thinking = false;
@@ -277,30 +278,17 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     print!("🤖: ");
     io::stdout().flush().unwrap();
 
-    // Use streaming for remote models, regular chat for local models
-    let response = if is_local {
-        // Local model - use regular chat
-        client.chat(messages, None).await?
-    } else {
-        // Remote model - use streaming
-        client
-            .chat_stream(messages, None, |chunk| {
-                if let Some(output) = tracker.process_chunk(chunk) {
-                    print!("{}", output);
-                    io::stdout().flush().unwrap();
-                }
-            })
-            .await?
-    };
+    // Use streaming for both local and remote models
+    let response = client
+        .chat_stream(messages, None, |chunk| {
+            if let Some(output) = tracker.process_chunk(chunk) {
+                print!("{}", output);
+                io::stdout().flush().unwrap();
+            }
+        })
+        .await?;
 
-    // Print the response content if it wasn't streamed
-    if is_local {
-        // For local models, process thinking tags in the response content
-        let processed_content = process_thinking_tags_in_content(&response.content);
-        println!("{}", processed_content);
-    } else {
-        println!("\n");
-    }
+    println!("\n");
 
     Ok(())
 }
@@ -365,6 +353,11 @@ async fn interactive_chat(
                     println!("  {}. {:?}: {}", i + 1, msg.role, msg.content);
                 }
                 println!();
+                continue;
+            }
+            "summary" => {
+                println!("\n📊 Session Summary:");
+                println!("{}", session.get_summary());
                 continue;
             }
             _ => {}
@@ -477,10 +470,12 @@ fn print_help() {
     println!("  exit, quit  - Exit the chat session");
     println!("  clear       - Clear conversation history");
     println!("  history     - Show conversation history");
+    println!("  summary     - Show session summary with metadata");
     println!("  help        - Show this help message");
     println!("\n💡 Features:");
-    println!("  • Streaming responses for real-time output");
+    println!("  • Streaming responses for real-time output (local & remote)");
     println!("  • Thinking tags displayed when model uses them");
     println!("  • Full conversation context maintained");
+    println!("  • Session memory for tracking conversation state");
     println!();
 }

@@ -11,6 +11,7 @@ pub struct Agent {
     tool_registry: ToolRegistry,
     chat_session: ChatSession,
     max_iterations: usize,
+    session_memory: std::collections::HashMap<String, String>,
 }
 
 impl Agent {
@@ -29,6 +30,7 @@ impl Agent {
             tool_registry: ToolRegistry::new(),
             chat_session: ChatSession::new(),
             max_iterations: 10,
+            session_memory: std::collections::HashMap::new(),
         })
     }
 
@@ -138,6 +140,40 @@ impl Agent {
 
     pub fn set_max_iterations(&mut self, max: usize) {
         self.max_iterations = max;
+    }
+    
+    // Session memory methods
+    pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        let key_str = key.into();
+        let value_str = value.into();
+        self.session_memory.insert(key_str.clone(), value_str.clone());
+        self.chat_session.set_metadata(key_str, value_str);
+    }
+    
+    pub fn get_memory(&self, key: &str) -> Option<&String> {
+        self.session_memory.get(key)
+    }
+    
+    pub fn remove_memory(&mut self, key: &str) -> Option<String> {
+        self.chat_session.remove_metadata(key);
+        self.session_memory.remove(key)
+    }
+    
+    pub fn get_session_summary(&self) -> String {
+        let mut summary = self.chat_session.get_summary();
+        
+        if !self.session_memory.is_empty() {
+            summary.push_str("\nAgent session memory:\n");
+            for (key, value) in &self.session_memory {
+                summary.push_str(&format!("  {}: {}\n", key, value));
+            }
+        }
+        
+        summary
+    }
+    
+    pub fn clear_memory(&mut self) {
+        self.session_memory.clear();
     }
 }
 

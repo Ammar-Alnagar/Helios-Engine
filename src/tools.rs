@@ -247,6 +247,387 @@ impl Tool for EchoTool {
     }
 }
 
+pub struct FileSearchTool;
+
+#[async_trait]
+impl Tool for FileSearchTool {
+    fn name(&self) -> &str {
+        "file_search"
+    }
+
+    fn description(&self) -> &str {
+        "Search for files by name pattern or search for content within files. Can search recursively in directories."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "path".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The directory path to search in (default: current directory)".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "pattern".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "File name pattern to search for (supports wildcards like *.rs)".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "content".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Text content to search for within files".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "max_results".to_string(),
+            ToolParameter {
+                param_type: "number".to_string(),
+                description: "Maximum number of results to return (default: 50)".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        use walkdir::WalkDir;
+
+        let base_path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or(".");
+        
+        let pattern = args.get("pattern").and_then(|v| v.as_str());
+        let content_search = args.get("content").and_then(|v| v.as_str());
+        let max_results = args
+            .get("max_results")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(50) as usize;
+
+        if pattern.is_none() && content_search.is_none() {
+            return Err(HeliosError::ToolError(
+                "Either 'pattern' or 'content' parameter is required".to_string(),
+            ));
+        }
+
+        let mut results = Vec::new();
+        
+        for entry in WalkDir::new(base_path)
+            .max_depth(10)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            if results.len() >= max_results {
+                break;
+            }
+
+            let path = entry.path();
+            
+            // Skip hidden files and common ignore directories
+            if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                if file_name.starts_with('.') || 
+                   file_name == "target" || 
+                   file_name == "node_modules" ||
+                   file_name == "__pycache__" {
+                    continue;
+                }
+            }
+
+            // Pattern matching for file names
+            if let Some(pat) = pattern {
+                if path.is_file() {
+                    if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                        if glob_match(file_name, pat) {
+                            results.push(format!("📄 {}", path.display()));
+                        }
+                    }
+                }
+            }
+
+            // Content search within files
+            if let Some(search_term) = content_search {
+                if path.is_file() {
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        if content.contains(search_term) {
+                            // Find line numbers where content appears
+                            let matching_lines: Vec<(usize, &str)> = content
+                                .lines()
+                                .enumerate()
+                                .filter(|(_, line)| line.contains(search_term))
+                                .take(3) // Show up to 3 matching lines per file
+                                .collect();
+                            
+                            if !matching_lines.is_empty() {
+                                results.push(format!("📄 {} (found in {} lines)", 
+                                    path.display(), matching_lines.len()));
+                                for (line_num, line) in matching_lines {
+                                    results.push(format!("  Line {}: {}", line_num + 1, line.trim()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if results.is_empty() {
+            Ok(ToolResult::success("No files found matching the criteria.".to_string()))
+        } else {
+            let output = format!(
+                "Found {} result(s):\n\n{}",
+                results.len(),
+                results.join("\n")
+            );
+            Ok(ToolResult::success(output))
+        }
+    }
+}
+
+// Simple glob matching helper
+fn glob_match(text: &str, pattern: &str) -> bool {
+    let re_pattern = pattern
+        .replace(".", r"\.")
+        .replace("*", ".*")
+        .replace("?", ".");
+    
+    if let Ok(re) = regex::Regex::new(&format!("^{}$", re_pattern)) {
+        re.is_match(text)
+    } else {
+        text.contains(pattern)
+    }
+}
+
+pub struct FileReadTool;
+
+#[async_trait]
+impl Tool for FileReadTool {
+    fn name(&self) -> &str {
+        "file_read"
+    }
+
+    fn description(&self) -> &str {
+        "Read the contents of a file. Returns the full file content or specific lines."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "path".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The file path to read".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "start_line".to_string(),
+            ToolParameter {
+                param_type: "number".to_string(),
+                description: "Starting line number (1-indexed, optional)".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "end_line".to_string(),
+            ToolParameter {
+                param_type: "number".to_string(),
+                description: "Ending line number (1-indexed, optional)".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let file_path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'path' parameter".to_string()))?;
+
+        let content = std::fs::read_to_string(file_path)
+            .map_err(|e| HeliosError::ToolError(format!("Failed to read file: {}", e)))?;
+
+        let start_line = args.get("start_line").and_then(|v| v.as_u64()).map(|n| n as usize);
+        let end_line = args.get("end_line").and_then(|v| v.as_u64()).map(|n| n as usize);
+
+        let output = if let (Some(start), Some(end)) = (start_line, end_line) {
+            let lines: Vec<&str> = content.lines().collect();
+            let start_idx = start.saturating_sub(1);
+            let end_idx = end.min(lines.len());
+            
+            if start_idx >= lines.len() {
+                return Err(HeliosError::ToolError(format!(
+                    "Start line {} is beyond file length ({})",
+                    start, lines.len()
+                )));
+            }
+            
+            let selected_lines = &lines[start_idx..end_idx];
+            format!(
+                "File: {} (lines {}-{}):\n\n{}",
+                file_path,
+                start,
+                end_idx,
+                selected_lines.join("\n")
+            )
+        } else {
+            format!("File: {}:\n\n{}", file_path, content)
+        };
+
+        Ok(ToolResult::success(output))
+    }
+}
+
+pub struct FileWriteTool;
+
+#[async_trait]
+impl Tool for FileWriteTool {
+    fn name(&self) -> &str {
+        "file_write"
+    }
+
+    fn description(&self) -> &str {
+        "Write content to a file. Creates new file or overwrites existing file."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "path".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The file path to write to".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "content".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The content to write to the file".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let file_path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'path' parameter".to_string()))?;
+
+        let content = args
+            .get("content")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'content' parameter".to_string()))?;
+
+        // Create parent directories if they don't exist
+        if let Some(parent) = std::path::Path::new(file_path).parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| HeliosError::ToolError(format!("Failed to create directories: {}", e)))?;
+        }
+
+        std::fs::write(file_path, content)
+            .map_err(|e| HeliosError::ToolError(format!("Failed to write file: {}", e)))?;
+
+        Ok(ToolResult::success(format!(
+            "Successfully wrote {} bytes to {}",
+            content.len(),
+            file_path
+        )))
+    }
+}
+
+pub struct FileEditTool;
+
+#[async_trait]
+impl Tool for FileEditTool {
+    fn name(&self) -> &str {
+        "file_edit"
+    }
+
+    fn description(&self) -> &str {
+        "Edit a file by replacing specific text or lines. Use this to make targeted changes to existing files."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "path".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The file path to edit".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "find".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The text to find and replace".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "replace".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The replacement text".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let file_path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'path' parameter".to_string()))?;
+
+        let find_text = args
+            .get("find")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'find' parameter".to_string()))?;
+
+        let replace_text = args
+            .get("replace")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'replace' parameter".to_string()))?;
+
+        let content = std::fs::read_to_string(file_path)
+            .map_err(|e| HeliosError::ToolError(format!("Failed to read file: {}", e)))?;
+
+        let count = content.matches(find_text).count();
+        
+        if count == 0 {
+            return Ok(ToolResult::error(format!(
+                "Text '{}' not found in file {}",
+                find_text, file_path
+            )));
+        }
+
+        let new_content = content.replace(find_text, replace_text);
+
+        std::fs::write(file_path, &new_content)
+            .map_err(|e| HeliosError::ToolError(format!("Failed to write file: {}", e)))?;
+
+        Ok(ToolResult::success(format!(
+            "Successfully replaced {} occurrence(s) in {}",
+            count, file_path
+        )))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
