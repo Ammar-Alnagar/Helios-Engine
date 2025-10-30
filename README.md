@@ -5,8 +5,6 @@
 </p>
 
 [![Crates.io](https://img.shields.io/crates/v/helios-engine.svg)](https://crates.io/crates/helios-engine)
-[![Documentation](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
-[![Crates.io Downloads](https://img.shields.io/crates/d/helios-engine.svg)](https://crates.io/crates/helios-engine)
 
 
 

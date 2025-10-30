@@ -174,6 +174,7 @@ fn restore_output(stdout_backup: i32, stderr_backup: i32) {
 
 pub struct LocalLLMProvider {
     model: Arc<LlamaModel>,
+    backend: Arc<LlamaBackend>,
 }
 
 impl LocalLLMProvider {
@@ -207,6 +208,7 @@ impl LocalLLMProvider {
 
         Ok(Self {
             model: Arc::new(model),
+            backend: Arc::new(backend),
         })
     }
 
@@ -504,12 +506,8 @@ impl LLMProvider for LocalLLMProvider {
         let (stdout_backup, stderr_backup) = suppress_output();
 
         // Run inference in a blocking task
+        let backend = Arc::clone(&self.backend);
         let result = task::spawn_blocking(move || {
-            // Initialize backend
-            let backend = LlamaBackend::init().map_err(|e| {
-                HeliosError::LLMError(format!("Failed to initialize backend: {:?}", e))
-            })?;
-
             // Create context
             use std::num::NonZeroU32;
             let ctx_params =
@@ -649,12 +647,8 @@ impl LocalLLMProvider {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
         // Spawn blocking task for generation
+        let backend = Arc::clone(&self.backend);
         let generation_task = task::spawn_blocking(move || {
-            // Initialize backend (without suppressing output - let llama handle it)
-            let backend = LlamaBackend::init().map_err(|e| {
-                HeliosError::LLMError(format!("Failed to initialize backend: {:?}", e))
-            })?;
-
             // Create context
             use std::num::NonZeroU32;
             let ctx_params =
