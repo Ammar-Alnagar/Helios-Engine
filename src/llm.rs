@@ -518,15 +518,15 @@ impl LLMProvider for LocalLLMProvider {
 
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
         let prompt = self.format_messages(&request.messages);
-        let model = Arc::clone(&self.model);
 
         // Suppress output during inference in offline mode
         let (stdout_backup, stderr_backup) = suppress_output();
 
         // Run inference in a blocking task
+        let model = Arc::clone(&self.model);
         let backend = Arc::clone(&self.backend);
         let result = task::spawn_blocking(move || {
-            // Create context
+            // Create a fresh context per request (model/back-end are reused across calls)
             use std::num::NonZeroU32;
             let ctx_params =
                 LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(2048).unwrap()));
@@ -659,7 +659,6 @@ impl LocalLLMProvider {
         F: FnMut(&str) + Send,
     {
         let prompt = self.format_messages(&messages);
-        let model = Arc::clone(&self.model);
 
         // Suppress only stderr so llama.cpp context logs are hidden but stdout streaming remains visible
         let stderr_backup = suppress_stderr();
@@ -668,9 +667,10 @@ impl LocalLLMProvider {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
         // Spawn blocking task for generation
+        let model = Arc::clone(&self.model);
         let backend = Arc::clone(&self.backend);
         let generation_task = task::spawn_blocking(move || {
-            // Create context
+            // Create a fresh context per request (model/back-end are reused across calls)
             use std::num::NonZeroU32;
             let ctx_params =
                 LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(2048).unwrap()));
