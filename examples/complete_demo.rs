@@ -58,10 +58,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("{}\n", response1);
 
     // Update memory
-    let files_accessed = agent.get_memory("files_accessed")
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0);
-    agent.set_memory("files_accessed", (files_accessed + 1).to_string());
+    agent.increment_counter("files_accessed");
     agent.set_memory("last_action", "file_search");
 
     // Demo 2: Read a file
@@ -76,10 +73,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("{}\n", response2);
 
     // Update memory
-    let files_accessed = agent.get_memory("files_accessed")
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0);
-    agent.set_memory("files_accessed", (files_accessed + 1).to_string());
+    agent.increment_counter("files_accessed");
     agent.set_memory("last_action", "file_read");
 
     // Demo 3: Show session summary
@@ -157,10 +151,7 @@ async fn main() -> helios_engine::Result<()> {
                 println!("{}", response);
                 
                 // Update memory after each interaction
-                let files_accessed = agent.get_memory("files_accessed")
-                    .and_then(|v| v.parse::<u32>().ok())
-                    .unwrap_or(0);
-                agent.set_memory("files_accessed", (files_accessed + 1).to_string());
+                agent.increment_counter("files_accessed");
             }
             Err(e) => {
                 eprintln!("\n❌ Error: {}", e);

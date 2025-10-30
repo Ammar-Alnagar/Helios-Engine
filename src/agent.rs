@@ -1,9 +1,13 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use crate::chat::{ChatMessage, ChatSession};
 use crate::config::Config;
 use crate::error::{HeliosError, Result};
 use crate::llm::{LLMClient, LLMProviderType};
 use crate::tools::{ToolRegistry, ToolResult};
 use serde_json::Value;
+
+const AGENT_MEMORY_PREFIX: &str = "agent:";
 
 pub struct Agent {
     name: String,
@@ -139,26 +143,51 @@ impl Agent {
     pub fn set_max_iterations(&mut self, max: usize) {
         self.max_iterations = max;
     }
-    
-    // Session memory methods
-    pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.chat_session.set_metadata(key, value);
-    }
-
-    pub fn get_memory(&self, key: &str) -> Option<&String> {
-        self.chat_session.get_metadata(key)
-    }
-
-    pub fn remove_memory(&mut self, key: &str) -> Option<String> {
-        self.chat_session.remove_metadata(key)
-    }
 
     pub fn get_session_summary(&self) -> String {
         self.chat_session.get_summary()
     }
 
     pub fn clear_memory(&mut self) {
-        self.chat_session.metadata.clear();
+        // Only clear agent-scoped memory keys to avoid wiping general session metadata
+        self.chat_session
+            .metadata
+            .retain(|k, _| !k.starts_with(AGENT_MEMORY_PREFIX));
+    }
+
+    #[inline]
+    fn prefixed_key(key: &str) -> String {
+        format!("{}{}", AGENT_MEMORY_PREFIX, key)
+    }
+
+    // Agent-scoped memory API (namespaced under "agent:")
+    pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        let key = key.into();
+        self.chat_session
+            .set_metadata(Self::prefixed_key(&key), value);
+    }
+
+    pub fn get_memory(&self, key: &str) -> Option<&String> {
+        self.chat_session.get_metadata(&Self::prefixed_key(key))
+    }
+
+    pub fn remove_memory(&mut self, key: &str) -> Option<String> {
+        self.chat_session.remove_metadata(&Self::prefixed_key(key))
+    }
+
+    // Convenience helpers to reduce duplication in examples
+    pub fn increment_counter(&mut self, key: &str) -> u32 {
+        let current = self
+            .get_memory(key)
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let next = current + 1;
+        self.set_memory(key, next.to_string());
+        next
+    }
+
+    pub fn increment_tasks_completed(&mut self) -> u32 {
+        self.increment_counter("tasks_completed")
     }
 }
 

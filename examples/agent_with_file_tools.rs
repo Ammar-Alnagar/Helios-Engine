@@ -52,10 +52,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("Agent: {}\n", response);
 
     // Update session memory
-    let tasks = agent.get_memory("tasks_completed")
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0);
-    agent.set_memory("tasks_completed", (tasks + 1).to_string());
+    agent.increment_tasks_completed();
     agent.set_memory("last_task", "file_search");
 
     // Example 2: Read a specific file
@@ -68,10 +65,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("Agent: {}\n", response);
 
     // Update session memory
-    let tasks = agent.get_memory("tasks_completed")
-        .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(0);
-    agent.set_memory("tasks_completed", (tasks + 1).to_string());
+    agent.increment_tasks_completed();
     agent.set_memory("last_task", "file_read");
 
     // Example 3: Show session summary

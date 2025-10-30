@@ -732,8 +732,10 @@ impl LocalLLMProvider {
                 match context.model.token_to_str(token, Special::Plaintext) {
                     Ok(text) => {
                         generated_text.push_str(&text);
-                        // Send token through channel
-                        let _ = tx.send(text);
+                        // Send token through channel; stop if receiver is dropped
+                        if tx.send(text).is_err() {
+                            break;
+                        }
                     },
                     Err(_) => continue,
                 }

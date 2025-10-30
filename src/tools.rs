@@ -322,6 +322,27 @@ impl Tool for FileSearchTool {
 
         let mut results = Vec::new();
         
+        // Precompile filename pattern to avoid compiling per file
+        let compiled_re = if let Some(pat) = pattern {
+            let re_pattern = pat
+                .replace(".", r"\.")
+                .replace("*", ".*")
+                .replace("?", ".");
+            match regex::Regex::new(&format!("^{}$", re_pattern)) {
+                Ok(re) => Some(re),
+                Err(e) => {
+                    tracing::warn!(
+                        "Invalid glob pattern '{}' ({}). Falling back to substring matching.",
+                        pat,
+                        e
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        
         for entry in WalkDir::new(base_path)
             .max_depth(10)
             .follow_links(false)
@@ -348,7 +369,12 @@ impl Tool for FileSearchTool {
             if let Some(pat) = pattern {
                 if path.is_file() {
                     if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                        if glob_match(file_name, pat) {
+                        let is_match = if let Some(re) = &compiled_re {
+                            re.is_match(file_name)
+                        } else {
+                            file_name.contains(pat)
+                        };
+                        if is_match {
                             results.push(format!("📄 {}", path.display()));
                         }
                     }
@@ -394,19 +420,7 @@ impl Tool for FileSearchTool {
     }
 }
 
-// Simple glob matching helper
-fn glob_match(text: &str, pattern: &str) -> bool {
-    let re_pattern = pattern
-        .replace(".", r"\.")
-        .replace("*", ".*")
-        .replace("?", ".");
-    
-    if let Ok(re) = regex::Regex::new(&format!("^{}$", re_pattern)) {
-        re.is_match(text)
-    } else {
-        text.contains(pattern)
-    }
-}
+// (removed) glob_match helper – logic moved to precompiled regex in FileSearchTool::execute
 
 pub struct FileReadTool;
 

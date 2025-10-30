@@ -173,7 +173,7 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-** For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md) **
+**For detailed examples of using Helios Engine as a crate, see [Using as a Crate Guide](docs/USING_AS_CRATE.md)**
 
 ### Using Offline Mode with Local Models
 
