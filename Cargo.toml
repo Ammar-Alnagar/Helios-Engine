@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://github.com/Ammar-Alnagar/Helios.git"
 repository = "https://github.com/Ammar-Alnagar/Helios.git"
 license = "Apache-2.0 OR MIT"
-keywords = ["Llama_cpp", "agent", "ai", "chatgpt", "llm", "local", "openai"]
+keywords = ["Llama_cpp", "agent", "ai", "llm", "openai"]
 categories = ["api-bindings", "asynchronous", "command-line-utilities"]
 
 [lib]
