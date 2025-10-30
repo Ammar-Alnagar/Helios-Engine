@@ -1049,3 +1049,90 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 
 Made with ❤️ in Rust
+
+
+# ⚠️ ☠️ HERE BE DRAGONS ☠️ ⚠️
+
+---
+
+## 🔥 ABANDON ALL HOPE, YE WHO ENTER HERE 🔥
+
+---
+
+### Greetings, Foolish Mortal
+
+What lies before you is not code—it is a **CURSE**.
+
+A labyrinth of logic so twisted, so arcane, that it defies comprehension itself.
+
+---
+
+### ⚡ What Holds This Monstrosity Together
+
+- 🩹 Duct tape (metaphorical and spiritual)
+- 🙏 Prayers whispered at 3 AM
+- 📚 Stack Overflow answers from 2009
+- 😱 Pure, unfiltered desperation
+- 😭 The tears of junior developers
+- 🎲 Luck (mostly luck)
+
+---
+
+### 📜 The Legend
+
+> *Once, two beings understood this code:*
+> 
+> **⚡ God and Me ⚡**
+> 
+> *Now... I have forgotten.*
+> 
+> *Only God remains.*
+> 
+> *And I'm not sure He's still watching.*
+
+---
+
+### ⚔️ YOUR OPTIONS, BRAVE WARRIOR
+
+1. **Turn back now.** Close this file. Walk away. Live to code another day.
+2. **Proceed at your own peril** and join the fallen in the Memorial Wall below.
+3. **Rewrite from scratch** (highly recommended, but we both know you won't).
+
+---
+
+### ⚠️ If You Choose Option 2, Know This:
+
+| Warning | Reality |
+|---------|---------|
+| 🔴 Touching ANYTHING | May cause catastrophic failure |
+| 🟡 The tests pass | By ACCIDENT, not design |
+| 🟠 Production stability | A MYTH we tell ourselves |
+| 🔵 Your IDE's warnings | Trying to SAVE you |
+| 🟣 "It works on my machine" | It shouldn't work ANYWHERE |
+| ⚫ The comments | LIES. All of them. |
+
+---
+
+### ⚰️ MEMORIAL WALL ⚰️
+
+*For those who tried and failed before you:*
+
+- **Junior Dev** (2019-2019) — *RIP*
+- **Senior Dev** (2020-2020) — *RIP*
+- **Tech Lead** (2021-2022) — *Status: Missing*
+- **That One Intern** (2023-2023) — *Currently in Therapy*
+- **DevOps Engineer** (2024-2024) — *Quit Tech Entirely*
+
+---
+
+### 📊 Project Status
+
+
+┌─────────────────────────────────────────────┐
+│ Last Modified:        DO NOT MODIFY         │
+│ Last Successful Edit: NEVER                 │
+│ Next Refactor:        HEAT DEATH OF UNIVERSE│
+│ Code Quality:         ELDRITCH HORROR       │
+│ Maintainability:      NULL                  │
+│ Technical Debt:       ∞                     │
+└─────────────────────────────────────────────┘
