@@ -97,6 +97,7 @@ pub struct Usage {
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse>;
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 pub struct LLMClient {
@@ -338,6 +339,10 @@ impl LocalLLMProvider {
 
 #[async_trait]
 impl LLMProvider for RemoteLLMClient {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
         let url = format!("{}/chat/completions", self.config.base_url);
 
@@ -487,6 +492,10 @@ impl RemoteLLMClient {
 
 #[async_trait]
 impl LLMProvider for LocalLLMProvider {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
         let prompt = self.format_messages(&request.messages);
         let model = Arc::clone(&self.model);
@@ -756,6 +765,10 @@ impl LocalLLMProvider {
 
 #[async_trait]
 impl LLMProvider for LLMClient {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
         self.provider.generate(request).await
     }
@@ -810,14 +823,19 @@ impl LLMClient {
         F: FnMut(&str) + Send,
     {
         match &self.provider_type {
-            LLMProviderType::Remote(config) => {
-                let remote_client = RemoteLLMClient::new(config.clone());
-                remote_client.chat_stream(messages, tools, on_chunk).await
+            LLMProviderType::Remote(_) => {
+                if let Some(provider) = self.provider.as_any().downcast_ref::<RemoteLLMClient>() {
+                    provider.chat_stream(messages, tools, on_chunk).await
+                } else {
+                    Err(HeliosError::AgentError("Provider type mismatch".into()))
+                }
             }
-            LLMProviderType::Local(config) => {
-                // Use the new streaming implementation for local models
-                let local_provider = LocalLLMProvider::new(config.clone()).await?;
-                local_provider.chat_stream_local(messages, on_chunk).await
+            LLMProviderType::Local(_) => {
+                if let Some(provider) = self.provider.as_any().downcast_ref::<LocalLLMProvider>() {
+                    provider.chat_stream_local(messages, on_chunk).await
+                } else {
+                    Err(HeliosError::AgentError("Provider type mismatch".into()))
+                }
             }
         }
     }

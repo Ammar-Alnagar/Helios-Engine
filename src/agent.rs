@@ -11,7 +11,6 @@ pub struct Agent {
     tool_registry: ToolRegistry,
     chat_session: ChatSession,
     max_iterations: usize,
-    session_memory: std::collections::HashMap<String, String>,
 }
 
 impl Agent {
@@ -30,7 +29,6 @@ impl Agent {
             tool_registry: ToolRegistry::new(),
             chat_session: ChatSession::new(),
             max_iterations: 10,
-            session_memory: std::collections::HashMap::new(),
         })
     }
 
@@ -144,36 +142,23 @@ impl Agent {
     
     // Session memory methods
     pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        let key_str = key.into();
-        let value_str = value.into();
-        self.session_memory.insert(key_str.clone(), value_str.clone());
-        self.chat_session.set_metadata(key_str, value_str);
+        self.chat_session.set_metadata(key, value);
     }
-    
+
     pub fn get_memory(&self, key: &str) -> Option<&String> {
-        self.session_memory.get(key)
+        self.chat_session.get_metadata(key)
     }
-    
+
     pub fn remove_memory(&mut self, key: &str) -> Option<String> {
-        self.chat_session.remove_metadata(key);
-        self.session_memory.remove(key)
+        self.chat_session.remove_metadata(key)
     }
-    
+
     pub fn get_session_summary(&self) -> String {
-        let mut summary = self.chat_session.get_summary();
-        
-        if !self.session_memory.is_empty() {
-            summary.push_str("\nAgent session memory:\n");
-            for (key, value) in &self.session_memory {
-                summary.push_str(&format!("  {}: {}\n", key, value));
-            }
-        }
-        
-        summary
+        self.chat_session.get_summary()
     }
-    
+
     pub fn clear_memory(&mut self) {
-        self.session_memory.clear();
+        self.chat_session.metadata.clear();
     }
 }
 
@@ -195,7 +180,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_builder() {
         let config = Config::new_default();
-        let mut agent = Agent::builder("test_agent")
+        let agent = Agent::builder("test_agent")
             .config(config)
             .system_prompt("You are a helpful assistant")
             .max_iterations(5)
