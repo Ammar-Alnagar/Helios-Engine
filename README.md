@@ -4,20 +4,18 @@
   <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
 </p>
 
-[![Crates.io](https://img.shields.io/crates/v/helios.svg)](https://crates.io/crates/helios)
-[![Documentation](https://docs.rs/helios/badge.svg)](https://docs.rs/helios)
-[![Build Status](https://github.com/Ammar-Alnagar/Helios-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/actions)
-[![Crates.io Downloads](https://img.shields.io/crates/d/helios.svg)](https://crates.io/crates/helios)
+[![Crates.io](https://img.shields.io/crates/v/helios-engine.svg)](https://crates.io/crates/helios-engine)
+[![Documentation](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
+[![Crates.io Downloads](https://img.shields.io/crates/d/helios-engine.svg)](https://crates.io/crates/helios-engine)
 
 [![Dependency Status](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine/status.svg)](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine)
 
 
-[![docs.rs](https://docs.rs/helios/badge.svg)](https://docs.rs/helios)
-[![downloads](https://img.shields.io/crates/d/helios.svg)](https://crates.io/crates/helios)
+[![docs.rs](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
+[![downloads](https://img.shields.io/crates/d/helios-engine.svg)](https://crates.io/crates/helios-engine)
 
 
 
-[![CI](https://github.com/Ammar-Alnagar/Helios-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/actions)
 [![issues](https://img.shields.io/github/issues/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/issues)
 [![stars](https://img.shields.io/github/stars/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/commits/main)
