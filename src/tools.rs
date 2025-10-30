@@ -761,6 +761,79 @@ mod tests {
         assert_eq!(result.output, "test output");
     }
 
+    #[tokio::test]
+    async fn test_file_search_tool_glob_pattern_precompiled_regex() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let base_tmp = std::env::temp_dir();
+        let pid = std::process::id();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let test_dir = base_tmp.join(format!("helios_fs_test_{}_{}", pid, nanos));
+        std::fs::create_dir_all(&test_dir).unwrap();
+
+        // Create files
+        let file_rs = test_dir.join("a.rs");
+        let file_txt = test_dir.join("b.txt");
+        let subdir = test_dir.join("subdir");
+        std::fs::create_dir_all(&subdir).unwrap();
+        let file_sub_rs = subdir.join("mod.rs");
+        std::fs::write(&file_rs, "fn main() {}\n").unwrap();
+        std::fs::write(&file_txt, "hello\n").unwrap();
+        std::fs::write(&file_sub_rs, "pub fn x() {}\n").unwrap();
+
+        // Execute search with glob pattern
+        let tool = FileSearchTool;
+        let args = json!({
+            "path": test_dir.to_string_lossy(),
+            "pattern": "*.rs",
+            "max_results": 50
+        });
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        let out = result.output;
+        // Should find .rs files
+        assert!(out.contains(&file_rs.to_string_lossy().to_string()));
+        assert!(out.contains(&file_sub_rs.to_string_lossy().to_string()));
+        // Should not include .txt
+        assert!(!out.contains(&file_txt.to_string_lossy().to_string()));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&test_dir);
+    }
+
+    #[tokio::test]
+    async fn test_file_search_tool_invalid_pattern_fallback_contains() {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let base_tmp = std::env::temp_dir();
+        let pid = std::process::id();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let test_dir = base_tmp.join(format!("helios_fs_test_invalid_{}_{}", pid, nanos));
+        std::fs::create_dir_all(&test_dir).unwrap();
+
+        // Create file with '(' to be matched by substring fallback
+        let special = test_dir.join("foo(bar).txt");
+        std::fs::write(&special, "content\n").unwrap();
+
+        let tool = FileSearchTool;
+        let args = json!({
+            "path": test_dir.to_string_lossy(),
+            "pattern": "(",
+            "max_results": 50
+        });
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        let out = result.output;
+        assert!(out.contains(&special.to_string_lossy().to_string()));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(&test_dir);
+    }
+
     #[test]
     fn test_tool_result_error() {
         let result = ToolResult::error("test error");
