@@ -172,6 +172,24 @@ fn restore_output(stdout_backup: i32, stderr_backup: i32) {
     }
 }
 
+/// Helper function to suppress only stderr (used to hide llama.cpp context logs while preserving stdout streaming)
+fn suppress_stderr() -> i32 {
+    let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
+    let stderr_backup = unsafe { libc::dup(2) };
+    unsafe {
+        libc::dup2(dev_null.as_raw_fd(), 2);
+    }
+    stderr_backup
+}
+
+/// Helper function to restore only stderr
+fn restore_stderr(stderr_backup: i32) {
+    unsafe {
+        libc::dup2(stderr_backup, 2);
+        libc::close(stderr_backup);
+    }
+}
+
 pub struct LocalLLMProvider {
     model: Arc<LlamaModel>,
     backend: Arc<LlamaBackend>,
@@ -643,6 +661,9 @@ impl LocalLLMProvider {
         let prompt = self.format_messages(&messages);
         let model = Arc::clone(&self.model);
 
+        // Suppress only stderr so llama.cpp context logs are hidden but stdout streaming remains visible
+        let stderr_backup = suppress_stderr();
+
         // Create a channel for streaming tokens
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
 
@@ -743,9 +764,20 @@ impl LocalLLMProvider {
         }
 
         // Wait for generation to complete and get the result
-        let result = generation_task.await.map_err(|e| {
-            HeliosError::LLMError(format!("Task failed: {}", e))
-        })??;
+        let result = match generation_task.await {
+            Ok(Ok(text)) => text,
+            Ok(Err(e)) => {
+                restore_stderr(stderr_backup);
+                return Err(e);
+            }
+            Err(e) => {
+                restore_stderr(stderr_backup);
+                return Err(HeliosError::LLMError(format!("Task failed: {}", e)));
+            }
+        };
+
+        // Restore stderr after generation completes
+        restore_stderr(stderr_backup);
 
         Ok(ChatMessage {
             role: crate::chat::Role::Assistant,

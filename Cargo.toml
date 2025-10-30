@@ -1,15 +1,15 @@
 [package]
 name = "helios-engine"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 rust-version = "1.70"
-description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support"
+description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support Both locally and online"
 documentation = "https://docs.rs/helios-engine"
 readme = "README.md"
 homepage = "https://github.com/Ammar-Alnagar/Helios.git"
 repository = "https://github.com/Ammar-Alnagar/Helios.git"
 license = "Apache-2.0 OR MIT"
-keywords = ["agent", "ai", "chatgpt", "llm", "openai"]
+keywords = ["Llama_cpp", "agent", "ai", "chatgpt", "llm", "local", "openai"]
 categories = ["api-bindings", "asynchronous", "command-line-utilities"]
 
 [lib]
@@ -28,6 +28,7 @@ clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"
 libc = "0.2"
 llama-cpp-2 = "0.1"
+regex = "1.10"
 reqwest = { version = "0.11", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -39,4 +40,3 @@ toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 walkdir = "2.4"
-regex = "1.10"
