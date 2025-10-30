@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use helios_engine::config::LLMConfig;
 /// Example: Using streaming responses with Helios Engine
 ///

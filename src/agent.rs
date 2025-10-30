@@ -1,9 +1,13 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use crate::chat::{ChatMessage, ChatSession};
 use crate::config::Config;
 use crate::error::{HeliosError, Result};
 use crate::llm::{LLMClient, LLMProviderType};
 use crate::tools::{ToolRegistry, ToolResult};
 use serde_json::Value;
+
+const AGENT_MEMORY_PREFIX: &str = "agent:";
 
 pub struct Agent {
     name: String,
@@ -139,6 +143,52 @@ impl Agent {
     pub fn set_max_iterations(&mut self, max: usize) {
         self.max_iterations = max;
     }
+
+    pub fn get_session_summary(&self) -> String {
+        self.chat_session.get_summary()
+    }
+
+    pub fn clear_memory(&mut self) {
+        // Only clear agent-scoped memory keys to avoid wiping general session metadata
+        self.chat_session
+            .metadata
+            .retain(|k, _| !k.starts_with(AGENT_MEMORY_PREFIX));
+    }
+
+    #[inline]
+    fn prefixed_key(key: &str) -> String {
+        format!("{}{}", AGENT_MEMORY_PREFIX, key)
+    }
+
+    // Agent-scoped memory API (namespaced under "agent:")
+    pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        let key = key.into();
+        self.chat_session
+            .set_metadata(Self::prefixed_key(&key), value);
+    }
+
+    pub fn get_memory(&self, key: &str) -> Option<&String> {
+        self.chat_session.get_metadata(&Self::prefixed_key(key))
+    }
+
+    pub fn remove_memory(&mut self, key: &str) -> Option<String> {
+        self.chat_session.remove_metadata(&Self::prefixed_key(key))
+    }
+
+    // Convenience helpers to reduce duplication in examples
+    pub fn increment_counter(&mut self, key: &str) -> u32 {
+        let current = self
+            .get_memory(key)
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let next = current + 1;
+        self.set_memory(key, next.to_string());
+        next
+    }
+
+    pub fn increment_tasks_completed(&mut self) -> u32 {
+        self.increment_counter("tasks_completed")
+    }
 }
 
 #[cfg(test)]
@@ -157,9 +207,82 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_agent_memory_namespacing_set_get_remove() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+
+        // Set and get namespaced memory
+        agent.set_memory("working_directory", "/tmp");
+        assert_eq!(
+            agent.get_memory("working_directory"),
+            Some(&"/tmp".to_string())
+        );
+
+        // Ensure underlying chat session stored the prefixed key
+        assert_eq!(
+            agent
+                .chat_session()
+                .get_metadata("agent:working_directory"),
+            Some(&"/tmp".to_string())
+        );
+        // Non-prefixed key should not exist
+        assert!(agent.chat_session().get_metadata("working_directory").is_none());
+
+        // Remove should also be namespaced
+        let removed = agent.remove_memory("working_directory");
+        assert_eq!(removed.as_deref(), Some("/tmp"));
+        assert!(agent.get_memory("working_directory").is_none());
+    }
+
+    #[tokio::test]
+    async fn test_agent_clear_memory_scoped() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+
+        // Set an agent memory and a general (non-agent) session metadata key
+        agent.set_memory("tasks_completed", "3");
+        agent
+            .chat_session_mut()
+            .set_metadata("session_start", "now");
+
+        // Clear only agent-scoped memory
+        agent.clear_memory();
+
+        // Agent memory removed
+        assert!(agent.get_memory("tasks_completed").is_none());
+        // General session metadata preserved
+        assert_eq!(
+            agent.chat_session().get_metadata("session_start"),
+            Some(&"now".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_agent_increment_helpers() {
+        let config = Config::new_default();
+        let mut agent = Agent::new("test_agent", config).await.unwrap();
+
+        // tasks_completed increments from 0
+        let n1 = agent.increment_tasks_completed();
+        assert_eq!(n1, 1);
+        assert_eq!(agent.get_memory("tasks_completed"), Some(&"1".to_string()));
+
+        let n2 = agent.increment_tasks_completed();
+        assert_eq!(n2, 2);
+        assert_eq!(agent.get_memory("tasks_completed"), Some(&"2".to_string()));
+
+        // generic counter
+        let f1 = agent.increment_counter("files_accessed");
+        assert_eq!(f1, 1);
+        let f2 = agent.increment_counter("files_accessed");
+        assert_eq!(f2, 2);
+        assert_eq!(agent.get_memory("files_accessed"), Some(&"2".to_string()));
+    }
+
+    #[tokio::test]
     async fn test_agent_builder() {
         let config = Config::new_default();
-        let mut agent = Agent::builder("test_agent")
+        let agent = Agent::builder("test_agent")
             .config(config)
             .system_prompt("You are a helpful assistant")
             .max_iterations(5)

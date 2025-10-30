@@ -94,6 +94,7 @@ impl ChatMessage {
 pub struct ChatSession {
     pub messages: Vec<ChatMessage>,
     pub system_prompt: Option<String>,
+    pub metadata: std::collections::HashMap<String, String>,
 }
 
 impl ChatSession {
@@ -101,6 +102,7 @@ impl ChatSession {
         Self {
             messages: Vec::new(),
             system_prompt: None,
+            metadata: std::collections::HashMap::new(),
         }
     }
 
@@ -134,6 +136,41 @@ impl ChatSession {
 
     pub fn clear(&mut self) {
         self.messages.clear();
+    }
+    
+    // Session memory methods
+    pub fn set_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.metadata.insert(key.into(), value.into());
+    }
+    
+    pub fn get_metadata(&self, key: &str) -> Option<&String> {
+        self.metadata.get(key)
+    }
+    
+    pub fn remove_metadata(&mut self, key: &str) -> Option<String> {
+        self.metadata.remove(key)
+    }
+    
+    pub fn get_summary(&self) -> String {
+        let mut summary = String::new();
+        summary.push_str(&format!("Total messages: {}\n", self.messages.len()));
+        
+        let user_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::User)).count();
+        let assistant_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::Assistant)).count();
+        let tool_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::Tool)).count();
+        
+        summary.push_str(&format!("User messages: {}\n", user_msgs));
+        summary.push_str(&format!("Assistant messages: {}\n", assistant_msgs));
+        summary.push_str(&format!("Tool messages: {}\n", tool_msgs));
+        
+        if !self.metadata.is_empty() {
+            summary.push_str("\nSession metadata:\n");
+            for (key, value) in &self.metadata {
+                summary.push_str(&format!("  {}: {}\n", key, value));
+            }
+        }
+        
+        summary
     }
 }
 
