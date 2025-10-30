@@ -4,8 +4,29 @@
   <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
 </p>
 
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/helios.svg)](https://crates.io/crates/helios)
+[![Documentation](https://docs.rs/helios/badge.svg)](https://docs.rs/helios)
+[![Build Status](https://github.com/Ammar-Alnagar/Helios-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/actions)
+[![Crates.io Downloads](https://img.shields.io/crates/d/helios.svg)](https://crates.io/crates/helios)
+
+[![Dependency Status](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine/status.svg)](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine)
+
+
+[![docs.rs](https://docs.rs/helios/badge.svg)](https://docs.rs/helios)
+[![downloads](https://img.shields.io/crates/d/helios.svg)](https://crates.io/crates/helios)
+
+
+
+[![CI](https://github.com/Ammar-Alnagar/Helios-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/actions)
+[![issues](https://img.shields.io/github/issues/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/issues)
+[![stars](https://img.shields.io/github/stars/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/stargazers)
+[![last commit](https://img.shields.io/github/last-commit/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/commits/main)
+
+
+
+[![deps](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine/status.svg)](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine)
+
+
 
 **Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
 
