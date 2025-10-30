@@ -3,6 +3,9 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
@@ -604,28 +607,132 @@ impl Tool for FileEditTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| HeliosError::ToolError("Missing 'replace' parameter".to_string()))?;
 
-        let content = std::fs::read_to_string(file_path)
-            .map_err(|e| HeliosError::ToolError(format!("Failed to read file: {}", e)))?;
+        if find_text.is_empty() {
+            return Err(HeliosError::ToolError("'find' parameter cannot be empty".to_string()));
+        }
 
-        let count = content.matches(find_text).count();
-        
-        if count == 0 {
+        let path = Path::new(file_path);
+        let parent = path.parent().ok_or_else(|| {
+            HeliosError::ToolError(format!("Invalid target path: {}", file_path))
+        })?;
+        let file_name = path.file_name().ok_or_else(|| {
+            HeliosError::ToolError(format!("Invalid target path: {}", file_path))
+        })?;
+
+        // Build a temp file path in the same directory for atomic rename
+        let pid = std::process::id();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| HeliosError::ToolError(format!("Clock error: {}", e)))?
+            .as_nanos();
+        let tmp_name = format!("{}.tmp.{}.{}", file_name.to_string_lossy(), pid, nanos);
+        let tmp_path = parent.join(tmp_name);
+
+        // Open files
+        let input_file = std::fs::File::open(&path)
+            .map_err(|e| HeliosError::ToolError(format!("Failed to open file for read: {}", e)))?;
+        let mut reader = BufReader::new(input_file);
+
+        let tmp_file = std::fs::File::create(&tmp_path).map_err(|e| {
+            HeliosError::ToolError(format!("Failed to create temp file {}: {}", tmp_path.display(), e))
+        })?;
+        let mut writer = BufWriter::new(&tmp_file);
+
+        // Streamed find/replace to avoid loading entire file into memory
+        let replaced_count = replace_streaming(
+            &mut reader,
+            &mut writer,
+            find_text.as_bytes(),
+            replace_text.as_bytes(),
+        )
+        .map_err(|e| HeliosError::ToolError(format!("I/O error while replacing: {}", e)))?;
+
+        // Ensure all data is flushed and synced before rename
+        writer.flush().map_err(|e| HeliosError::ToolError(format!("Failed to flush temp file: {}", e)))?;
+        tmp_file.sync_all().map_err(|e| HeliosError::ToolError(format!("Failed to sync temp file: {}", e)))?;
+
+        // Preserve permissions
+        if let Ok(meta) = std::fs::metadata(&path) {
+            if let Err(e) = std::fs::set_permissions(&tmp_path, meta.permissions()) {
+                let _ = std::fs::remove_file(&tmp_path);
+                return Err(HeliosError::ToolError(format!("Failed to set permissions: {}", e)));
+            }
+        }
+
+        // Atomic replace
+        std::fs::rename(&tmp_path, &path).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp_path);
+            HeliosError::ToolError(format!("Failed to replace original file: {}", e))
+        })?;
+
+        if replaced_count == 0 {
             return Ok(ToolResult::error(format!(
                 "Text '{}' not found in file {}",
                 find_text, file_path
             )));
         }
 
-        let new_content = content.replace(find_text, replace_text);
-
-        std::fs::write(file_path, &new_content)
-            .map_err(|e| HeliosError::ToolError(format!("Failed to write file: {}", e)))?;
-
         Ok(ToolResult::success(format!(
             "Successfully replaced {} occurrence(s) in {}",
-            count, file_path
+            replaced_count, file_path
         )))
     }
+}
+
+// Streamed replacement helpers
+fn replace_streaming<R: Read, W: Write>(reader: &mut R, writer: &mut W, needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
+    let mut replaced = 0usize;
+    let mut carry: Vec<u8> = Vec::new();
+    let mut buf = [0u8; 8192];
+
+    let tail = if needle.len() > 1 { needle.len() - 1 } else { 0 };
+
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+
+        let mut combined = Vec::with_capacity(carry.len() + n);
+        combined.extend_from_slice(&carry);
+        combined.extend_from_slice(&buf[..n]);
+
+        let process_len = combined.len().saturating_sub(tail);
+        let (to_process, new_carry) = combined.split_at(process_len);
+        replaced += write_with_replacements(writer, to_process, needle, replacement)?;
+        carry.clear();
+        carry.extend_from_slice(new_carry);
+    }
+
+    // Process remaining carry fully
+    replaced += write_with_replacements(writer, &carry, needle, replacement)?;
+    Ok(replaced)
+}
+
+fn write_with_replacements<W: Write>(writer: &mut W, haystack: &[u8], needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
+    if needle.is_empty() {
+        writer.write_all(haystack)?;
+        return Ok(0);
+    }
+
+    let mut count = 0usize;
+    let mut i = 0usize;
+    while let Some(pos) = find_subslice(&haystack[i..], needle) {
+        let idx = i + pos;
+        writer.write_all(&haystack[i..idx])?;
+        writer.write_all(replacement)?;
+        count += 1;
+        i = idx + needle.len();
+    }
+    writer.write_all(&haystack[i..])?;
+    Ok(count)
+}
+
+fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
+    if n.is_empty() {
+        return Some(0);
+    }
+    h.windows(n.len()).position(|w| w == n)
 }
 
 #[cfg(test)]
