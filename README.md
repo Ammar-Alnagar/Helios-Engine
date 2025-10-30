@@ -8,7 +8,6 @@
 [![Documentation](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
 [![Crates.io Downloads](https://img.shields.io/crates/d/helios-engine.svg)](https://crates.io/crates/helios-engine)
 
-[![Dependency Status](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine/status.svg)](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine)
 
 
 [![docs.rs](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
@@ -22,7 +21,6 @@
 
 
 
-[![deps](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine/status.svg)](https://deps.rs/repo/github/Ammar-Alnagar/Helios-Engine)
 
 
 
