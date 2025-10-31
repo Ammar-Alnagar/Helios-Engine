@@ -18,10 +18,10 @@ use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::token::LlamaToken;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::task;
 use std::fs::File;
 use std::os::fd::AsRawFd;
+use std::sync::Arc;
+use tokio::task;
 
 // Add From trait for LLamaCppError to convert to HeliosError
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
@@ -270,8 +270,8 @@ impl LocalLLMProvider {
         // Load the model
         let model_params = LlamaModelParams::default().with_n_gpu_layers(99); // Use GPU if available
 
-        let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
-            .map_err(|e| {
+        let model =
+            LlamaModel::load_from_file(&backend, &model_path, &model_params).map_err(|e| {
                 restore_output(stdout_backup, stderr_backup);
                 HeliosError::LLMError(format!("Failed to load model: {:?}", e))
             })?;
@@ -290,7 +290,9 @@ impl LocalLLMProvider {
         use std::process::Command;
 
         // Check if model is already in HuggingFace cache
-        if let Some(cached_path) = Self::find_model_in_cache(&config.huggingface_repo, &config.model_file) {
+        if let Some(cached_path) =
+            Self::find_model_in_cache(&config.huggingface_repo, &config.model_file)
+        {
             // Model found in cache - no output needed in offline mode
             return Ok(cached_path);
         }
@@ -299,7 +301,7 @@ impl LocalLLMProvider {
 
         // Use huggingface_hub to download the model (suppress output)
         let output = Command::new("huggingface-cli")
-            .args(&[
+            .args([
                 "download",
                 &config.huggingface_repo,
                 &config.model_file,
@@ -338,7 +340,9 @@ impl LocalLLMProvider {
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|_| {
                 let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                std::path::PathBuf::from(home).join(".cache").join("huggingface")
+                std::path::PathBuf::from(home)
+                    .join(".cache")
+                    .join("huggingface")
             });
 
         let hub_dir = cache_dir.join("hub");
@@ -649,7 +653,7 @@ impl LLMProvider for LocalLLMProvider {
                 match context.model.token_to_str(token, Special::Plaintext) {
                     Ok(text) => {
                         generated_text.push_str(&text);
-                    },
+                    }
                     Err(_) => continue, // Skip invalid tokens
                 }
 
@@ -796,7 +800,7 @@ impl LocalLLMProvider {
                         if tx.send(text).is_err() {
                             break;
                         }
-                    },
+                    }
                     Err(_) => continue,
                 }
 
