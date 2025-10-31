@@ -5,7 +5,7 @@
 //! 2.  **File Management Tools**: `FileSearchTool`, `FileReadTool`, `FileEditTool`, and `FileWriteTool`.
 //! 3.  **Session Memory**: To track the agent's state and conversation history.
 
-use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileEditTool, FileWriteTool};
+use helios_engine::{Agent, Config, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool};
 use std::io::{self, Write};
 
 #[tokio::main]
@@ -26,7 +26,7 @@ async fn main() -> helios_engine::Result<()> {
         .system_prompt(
             "You are an intelligent assistant with file management capabilities. \
              You can search files, read them, and make edits. Always explain what \
-             you're doing and track important information in session memory."
+             you're doing and track important information in session memory.",
         )
         .tool(Box::new(FileSearchTool))
         .tool(Box::new(FileReadTool))
@@ -41,7 +41,10 @@ async fn main() -> helios_engine::Result<()> {
     // Initialize session memory with some starting values.
     println!("🧠 Initializing session memory...");
     agent.set_memory("session_start", chrono::Utc::now().to_rfc3339());
-    agent.set_memory("working_directory", std::env::current_dir()?.display().to_string());
+    agent.set_memory(
+        "working_directory",
+        std::env::current_dir()?.display().to_string(),
+    );
     agent.set_memory("files_accessed", "0");
     agent.set_memory("edits_made", "0");
     println!("✓ Session memory initialized\n");
@@ -50,11 +53,13 @@ async fn main() -> helios_engine::Result<()> {
     println!("Demo 1: File Search with Streaming");
     println!("===================================");
     println!("User: Find all Rust example files\n");
-    
+
     print!("Agent: ");
     io::stdout().flush()?;
 
-    let response1 = agent.chat("Find all Rust example files in the examples directory").await?;
+    let response1 = agent
+        .chat("Find all Rust example files in the examples directory")
+        .await?;
     println!("{}\n", response1);
 
     // Update session memory after the task.
@@ -65,11 +70,13 @@ async fn main() -> helios_engine::Result<()> {
     println!("\nDemo 2: Reading File Contents");
     println!("==============================");
     println!("User: Read the NEW_FEATURES.md file and summarize the key points\n");
-    
+
     print!("Agent: ");
     io::stdout().flush()?;
 
-    let response2 = agent.chat("Read the NEW_FEATURES.md file and give me a brief summary of what's new").await?;
+    let response2 = agent
+        .chat("Read the NEW_FEATURES.md file and give me a brief summary of what's new")
+        .await?;
     println!("{}\n", response2);
 
     // Update session memory after the task.
@@ -149,7 +156,7 @@ async fn main() -> helios_engine::Result<()> {
         match agent.chat(input).await {
             Ok(response) => {
                 println!("{}", response);
-                
+
                 // Update memory after each interaction.
                 agent.increment_counter("files_accessed");
             }

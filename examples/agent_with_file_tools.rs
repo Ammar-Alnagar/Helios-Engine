@@ -4,7 +4,7 @@
 //! including `FileSearchTool`, `FileReadTool`, `FileEditTool`, and `FileWriteTool`.
 //! It also shows how to use session memory to track the agent's state.
 
-use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileEditTool, FileWriteTool};
+use helios_engine::{Agent, Config, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -23,7 +23,7 @@ async fn main() -> helios_engine::Result<()> {
         .system_prompt(
             "You are a helpful file management assistant. You can search for files, \
              read file contents, and edit files. Always confirm with the user before \
-             making changes to files. Keep track of important session information."
+             making changes to files. Keep track of important session information.",
         )
         .tool(Box::new(FileSearchTool))
         .tool(Box::new(FileReadTool))
@@ -38,7 +38,10 @@ async fn main() -> helios_engine::Result<()> {
 
     // Set initial session memory for the agent.
     agent.set_memory("session_start", chrono::Utc::now().to_rfc3339());
-    agent.set_memory("working_directory", std::env::current_dir()?.display().to_string());
+    agent.set_memory(
+        "working_directory",
+        std::env::current_dir()?.display().to_string(),
+    );
     agent.set_memory("tasks_completed", "0");
 
     // --- Example 1: Search for Rust files ---
@@ -77,9 +80,22 @@ async fn main() -> helios_engine::Result<()> {
     println!("\nExample 4: Checking Session Memory");
     println!("===================================\n");
 
-    println!("Working directory: {}", agent.get_memory("working_directory").unwrap_or(&"unknown".to_string()));
-    println!("Tasks completed: {}", agent.get_memory("tasks_completed").unwrap_or(&"0".to_string()));
-    println!("Last task: {}", agent.get_memory("last_task").unwrap_or(&"none".to_string()));
+    println!(
+        "Working directory: {}",
+        agent
+            .get_memory("working_directory")
+            .unwrap_or(&"unknown".to_string())
+    );
+    println!(
+        "Tasks completed: {}",
+        agent
+            .get_memory("tasks_completed")
+            .unwrap_or(&"0".to_string())
+    );
+    println!(
+        "Last task: {}",
+        agent.get_memory("last_task").unwrap_or(&"none".to_string())
+    );
 
     println!("\n✅ Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");

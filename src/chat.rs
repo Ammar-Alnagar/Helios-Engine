@@ -1,5 +1,5 @@
 //! # Chat Module
-//! 
+//!
 //! This module provides the data structures for managing chat conversations.
 //! It defines the roles in a conversation, the structure of a chat message,
 //! and the chat session that holds the conversation history.
@@ -186,42 +186,54 @@ impl ChatSession {
     pub fn clear(&mut self) {
         self.messages.clear();
     }
-    
+
     /// Sets a metadata key-value pair for the session.
     pub fn set_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.metadata.insert(key.into(), value.into());
     }
-    
+
     /// Gets a metadata value by key.
     pub fn get_metadata(&self, key: &str) -> Option<&String> {
         self.metadata.get(key)
     }
-    
+
     /// Removes a metadata key-value pair.
     pub fn remove_metadata(&mut self, key: &str) -> Option<String> {
         self.metadata.remove(key)
     }
-    
+
     /// Returns a summary of the chat session.
     pub fn get_summary(&self) -> String {
         let mut summary = String::new();
         summary.push_str(&format!("Total messages: {}\n", self.messages.len()));
-        
-        let user_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::User)).count();
-        let assistant_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::Assistant)).count();
-        let tool_msgs = self.messages.iter().filter(|m| matches!(m.role, Role::Tool)).count();
-        
+
+        let user_msgs = self
+            .messages
+            .iter()
+            .filter(|m| matches!(m.role, Role::User))
+            .count();
+        let assistant_msgs = self
+            .messages
+            .iter()
+            .filter(|m| matches!(m.role, Role::Assistant))
+            .count();
+        let tool_msgs = self
+            .messages
+            .iter()
+            .filter(|m| matches!(m.role, Role::Tool))
+            .count();
+
         summary.push_str(&format!("User messages: {}\n", user_msgs));
         summary.push_str(&format!("Assistant messages: {}\n", assistant_msgs));
         summary.push_str(&format!("Tool messages: {}\n", tool_msgs));
-        
+
         if !self.metadata.is_empty() {
             summary.push_str("\nSession metadata:\n");
             for (key, value) in &self.metadata {
                 summary.push_str(&format!("  {}: {}\n", key, value));
             }
         }
-        
+
         summary
     }
 }

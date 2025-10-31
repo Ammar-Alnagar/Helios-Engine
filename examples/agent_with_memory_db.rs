@@ -24,7 +24,7 @@ async fn main() -> helios_engine::Result<()> {
             "You are a helpful assistant with access to an in-memory database. \
              You can store and retrieve information using the memory_db tool. \
              Operations available: set, get, delete, list, clear, exists. \
-             Use this to remember important information across our conversation."
+             Use this to remember important information across our conversation.",
         )
         .tool(Box::new(MemoryDBTool::new()))
         .max_iterations(10)
@@ -46,9 +46,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("\nExample 2: Retrieving Stored Data");
     println!("==================================\n");
 
-    let response = agent
-        .chat("What's my name and favorite color?")
-        .await?;
+    let response = agent.chat("What's my name and favorite color?").await?;
     println!("Agent: {}\n", response);
 
     // --- Example 3: Store calculations ---

@@ -272,10 +272,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_creation_via_builder() {
         let config = Config::new_default();
-        let agent = Agent::builder("test_agent")
-            .config(config)
-            .build()
-            .await;
+        let agent = Agent::builder("test_agent").config(config).build().await;
         assert!(agent.is_ok());
     }
 
@@ -298,13 +295,14 @@ mod tests {
 
         // Ensure underlying chat session stored the prefixed key
         assert_eq!(
-            agent
-                .chat_session()
-                .get_metadata("agent:working_directory"),
+            agent.chat_session().get_metadata("agent:working_directory"),
             Some(&"/tmp".to_string())
         );
         // Non-prefixed key should not exist
-        assert!(agent.chat_session().get_metadata("working_directory").is_none());
+        assert!(agent
+            .chat_session()
+            .get_metadata("working_directory")
+            .is_none());
 
         // Remove should also be namespaced
         let removed = agent.remove_memory("working_directory");

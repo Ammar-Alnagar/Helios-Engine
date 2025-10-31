@@ -6,7 +6,7 @@
 //! information to answer questions.
 //!
 //! ## Prerequisites
-//! 
+//!
 //! 1.  **Qdrant**: You need a running Qdrant instance. You can start one with Docker:
 //!     ```sh
 //!     docker run -p 6333:6333 qdrant/qdrant
@@ -17,7 +17,7 @@
 //!     export OPENAI_API_KEY=your-key
 //!     ```
 
-use helios_engine::{ Agent, Config, QdrantRAGTool };
+use helios_engine::{Agent, Config, QdrantRAGTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -25,11 +25,10 @@ async fn main() -> helios_engine::Result<()> {
     println!("==========================================\n");
 
     // Check for the required OpenAI API key.
-    let embedding_api_key = std::env::var("OPENAI_API_KEY")
-        .unwrap_or_else(|_| {
-            println!("⚠ Warning: OPENAI_API_KEY not set. Using placeholder.");
-            "your-api-key-here".to_string()
-        });
+    let embedding_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_else(|_| {
+        println!("⚠ Warning: OPENAI_API_KEY not set. Using placeholder.");
+        "your-api-key-here".to_string()
+    });
 
     // Load configuration from `config.toml` or use default.
     let config = Config::from_file("config.toml").unwrap_or_else(|_| {
@@ -39,10 +38,10 @@ async fn main() -> helios_engine::Result<()> {
 
     // Create a new `QdrantRAGTool`.
     let rag_tool = QdrantRAGTool::new(
-        "http://localhost:6333",           // Qdrant URL
-        "helios_knowledge",                 // Collection name
+        "http://localhost:6333",                // Qdrant URL
+        "helios_knowledge",                     // Collection name
         "https://api.openai.com/v1/embeddings", // Embedding API
-        embedding_api_key,                  // API key
+        embedding_api_key,                      // API key
     );
 
     // Create an agent named "KnowledgeAgent" and equip it with the RAG tool.
@@ -75,7 +74,7 @@ async fn main() -> helios_engine::Result<()> {
     let response = agent
         .chat(
             "Store this: Python is a high-level, interpreted programming language known for its \
-             clear syntax and readability. It was created by Guido van Rossum in 1991."
+             clear syntax and readability. It was created by Guido van Rossum in 1991.",
         )
         .await?;
     println!("Agent: {}\n", response);
@@ -83,7 +82,7 @@ async fn main() -> helios_engine::Result<()> {
     let response = agent
         .chat(
             "Store this: JavaScript is a programming language commonly used for web development. \
-             It allows developers to create interactive web pages and runs in web browsers."
+             It allows developers to create interactive web pages and runs in web browsers.",
         )
         .await?;
     println!("Agent: {}\n", response);
@@ -119,7 +118,7 @@ async fn main() -> helios_engine::Result<()> {
         .chat(
             "Store this with metadata: \
              The Helios Engine is a Rust framework for building LLM agents. \
-             Metadata: category=framework, language=rust, year=2024"
+             Metadata: category=framework, language=rust, year=2024",
         )
         .await?;
     println!("Agent: {}\n", response);
@@ -131,13 +130,13 @@ async fn main() -> helios_engine::Result<()> {
     println!("  • Semantic search with cosine similarity");
     println!("  • RAG workflow for context-aware answers");
     println!("  • Metadata support for document organization");
-    
+
     println!("\n📝 RAG Use Cases:");
     println!("  • Question answering over custom knowledge bases");
     println!("  • Document search and retrieval");
     println!("  • Building chatbots with domain-specific knowledge");
     println!("  • Information extraction from large document sets");
-    
+
     println!("\n🔧 Setup Instructions:");
     println!("  1. Start Qdrant: docker run -p 6333:6333 qdrant/qdrant");
     println!("  2. Set API key: export OPENAI_API_KEY=your-key");

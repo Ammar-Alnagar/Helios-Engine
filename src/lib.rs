@@ -104,4 +104,7 @@ pub use llm::{
     Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, LocalLLMProvider, StreamChoice,
     StreamChunk,
 };
-pub use tools::{CalculatorTool, EchoTool, FileSearchTool, FileReadTool, FileWriteTool, FileEditTool, MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult};
+pub use tools::{
+    CalculatorTool, EchoTool, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool,
+    MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult,
+};
