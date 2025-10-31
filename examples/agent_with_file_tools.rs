@@ -1,9 +1,8 @@
-/// Example: Using the Agent with File Tools and Session Memory
-///
-/// This example demonstrates:
-/// - File search and edit tools
-/// - Session memory for tracking agent state
-/// - Streaming responses for local models
+//! # Example: Agent with File Tools
+//!
+//! This example demonstrates how to create an agent with file manipulation tools,
+//! including `FileSearchTool`, `FileReadTool`, `FileEditTool`, and `FileWriteTool`.
+//! It also shows how to use session memory to track the agent's state.
 
 use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileEditTool, FileWriteTool};
 
@@ -18,7 +17,7 @@ async fn main() -> helios_engine::Result<()> {
         Config::new_default()
     });
 
-    // Create agent with file tools
+    // Create an agent named "FileAssistant" and equip it with file tools.
     let mut agent = Agent::builder("FileAssistant")
         .config(config)
         .system_prompt(
@@ -37,12 +36,12 @@ async fn main() -> helios_engine::Result<()> {
     println!("✓ Agent created with file tools");
     println!("✓ Available tools: file_search, file_read, file_edit, file_write\n");
 
-    // Set initial session memory
+    // Set initial session memory for the agent.
     agent.set_memory("session_start", chrono::Utc::now().to_rfc3339());
     agent.set_memory("working_directory", std::env::current_dir()?.display().to_string());
     agent.set_memory("tasks_completed", "0");
 
-    // Example 1: Search for Rust files
+    // --- Example 1: Search for Rust files ---
     println!("Example 1: Searching for Rust files");
     println!("====================================\n");
 
@@ -51,11 +50,11 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Update session memory
+    // Update session memory after the task.
     agent.increment_tasks_completed();
     agent.set_memory("last_task", "file_search");
 
-    // Example 2: Read a specific file
+    // --- Example 2: Read a specific file ---
     println!("\nExample 2: Reading file contents");
     println!("==================================\n");
 
@@ -64,17 +63,17 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Update session memory
+    // Update session memory after the task.
     agent.increment_tasks_completed();
     agent.set_memory("last_task", "file_read");
 
-    // Example 3: Show session summary
+    // --- Example 3: Show session summary ---
     println!("\nExample 3: Session Summary");
     println!("==========================\n");
 
     println!("{}", agent.get_session_summary());
 
-    // Example 4: Check session memory
+    // --- Example 4: Check session memory ---
     println!("\nExample 4: Checking Session Memory");
     println!("===================================\n");
 

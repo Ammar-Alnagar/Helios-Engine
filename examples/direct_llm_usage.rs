@@ -1,8 +1,10 @@
+//! # Example: Direct LLM Usage
+//!
+//! This example demonstrates how to use the Helios Engine as a library to make
+//! direct calls to LLM models, without using the `Agent` abstraction. This is
+//! useful for simple use cases where you just need to interact with an LLM directly.
+
 use helios_engine::config::LLMConfig;
-/// Example: Using Helios as a crate for direct LLM calls
-///
-/// This example demonstrates how to use Helios as a library to make
-/// direct calls to LLM models without using the Agent abstraction.
 use helios_engine::{ChatMessage, ChatSession, LLMClient};
 use std::io::{self, Write};
 
@@ -10,25 +12,25 @@ use std::io::{self, Write};
 async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Direct LLM Usage Examples\n");
 
-    // Example 1: Simple single call
+    // --- Example 1: Simple single call ---
     println!("📝 Example 1: Simple Single Call");
     println!("{}", "=".repeat(50));
     simple_call().await?;
     println!();
 
-    // Example 2: Conversation with context
+    // --- Example 2: Conversation with context ---
     println!("💬 Example 2: Conversation with Context");
     println!("{}", "=".repeat(50));
     conversation_with_context().await?;
     println!();
 
-    // Example 3: Different providers
+    // --- Example 3: Different providers ---
     println!("🌐 Example 3: Using Different Providers");
     println!("{}", "=".repeat(50));
     different_providers_info();
     println!();
 
-    // Example 4: Interactive chat (optional - comment out if not needed)
+    // --- Example 4: Interactive chat ---
     println!("🎮 Example 4: Interactive Chat");
     println!("{}", "=".repeat(50));
     println!("Would you like to start an interactive chat? (y/n)");
@@ -46,9 +48,9 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 
-/// Example 1: Simple single call to the LLM
+/// Makes a simple, single call to the LLM.
 async fn simple_call() -> helios_engine::Result<()> {
-    // Create configuration
+    // Create a configuration for the LLM.
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -58,16 +60,16 @@ async fn simple_call() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    // Create client
+    // Create a new LLM client.
     let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
-    // Prepare messages
+    // Prepare the messages to send to the LLM.
     let messages = vec![
         ChatMessage::system("You are a helpful assistant that gives concise answers."),
         ChatMessage::user("What is the capital of France? Answer in one sentence."),
     ];
 
-    // Make the call
+    // Make the call to the LLM.
     println!("Sending request...");
     match client.chat(messages, None).await {
         Ok(response) => {
@@ -82,8 +84,9 @@ async fn simple_call() -> helios_engine::Result<()> {
     Ok(())
 }
 
-/// Example 2: Multi-turn conversation with context
+/// Demonstrates a multi-turn conversation with context.
 async fn conversation_with_context() -> helios_engine::Result<()> {
+    // Create a configuration for the LLM.
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -93,13 +96,14 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
+    // Create a new LLM client.
     let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
-    // Use ChatSession to manage conversation
+    // Use a `ChatSession` to manage the conversation history.
     let mut session = ChatSession::new()
         .with_system_prompt("You are a helpful math tutor. Give brief, clear explanations.");
 
-    // First turn
+    // --- First turn ---
     println!("Turn 1:");
     session.add_user_message("What is 15 * 23?");
     print!("  User: What is 15 * 23?\n  ");
@@ -115,7 +119,7 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
         }
     }
 
-    // Second turn (with context from first turn)
+    // --- Second turn (with context from the first turn) ---
     println!("\nTurn 2:");
     session.add_user_message("Now divide that by 5.");
     print!("  User: Now divide that by 5.\n  ");
@@ -135,7 +139,7 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
     Ok(())
 }
 
-/// Example 3: Information about using different providers
+/// Provides information about using different LLM providers.
 fn different_providers_info() {
     println!("You can use Helios with various LLM providers:\n");
 
@@ -176,8 +180,9 @@ fn different_providers_info() {
     println!("   }}\n");
 }
 
-/// Example 4: Interactive chat session
+/// Starts an interactive chat session with the LLM.
 async fn interactive_chat() -> helios_engine::Result<()> {
+    // Create a configuration for the LLM.
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -187,6 +192,7 @@ async fn interactive_chat() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
+    // Create a new LLM client.
     let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
     let mut session =
         ChatSession::new().with_system_prompt("You are a friendly and helpful AI assistant.");
@@ -210,7 +216,7 @@ async fn interactive_chat() -> helios_engine::Result<()> {
             break;
         }
 
-        // Special commands
+        // Handle special commands.
         if input == "clear" {
             session.clear();
             println!("🧹 Conversation cleared!\n");
@@ -239,7 +245,7 @@ async fn interactive_chat() -> helios_engine::Result<()> {
             Err(e) => {
                 println!("\n❌ Error: {}", e);
                 println!("   (Make sure OPENAI_API_KEY is set correctly)\n");
-                // Remove the last user message since it failed
+                // Remove the last user message since it failed.
                 session.messages.pop();
             }
         }

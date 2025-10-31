@@ -1,3 +1,10 @@
+//! # Tools Module
+//! 
+//! This module provides the framework for creating and managing tools that can be used by agents.
+//! It defines the `Tool` trait, which all tools must implement, and the `ToolRegistry`
+//! for managing a collection of tools.
+//! It also includes several built-in tools for common tasks.
+
 use crate::error::{HeliosError, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -8,45 +15,64 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+/// A parameter for a tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
+    /// The type of the parameter (e.g., "string", "number").
     #[serde(rename = "type")]
     pub param_type: String,
+    /// A description of the parameter.
     pub description: String,
+    /// Whether the parameter is required.
     #[serde(skip)]
     pub required: Option<bool>,
 }
 
+/// The definition of a tool that can be sent to an LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {
+    /// The type of the tool (e.g., "function").
     #[serde(rename = "type")]
     pub tool_type: String,
+    /// The function definition for the tool.
     pub function: FunctionDefinition,
 }
 
+/// The definition of a function that can be called by a tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionDefinition {
+    /// The name of the function.
     pub name: String,
+    /// A description of the function.
     pub description: String,
+    /// The parameters for the function.
     pub parameters: ParametersSchema,
 }
 
+/// The schema for the parameters of a function.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParametersSchema {
+    /// The type of the schema (should be "object").
     #[serde(rename = "type")]
     pub schema_type: String,
+    /// The properties of the schema.
     pub properties: HashMap<String, ToolParameter>,
+    /// The required properties.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
 }
 
+/// The result of a tool execution.
 #[derive(Debug, Clone)]
 pub struct ToolResult {
+    /// Whether the execution was successful.
     pub success: bool,
+    /// The output of the execution.
     pub output: String,
 }
 
 impl ToolResult {
+    /// Creates a new successful `ToolResult`.
     pub fn success(output: impl Into<String>) -> Self {
         Self {
             success: true,
@@ -54,6 +80,7 @@ impl ToolResult {
         }
     }
 
+    /// Creates a new error `ToolResult`.
     pub fn error(message: impl Into<String>) -> Self {
         Self {
             success: false,
@@ -62,13 +89,19 @@ impl ToolResult {
     }
 }
 
+/// A trait for tools that can be used by agents.
 #[async_trait]
 pub trait Tool: Send + Sync {
+    /// The name of the tool.
     fn name(&self) -> &str;
+    /// A description of the tool.
     fn description(&self) -> &str;
+    /// The parameters for the tool.
     fn parameters(&self) -> HashMap<String, ToolParameter>;
+    /// Executes the tool with the given arguments.
     async fn execute(&self, args: Value) -> Result<ToolResult>;
 
+    /// Converts the tool to a `ToolDefinition`.
     fn to_definition(&self) -> ToolDefinition {
         let required: Vec<String> = self
             .parameters()
@@ -96,26 +129,31 @@ pub trait Tool: Send + Sync {
     }
 }
 
+/// A registry for managing a collection of tools.
 pub struct ToolRegistry {
     tools: HashMap<String, Box<dyn Tool>>,
 }
 
 impl ToolRegistry {
+    /// Creates a new `ToolRegistry`.
     pub fn new() -> Self {
         Self {
             tools: HashMap::new(),
         }
     }
 
+    /// Registers a tool with the registry.
     pub fn register(&mut self, tool: Box<dyn Tool>) {
         let name = tool.name().to_string();
         self.tools.insert(name, tool);
     }
 
+    /// Gets a tool from the registry by name.
     pub fn get(&self, name: &str) -> Option<&dyn Tool> {
         self.tools.get(name).map(|b| &**b)
     }
 
+    /// Executes a tool in the registry by name.
     pub async fn execute(&self, name: &str, args: Value) -> Result<ToolResult> {
         let tool = self
             .tools
@@ -125,6 +163,7 @@ impl ToolRegistry {
         tool.execute(args).await
     }
 
+    /// Gets the definitions of all tools in the registry.
     pub fn get_definitions(&self) -> Vec<ToolDefinition> {
         self.tools
             .values()
@@ -132,6 +171,7 @@ impl ToolRegistry {
             .collect()
     }
 
+    /// Lists the names of all tools in the registry.
     pub fn list_tools(&self) -> Vec<String> {
         self.tools.keys().cloned().collect()
     }
@@ -145,6 +185,7 @@ impl Default for ToolRegistry {
 
 // Example built-in tools
 
+/// A tool for performing basic arithmetic operations.
 pub struct CalculatorTool;
 
 #[async_trait]
@@ -182,6 +223,7 @@ impl Tool for CalculatorTool {
     }
 }
 
+/// Evaluates a simple mathematical expression.
 fn evaluate_expression(expr: &str) -> Result<f64> {
     let expr = expr.replace(" ", "");
 
@@ -216,6 +258,7 @@ fn evaluate_expression(expr: &str) -> Result<f64> {
         .map_err(|_| HeliosError::ToolError(format!("Invalid expression: {}", expr)))
 }
 
+/// A tool that echoes back the provided message.
 pub struct EchoTool;
 
 #[async_trait]
@@ -251,6 +294,7 @@ impl Tool for EchoTool {
     }
 }
 
+/// A tool for searching for files.
 pub struct FileSearchTool;
 
 #[async_trait]
@@ -423,6 +467,7 @@ impl Tool for FileSearchTool {
 
 // (removed) glob_match helper – logic moved to precompiled regex in FileSearchTool::execute
 
+/// A tool for reading the contents of a file.
 pub struct FileReadTool;
 
 #[async_trait]
@@ -504,6 +549,7 @@ impl Tool for FileReadTool {
     }
 }
 
+/// A tool for writing content to a file.
 pub struct FileWriteTool;
 
 #[async_trait]
@@ -565,6 +611,7 @@ impl Tool for FileWriteTool {
     }
 }
 
+/// A tool for editing a file by replacing text.
 pub struct FileEditTool;
 
 #[async_trait]
@@ -694,7 +741,7 @@ impl Tool for FileEditTool {
     }
 }
 
-// Streamed replacement helpers
+/// Performs a streaming replacement of a needle in a reader, writing to a writer.
 fn replace_streaming<R: Read, W: Write>(reader: &mut R, writer: &mut W, needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
     let mut replaced = 0usize;
     let mut carry: Vec<u8> = Vec::new();
@@ -724,6 +771,7 @@ fn replace_streaming<R: Read, W: Write>(reader: &mut R, writer: &mut W, needle: 
     Ok(replaced)
 }
 
+/// Writes the haystack to the writer, replacing all occurrences of the needle with the replacement.
 fn write_with_replacements<W: Write>(writer: &mut W, haystack: &[u8], needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
     if needle.is_empty() {
         writer.write_all(haystack)?;
@@ -743,6 +791,7 @@ fn write_with_replacements<W: Write>(writer: &mut W, haystack: &[u8], needle: &[
     Ok(count)
 }
 
+/// Finds the first occurrence of a subslice in a slice.
 fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
     if n.is_empty() {
         return Some(0);
@@ -763,6 +812,7 @@ pub struct QdrantRAGTool {
     client: reqwest::Client,
 }
 
+/// A point in a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantPoint {
     id: String,
@@ -770,6 +820,7 @@ struct QdrantPoint {
     payload: HashMap<String, serde_json::Value>,
 }
 
+/// A search request to a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchRequest {
     vector: Vec<f32>,
@@ -778,11 +829,13 @@ struct QdrantSearchRequest {
     with_vector: bool,
 }
 
+/// A search response from a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchResponse {
     result: Vec<QdrantSearchResult>,
 }
 
+/// A search result from a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchResult {
     id: String,
@@ -790,24 +843,27 @@ struct QdrantSearchResult {
     payload: Option<HashMap<String, serde_json::Value>>,
 }
 
+/// A request to an embedding API.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingRequest {
     input: String,
     model: String,
 }
 
+/// A response from an embedding API.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingResponse {
     data: Vec<EmbeddingData>,
 }
 
+/// The data for an embedding.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
 }
 
 impl QdrantRAGTool {
-    /// Create a new RAG tool with Qdrant backend
+    /// Creates a new `QdrantRAGTool`.
     pub fn new(
         qdrant_url: impl Into<String>,
         collection_name: impl Into<String>,
@@ -823,7 +879,7 @@ impl QdrantRAGTool {
         }
     }
 
-    /// Generate embeddings using OpenAI-compatible API
+    /// Generates an embedding for the given text.
     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let request = EmbeddingRequest {
             input: text.to_string(),
@@ -857,7 +913,7 @@ impl QdrantRAGTool {
             .ok_or_else(|| HeliosError::ToolError("No embedding returned".to_string()))
     }
 
-    /// Ensure collection exists in Qdrant
+    /// Ensures that the Qdrant collection exists.
     async fn ensure_collection(&self) -> Result<()> {
         let collection_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
         
@@ -892,7 +948,7 @@ impl QdrantRAGTool {
         Ok(())
     }
 
-    /// Add a document to Qdrant
+    /// Adds a document to the Qdrant collection.
     async fn add_document(&self, text: &str, metadata: HashMap<String, serde_json::Value>) -> Result<String> {
         self.ensure_collection().await?;
 
@@ -933,7 +989,7 @@ impl QdrantRAGTool {
         Ok(point_id)
     }
 
-    /// Search for similar documents
+    /// Searches for similar documents in the Qdrant collection.
     async fn search(&self, query: &str, limit: usize) -> Result<Vec<(String, f64, String)>> {
         // Generate query embedding
         let query_embedding = self.generate_embedding(query).await?;
@@ -981,7 +1037,7 @@ impl QdrantRAGTool {
         Ok(results)
     }
 
-    /// Delete a document by ID
+    /// Deletes a document from the Qdrant collection by ID.
     async fn delete_document(&self, doc_id: &str) -> Result<()> {
         let delete_url = format!("{}/collections/{}/points/delete", self.qdrant_url, self.collection_name);
         let delete_payload = serde_json::json!({
@@ -1004,7 +1060,7 @@ impl QdrantRAGTool {
         Ok(())
     }
 
-    /// Clear all documents in the collection
+    /// Clears all documents from the Qdrant collection.
     async fn clear_collection(&self) -> Result<()> {
         let delete_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
         
@@ -1171,12 +1227,14 @@ pub struct MemoryDBTool {
 }
 
 impl MemoryDBTool {
+    /// Creates a new `MemoryDBTool`.
     pub fn new() -> Self {
         Self {
             db: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
+    /// Creates a new `MemoryDBTool` with a shared database.
     pub fn with_shared_db(db: std::sync::Arc<std::sync::Mutex<HashMap<String, String>>>) -> Self {
         Self { db }
     }
@@ -1316,6 +1374,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// Tests the creation of a successful `ToolResult`.
     #[test]
     fn test_tool_result_success() {
         let result = ToolResult::success("test output");
@@ -1323,6 +1382,7 @@ mod tests {
         assert_eq!(result.output, "test output");
     }
 
+    /// Tests the file search tool with a glob pattern.
     #[tokio::test]
     async fn test_file_search_tool_glob_pattern_precompiled_regex() {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -1365,6 +1425,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&test_dir);
     }
 
+    /// Tests the file search tool with an invalid pattern.
     #[tokio::test]
     async fn test_file_search_tool_invalid_pattern_fallback_contains() {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -1396,6 +1457,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&test_dir);
     }
 
+    /// Tests the creation of an error `ToolResult`.
     #[test]
     fn test_tool_result_error() {
         let result = ToolResult::error("test error");
@@ -1403,6 +1465,7 @@ mod tests {
         assert_eq!(result.output, "test error");
     }
 
+    /// Tests the calculator tool.
     #[tokio::test]
     async fn test_calculator_tool() {
         let tool = CalculatorTool;
@@ -1418,6 +1481,7 @@ mod tests {
         assert_eq!(result.output, "4");
     }
 
+    /// Tests the calculator tool with multiplication.
     #[tokio::test]
     async fn test_calculator_tool_multiplication() {
         let tool = CalculatorTool;
@@ -1427,6 +1491,7 @@ mod tests {
         assert_eq!(result.output, "12");
     }
 
+    /// Tests the calculator tool with division.
     #[tokio::test]
     async fn test_calculator_tool_division() {
         let tool = CalculatorTool;
@@ -1436,6 +1501,7 @@ mod tests {
         assert_eq!(result.output, "4");
     }
 
+    /// Tests the calculator tool with division by zero.
     #[tokio::test]
     async fn test_calculator_tool_division_by_zero() {
         let tool = CalculatorTool;
@@ -1444,6 +1510,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the calculator tool with an invalid expression.
     #[tokio::test]
     async fn test_calculator_tool_invalid_expression() {
         let tool = CalculatorTool;
@@ -1452,6 +1519,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the echo tool.
     #[tokio::test]
     async fn test_echo_tool() {
         let tool = EchoTool;
@@ -1464,6 +1532,7 @@ mod tests {
         assert_eq!(result.output, "Echo: Hello, world!");
     }
 
+    /// Tests the echo tool with a missing parameter.
     #[tokio::test]
     async fn test_echo_tool_missing_parameter() {
         let tool = EchoTool;
@@ -1472,12 +1541,14 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the creation of a new `ToolRegistry`.
     #[test]
     fn test_tool_registry_new() {
         let registry = ToolRegistry::new();
         assert!(registry.tools.is_empty());
     }
 
+    /// Tests registering and getting a tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_register_and_get() {
         let mut registry = ToolRegistry::new();
@@ -1488,6 +1559,7 @@ mod tests {
         assert_eq!(tool.unwrap().name(), "calculator");
     }
 
+    /// Tests executing a tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_execute() {
         let mut registry = ToolRegistry::new();
@@ -1499,6 +1571,7 @@ mod tests {
         assert_eq!(result.output, "30");
     }
 
+    /// Tests executing a nonexistent tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_execute_nonexistent_tool() {
         let registry = ToolRegistry::new();
@@ -1507,6 +1580,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests getting the definitions of all tools in the `ToolRegistry`.
     #[test]
     fn test_tool_registry_get_definitions() {
         let mut registry = ToolRegistry::new();
@@ -1525,6 +1599,7 @@ mod tests {
         assert!(names.contains(&"echo".to_string()));
     }
 
+    /// Tests listing the names of all tools in the `ToolRegistry`.
     #[test]
     fn test_tool_registry_list_tools() {
         let mut registry = ToolRegistry::new();
@@ -1537,6 +1612,7 @@ mod tests {
         assert!(tools.contains(&"echo".to_string()));
     }
 
+    /// Tests setting and getting a value in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_set_and_get() {
         let tool = MemoryDBTool::new();
@@ -1561,6 +1637,7 @@ mod tests {
         assert!(result.output.contains("Alice"));
     }
 
+    /// Tests deleting a value from the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_delete() {
         let tool = MemoryDBTool::new();
@@ -1592,6 +1669,7 @@ mod tests {
         assert!(result.output.contains("not found"));
     }
 
+    /// Tests checking if a key exists in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_exists() {
         let tool = MemoryDBTool::new();
@@ -1623,6 +1701,7 @@ mod tests {
         assert!(result.output.contains("true"));
     }
 
+    /// Tests listing the contents of the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_list() {
         let tool = MemoryDBTool::new();
@@ -1659,6 +1738,7 @@ mod tests {
         assert!(result.output.contains("key2"));
     }
 
+    /// Tests clearing the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_clear() {
         let tool = MemoryDBTool::new();
@@ -1692,6 +1772,7 @@ mod tests {
         assert!(result.output.contains("empty"));
     }
 
+    /// Tests an invalid operation in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_invalid_operation() {
         let tool = MemoryDBTool::new();
@@ -1703,6 +1784,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests sharing the database between `MemoryDBTool` instances.
     #[tokio::test]
     async fn test_memory_db_shared_instance() {
         use std::sync::{Arc, Mutex};

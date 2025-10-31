@@ -1,35 +1,43 @@
-/// Example: Using the Agent with RAG (Retrieval-Augmented Generation)
-///
-/// This example demonstrates:
-/// - Document embedding and storage in Qdrant vector database
-/// - Semantic search with vector similarity
-/// - RAG workflow for context-aware responses
-///
-/// Prerequisites:
-/// 1. Qdrant running locally: docker run -p 6333:6333 qdrant/qdrant
-/// 2. OpenAI API key for embeddings: export OPENAI_API_KEY=your-key
+//! # Example: Agent with RAG (Retrieval-Augmented Generation)
+//!
+//! This example demonstrates how to create an agent with a `QdrantRAGTool` to
+//! perform Retrieval-Augmented Generation. The agent can store documents in a
+//! Qdrant vector database, perform semantic search, and use the retrieved
+//! information to answer questions.
+//!
+//! ## Prerequisites
+//! 
+//! 1.  **Qdrant**: You need a running Qdrant instance. You can start one with Docker:
+//!     ```sh
+//!     docker run -p 6333:6333 qdrant/qdrant
+//!     ```
+//! 2.  **OpenAI API Key**: You need an OpenAI API key for generating embeddings.
+//!     Set it as an environment variable:
+//!     ```sh
+//!     export OPENAI_API_KEY=your-key
+//!     ```
 
-use helios_engine::{Agent, Config, QdrantRAGTool};
+use helios_engine::{ Agent, Config, QdrantRAGTool };
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Agent with RAG Example");
     println!("==========================================\n");
 
-    // Check for required environment variables
+    // Check for the required OpenAI API key.
     let embedding_api_key = std::env::var("OPENAI_API_KEY")
         .unwrap_or_else(|_| {
             println!("⚠ Warning: OPENAI_API_KEY not set. Using placeholder.");
             "your-api-key-here".to_string()
         });
 
-    // Load configuration
+    // Load configuration from `config.toml` or use default.
     let config = Config::from_file("config.toml").unwrap_or_else(|_| {
         println!("⚠ No config.toml found, using default configuration");
         Config::new_default()
     });
 
-    // Create RAG tool with Qdrant backend
+    // Create a new `QdrantRAGTool`.
     let rag_tool = QdrantRAGTool::new(
         "http://localhost:6333",           // Qdrant URL
         "helios_knowledge",                 // Collection name
@@ -37,7 +45,7 @@ async fn main() -> helios_engine::Result<()> {
         embedding_api_key,                  // API key
     );
 
-    // Create agent with RAG tool
+    // Create an agent named "KnowledgeAgent" and equip it with the RAG tool.
     let mut agent = Agent::builder("KnowledgeAgent")
         .config(config)
         .system_prompt(
@@ -52,7 +60,7 @@ async fn main() -> helios_engine::Result<()> {
 
     println!("✓ Agent created with RAG capabilities\n");
 
-    // Example 1: Add knowledge to the database
+    // --- Example 1: Add knowledge to the database ---
     println!("Example 1: Adding Documents to Knowledge Base");
     println!("==============================================\n");
 
@@ -80,7 +88,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 2: Semantic search - ask questions
+    // --- Example 2: Semantic search - ask questions ---
     println!("\nExample 2: Semantic Search and Q&A");
     println!("===================================\n");
 
@@ -94,7 +102,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 3: Multi-document retrieval
+    // --- Example 3: Multi-document retrieval ---
     println!("\nExample 3: Multi-Document Retrieval");
     println!("====================================\n");
 
@@ -103,7 +111,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 4: Adding documents with metadata
+    // --- Example 4: Adding documents with metadata ---
     println!("\nExample 4: Documents with Metadata");
     println!("===================================\n");
 

@@ -1,8 +1,8 @@
-/// Example: Streaming with Local Models
-///
-/// This example demonstrates the new streaming capability for local models.
-/// Previously, local models would display their full response instantly.
-/// Now they stream token-by-token just like remote models.
+//! # Example: Local Model Streaming
+//!
+//! This example demonstrates how to use the streaming capabilities of the Helios Engine
+//! with a local model. The response from the model is streamed token by token,
+//! providing a real-time experience.
 
 use helios_engine::config::LocalConfig;
 use helios_engine::{ChatMessage, LLMClient};
@@ -13,7 +13,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Local Model Streaming Example");
     println!("=================================================\n");
 
-    // Configure local model
+    // Configure the local model to use.
     let local_config = LocalConfig {
         huggingface_repo: "unsloth/Qwen2.5-0.5B-Instruct-GGUF".to_string(),
         model_file: "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf".to_string(),
@@ -26,11 +26,12 @@ async fn main() -> helios_engine::Result<()> {
     println!("   Repository: {}", local_config.huggingface_repo);
     println!("   Model: {}\n", local_config.model_file);
 
+    // Create a new LLM client with the local model configuration.
     let client = LLMClient::new(helios_engine::llm::LLMProviderType::Local(local_config)).await?;
 
     println!("✓ Model loaded successfully!\n");
 
-    // Example 1: Simple streaming
+    // --- Example 1: Simple streaming response ---
     println!("Example 1: Simple Streaming Response");
     println!("======================================\n");
 
@@ -42,6 +43,7 @@ async fn main() -> helios_engine::Result<()> {
     print!("Assistant: ");
     io::stdout().flush()?;
 
+    // Stream the response from the model, printing each chunk as it arrives.
     let _response = client
         .chat_stream(messages, None, |chunk| {
             print!("{}", chunk);
@@ -51,7 +53,7 @@ async fn main() -> helios_engine::Result<()> {
 
     println!("\n");
 
-    // Example 2: Multiple questions with streaming
+    // --- Example 2: Interactive streaming ---
     println!("Example 2: Interactive Streaming");
     println!("==================================\n");
 
@@ -70,6 +72,7 @@ async fn main() -> helios_engine::Result<()> {
         print!("Assistant: ");
         io::stdout().flush()?;
 
+        // Stream the response, maintaining the conversation context.
         let response = client
             .chat_stream(session.get_messages(), None, |chunk| {
                 print!("{}", chunk);

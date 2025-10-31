@@ -1,10 +1,12 @@
+//! # Example: Streaming Chat
+//!
+//! This example demonstrates how to use the streaming API of the Helios Engine to get
+//! real-time responses from the LLM. It also shows how to detect and display
+//! "thinking" tags that some models use to indicate their reasoning process.
+
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use helios_engine::config::LLMConfig;
-/// Example: Using streaming responses with Helios Engine
-///
-/// This example demonstrates how to use the streaming API to get
-/// real-time responses from the LLM, including detection of thinking tags.
 use helios_engine::{ChatMessage, ChatSession, LLMClient};
 use std::io::{self, Write};
 
@@ -13,7 +15,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Streaming Example");
     println!("=====================================\n");
 
-    // Setup LLM configuration
+    // Set up the LLM configuration.
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
@@ -23,8 +25,10 @@ async fn main() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
+    // Create a new LLM client.
     let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
+    // --- Example 1: Simple streaming response ---
     println!("Example 1: Simple Streaming Response");
     println!("======================================\n");
 
@@ -36,6 +40,7 @@ async fn main() -> helios_engine::Result<()> {
     print!("Assistant: ");
     io::stdout().flush()?;
 
+    // Stream the response from the model, printing each chunk as it arrives.
     let response = client
         .chat_stream(messages, None, |chunk| {
             print!("{}", chunk);
@@ -45,6 +50,7 @@ async fn main() -> helios_engine::Result<()> {
 
     println!("\n\n");
 
+    // --- Example 2: Interactive streaming chat ---
     println!("Example 2: Interactive Streaming Chat");
     println!("======================================\n");
 
@@ -63,6 +69,7 @@ async fn main() -> helios_engine::Result<()> {
         print!("Assistant: ");
         io::stdout().flush()?;
 
+        // Stream the response, maintaining the conversation context.
         let response = client
             .chat_stream(session.get_messages(), None, |chunk| {
                 print!("{}", chunk);
@@ -74,17 +81,20 @@ async fn main() -> helios_engine::Result<()> {
         println!("\n");
     }
 
+    // --- Example 3: Streaming with thinking tags ---
     println!("\nExample 3: Streaming with Thinking Tags");
     println!("=========================================\n");
     println!("When using models that support thinking tags (like o1),");
     println!("you can detect and display them during streaming.\n");
 
+    /// A helper struct to track and display thinking tags in streamed responses.
     struct ThinkingTracker {
         in_thinking: bool,
         thinking_buffer: String,
     }
 
     impl ThinkingTracker {
+        /// Creates a new `ThinkingTracker`.
         fn new() -> Self {
             Self {
                 in_thinking: false,
@@ -92,6 +102,7 @@ async fn main() -> helios_engine::Result<()> {
             }
         }
 
+        /// Processes a chunk of a streamed response and returns the processed output.
         fn process_chunk(&mut self, chunk: &str) -> String {
             let mut output = String::new();
             let mut chars = chunk.chars().peekable();
@@ -139,6 +150,7 @@ async fn main() -> helios_engine::Result<()> {
     print!("Assistant: ");
     io::stdout().flush()?;
 
+    // Stream the response, processing thinking tags as they arrive.
     let _response = client
         .chat_stream(messages, None, |chunk| {
             let output = tracker.process_chunk(chunk);

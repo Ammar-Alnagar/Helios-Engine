@@ -1,21 +1,29 @@
+//! # Example: Custom Tool
+//!
+//! This example demonstrates how to create and use a custom tool with an agent.
+//! We define a `WeatherTool` that can "fetch" the weather for a given location.
+
 use async_trait::async_trait;
 use helios_engine::{Agent, Config, Tool, ToolParameter, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
 
-// Define a custom tool
+/// A custom tool to get the weather for a location.
 struct WeatherTool;
 
 #[async_trait]
 impl Tool for WeatherTool {
+    /// The name of the tool.
     fn name(&self) -> &str {
         "get_weather"
     }
 
+    /// A description of what the tool does.
     fn description(&self) -> &str {
         "Get the current weather for a location"
     }
 
+    /// The parameters the tool accepts.
     fn parameters(&self) -> HashMap<String, ToolParameter> {
         let mut params = HashMap::new();
         params.insert(
@@ -37,6 +45,7 @@ impl Tool for WeatherTool {
         params
     }
 
+    /// Executes the tool with the given arguments.
     async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let location = args
             .get("location")
@@ -48,7 +57,7 @@ impl Tool for WeatherTool {
             .and_then(|v| v.as_str())
             .unwrap_or("fahrenheit");
 
-        // Simulate weather data (in a real implementation, call a weather API)
+        // In a real implementation, you would call a weather API here.
         let temp = if unit == "celsius" { "22" } else { "72" };
         let weather = format!(
             "The weather in {} is sunny with a temperature of {}°{}",
@@ -63,10 +72,10 @@ impl Tool for WeatherTool {
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    // Load configuration
+    // Load configuration from `config.toml`.
     let config = Config::from_file("config.toml")?;
 
-    // Create an agent with custom tool
+    // Create an agent named "WeatherAgent" and equip it with the `WeatherTool`.
     let mut agent = Agent::builder("WeatherAgent")
         .config(config)
         .system_prompt("You are a helpful weather assistant. Use the weather tool to answer questions about weather.")
@@ -74,10 +83,11 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    // Ask about weather
+    // --- Ask the agent about the weather ---
     let response = agent.chat("What's the weather like in New York?").await?;
     println!("Agent: {}\n", response);
 
+    // --- Ask again, but with a different unit ---
     let response = agent.chat("How about in London, but in celsius?").await?;
     println!("Agent: {}\n", response);
 

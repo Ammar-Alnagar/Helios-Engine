@@ -1,11 +1,16 @@
+//! # Example: Agent with Tools
+//!
+//! This example demonstrates how to create an agent and equip it with tools.
+//! The agent can then use these tools to perform tasks that it cannot do on its own.
+
 use helios_engine::{Agent, CalculatorTool, Config, EchoTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    // Load configuration
+    // Load configuration from `config.toml`.
     let config = Config::from_file("config.toml")?;
 
-    // Create an agent with tools
+    // Create an agent named "ToolAgent" and equip it with the `CalculatorTool` and `EchoTool`.
     let mut agent = Agent::builder("ToolAgent")
         .config(config)
         .system_prompt("You are a helpful assistant with access to tools. Use them when needed.")
@@ -20,11 +25,11 @@ async fn main() -> helios_engine::Result<()> {
         agent.tool_registry().list_tools()
     );
 
-    // Test calculator tool
+    // --- Test the calculator tool ---
     let response = agent.chat("What is 25 * 4 + 10?").await?;
     println!("Agent: {}\n", response);
 
-    // Test echo tool
+    // --- Test the echo tool ---
     let response = agent
         .chat("Can you echo this message: 'Hello from Helios!'")
         .await?;

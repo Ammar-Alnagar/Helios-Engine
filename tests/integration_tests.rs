@@ -1,5 +1,8 @@
-//! Integration tests for the Helios Engine
-//! These tests validate the interaction between different modules
+//! # Integration Tests
+//!
+//! This file contains integration tests for the Helios Engine. These tests
+//! validate the interaction between different modules, such as agents, tools,
+//! and the configuration.
 
 use async_trait::async_trait;
 use helios_engine::{
@@ -9,9 +12,10 @@ use helios_engine::{
 use serde_json::json;
 use std::collections::HashMap;
 
+/// Tests that an agent can be created with the `CalculatorTool`.
 #[tokio::test]
 async fn test_agent_with_calculator_tool() {
-    // Create a basic config for testing
+    // Create a basic config for testing.
     let config = Config {
         llm: LLMConfig {
             model_name: std::env::var("TEST_MODEL_NAME")
@@ -25,7 +29,7 @@ async fn test_agent_with_calculator_tool() {
         local: None,
     };
 
-    // Create an agent with calculator tool
+    // Create an agent with the calculator tool.
     let agent = Agent::builder("test_agent")
         .config(config)
         .tool(Box::new(CalculatorTool))
@@ -33,8 +37,8 @@ async fn test_agent_with_calculator_tool() {
         .await
         .expect("Failed to create agent");
 
-    // This test will likely fail in offline mode, but ensures the integration path works
-    // For now we'll just test the setup
+    // This test will likely fail in offline mode, but ensures the integration path works.
+    // For now we'll just test the setup.
     assert_eq!(agent.name(), "test_agent");
     assert_eq!(
         agent.tool_registry().list_tools(),
@@ -42,9 +46,10 @@ async fn test_agent_with_calculator_tool() {
     );
 }
 
+/// Tests that an agent can be created with the `EchoTool`.
 #[tokio::test]
 async fn test_agent_with_echo_tool() {
-    // Create a basic config for testing
+    // Create a basic config for testing.
     let config = Config {
         llm: LLMConfig {
             model_name: std::env::var("TEST_MODEL_NAME")
@@ -69,6 +74,7 @@ async fn test_agent_with_echo_tool() {
     assert_eq!(agent.tool_registry().list_tools(), vec!["echo".to_string()]);
 }
 
+/// Tests the functionality of the `ToolRegistry`.
 #[tokio::test]
 async fn test_tool_registry_functionality() {
     use helios_engine::ToolRegistry;
@@ -77,29 +83,30 @@ async fn test_tool_registry_functionality() {
     registry.register(Box::new(CalculatorTool));
     registry.register(Box::new(EchoTool));
 
-    // Test listing tools
+    // Test listing tools.
     let tools = registry.list_tools();
     assert_eq!(tools.len(), 2);
     assert!(tools.contains(&"calculator".to_string()));
     assert!(tools.contains(&"echo".to_string()));
 
-    // Test get definitions
+    // Test getting tool definitions.
     let definitions = registry.get_definitions();
     assert_eq!(definitions.len(), 2);
 
-    // Test executing calculator tool
+    // Test executing the calculator tool.
     let calc_args = json!({"expression": "5 * 7"});
     let result = registry.execute("calculator", calc_args).await.unwrap();
     assert!(result.success);
     assert_eq!(result.output, "35");
 
-    // Test executing echo tool
+    // Test executing the echo tool.
     let echo_args = json!({"message": "Hello, world!"});
     let result = registry.execute("echo", echo_args).await.unwrap();
     assert!(result.success);
     assert_eq!(result.output, "Echo: Hello, world!");
 }
 
+/// Tests the serialization and deserialization of the `Config` struct.
 #[test]
 fn test_config_serialization() {
     use helios_engine::LocalConfig;
@@ -121,11 +128,11 @@ fn test_config_serialization() {
         }),
     };
 
-    // Test serialization
+    // Test serialization to a TOML string.
     let serialized = toml::to_string_pretty(&config);
     assert!(serialized.is_ok());
 
-    // Test deserialization
+    // Test deserialization from a TOML string.
     let config_str = r#"
 [llm]
 model_name = "gpt-4"
@@ -155,9 +162,10 @@ max_tokens = 1024
     );
 }
 
+/// Tests the creation of `ChatMessage` instances.
 #[test]
 fn test_chat_message_creation() {
-    // Test creating different types of chat messages
+    // Test creating different types of chat messages.
     let system_msg = ChatMessage::system("System prompt");
     assert_eq!(system_msg.role, helios_engine::chat::Role::System);
     assert_eq!(system_msg.content, "System prompt");
@@ -176,39 +184,41 @@ fn test_chat_message_creation() {
     assert_eq!(tool_msg.tool_call_id, Some("call_123".to_string()));
 }
 
+/// Tests the management of a `ChatSession`.
 #[test]
 fn test_chat_session_management() {
     use helios_engine::ChatSession;
 
     let mut session = ChatSession::new().with_system_prompt("Test system prompt");
 
-    // Add messages
+    // Add messages to the session.
     session.add_user_message("Hello");
     session.add_assistant_message("Hi there!");
     session.add_user_message("How are you?");
 
-    // Verify message count
+    // Verify the message count.
     assert_eq!(session.messages.len(), 3);
 
-    // Get all messages including system
+    // Get all messages, including the system prompt.
     let all_messages = session.get_messages();
     assert_eq!(all_messages.len(), 4); // 1 system + 3 user/assistant
 
-    // Verify first message is system
+    // Verify that the first message is the system prompt.
     assert_eq!(all_messages[0].role, helios_engine::chat::Role::System);
     assert_eq!(all_messages[0].content, "Test system prompt");
 
-    // Clear session
+    // Clear the session.
     session.clear();
     assert!(session.messages.is_empty());
 }
 
-// Mock tool for testing complex integration
+/// A mock tool for integration testing.
 struct TestTool {
     name: String,
 }
 
 impl TestTool {
+    /// Creates a new `TestTool`.
     fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -249,6 +259,7 @@ impl Tool for TestTool {
     }
 }
 
+/// Tests a tool with custom parameters.
 #[tokio::test]
 async fn test_tool_with_custom_parameters() {
     let test_tool = TestTool::new("test_tool");
@@ -267,6 +278,7 @@ async fn test_tool_with_custom_parameters() {
     assert_eq!(result.output, "Processed: test value");
 }
 
+/// Tests a `ToolRegistry` with multiple tools.
 #[tokio::test]
 async fn test_multiple_tools_in_registry() {
     use helios_engine::ToolRegistry;
@@ -276,14 +288,14 @@ async fn test_multiple_tools_in_registry() {
     registry.register(Box::new(EchoTool));
     registry.register(Box::new(TestTool::new("test_tool")));
 
-    // Test all tools are registered
+    // Test that all tools are registered.
     let tools = registry.list_tools();
     assert_eq!(tools.len(), 3);
     assert!(tools.contains(&"calculator".to_string()));
     assert!(tools.contains(&"echo".to_string()));
     assert!(tools.contains(&"test_tool".to_string()));
 
-    // Test executing each tool
+    // Test executing each tool.
     let calc_result = registry
         .execute("calculator", json!({"expression": "10 + 5"}))
         .await
@@ -306,9 +318,10 @@ async fn test_multiple_tools_in_registry() {
     assert_eq!(test_result.output, "Processed: integration test");
 }
 
+/// Tests the builder pattern for creating agents.
 #[tokio::test]
 async fn test_agent_builder_pattern() {
-    // Test the builder pattern for creating agents
+    // Test the builder pattern for creating agents.
     let config = Config {
         llm: LLMConfig {
             model_name: std::env::var("TEST_MODEL_NAME")
@@ -322,7 +335,7 @@ async fn test_agent_builder_pattern() {
         local: None,
     };
 
-    // Build an agent with all options
+    // Build an agent with all options.
     let agent = Agent::builder("builder_test_agent")
         .config(config)
         .system_prompt("You are a helpful assistant for testing.")
@@ -333,17 +346,17 @@ async fn test_agent_builder_pattern() {
         .await
         .expect("Failed to build agent with builder pattern");
 
-    // Verify the agent was configured correctly
+    // Verify that the agent was configured correctly.
     assert_eq!(agent.name(), "builder_test_agent");
-    // Note: max_iterations is private, so we'll test its effect during agent operations
+    // Note: max_iterations is private, so we'll test its effect during agent operations.
 
-    // Check that both tools were registered
+    // Check that both tools were registered.
     let tools = agent.tool_registry().list_tools();
     assert_eq!(tools.len(), 2);
     assert!(tools.contains(&"calculator".to_string()));
     assert!(tools.contains(&"echo".to_string()));
 
-    // Verify the system prompt is in the chat session
+    // Verify that the system prompt is in the chat session.
     let session = agent.chat_session();
     assert_eq!(
         session.system_prompt,
@@ -351,9 +364,10 @@ async fn test_agent_builder_pattern() {
     );
 }
 
+/// Tests the conversion from a string to a `Role`.
 #[test]
 fn test_role_enum_conversions() {
-    // Test string to Role conversion
+    // Test string to Role conversion.
     assert_eq!(
         helios_engine::chat::Role::from("system"),
         helios_engine::chat::Role::System
@@ -371,7 +385,7 @@ fn test_role_enum_conversions() {
         helios_engine::chat::Role::Tool
     );
 
-    // Test case insensitivity
+    // Test case insensitivity.
     assert_eq!(
         helios_engine::chat::Role::from("SYSTEM"),
         helios_engine::chat::Role::System
@@ -381,7 +395,7 @@ fn test_role_enum_conversions() {
         helios_engine::chat::Role::User
     );
 
-    // Test default case
+    // Test the default case.
     assert_eq!(
         helios_engine::chat::Role::from("invalid"),
         helios_engine::chat::Role::Assistant
