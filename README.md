@@ -987,6 +987,35 @@ Edit a file by replacing specific text (find and replace).
 agent.tool(Box::new(FileEditTool));
 ```
 
+#### `MemoryDBTool`
+
+In-memory key-value database for caching data during conversations.
+
+**Parameters:**
+- `operation` (string, required): Operation to perform: `set`, `get`, `delete`, `list`, `clear`, `exists`
+- `key` (string, optional): Key for set, get, delete, exists operations
+- `value` (string, optional): Value for set operation
+
+**Supported Operations:**
+- `set` - Store a key-value pair
+- `get` - Retrieve a value by key
+- `delete` - Remove a key-value pair
+- `list` - List all stored items
+- `clear` - Clear all data
+- `exists` - Check if a key exists
+
+**Example:**
+```rust
+agent.tool(Box::new(MemoryDBTool::new()));
+```
+
+**Usage in conversation:**
+```rust
+// Agent can now cache data
+agent.chat("Store my name as 'Alice' in the database").await?;
+agent.chat("What's my name?").await?; // Agent retrieves from DB
+```
+
 ##  Project Structure
 
 ```
@@ -1016,6 +1045,7 @@ helios/
     ├── basic_chat.rs             # Simple chat example
     ├── agent_with_tools.rs       # Tool usage example
     ├── agent_with_file_tools.rs  # File management tools example
+    ├── agent_with_memory_db.rs   # Memory database tool example
     ├── custom_tool.rs            # Custom tool implementation
     ├── multiple_agents.rs        # Multiple agents example
     ├── direct_llm_usage.rs       # Direct LLM client usage
@@ -1050,6 +1080,9 @@ cargo run --example agent_with_tools
 
 # Agent with file management tools
 cargo run --example agent_with_file_tools
+
+# Agent with in-memory database tool
+cargo run --example agent_with_memory_db
 
 # Custom tool implementation
 cargo run --example custom_tool
@@ -1210,6 +1243,62 @@ let mut agent = Agent::builder("FileAgent")
 
 // Agent can now search, read, write, and edit files
 let response = agent.chat("Find all .rs files and show me main.rs").await?;
+```
+
+### In-Memory Database Tool
+
+Cache and retrieve data during agent conversations:
+
+```rust
+use helios_engine::{Agent, Config, MemoryDBTool};
+
+let mut agent = Agent::builder("DataAgent")
+    .config(config)
+    .system_prompt("You can store and retrieve data using the memory_db tool.")
+    .tool(Box::new(MemoryDBTool::new()))
+    .build()
+    .await?;
+
+// Store data
+agent.chat("Remember that my favorite color is blue").await?;
+
+// Agent automatically uses the database to remember
+agent.chat("What's my favorite color?").await?;
+// Response: "Your favorite color is blue"
+
+// Cache expensive computations
+agent.chat("Calculate 12345 * 67890 and save it as 'result'").await?;
+agent.chat("What was the result I asked you to calculate?").await?;
+
+// List all cached data
+agent.chat("Show me everything you've stored").await?;
+```
+
+**Shared Database Between Agents:**
+
+```rust
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+
+// Create a shared database
+let shared_db = Arc::new(Mutex::new(HashMap::new()));
+
+// Multiple agents sharing the same database
+let mut agent1 = Agent::builder("Agent1")
+    .config(config.clone())
+    .tool(Box::new(MemoryDBTool::with_shared_db(shared_db.clone())))
+    .build()
+    .await?;
+
+let mut agent2 = Agent::builder("Agent2")
+    .config(config)
+    .tool(Box::new(MemoryDBTool::with_shared_db(shared_db.clone())))
+    .build()
+    .await?;
+
+// Data stored by agent1 is accessible to agent2
+agent1.chat("Store 'project_status' as 'in_progress'").await?;
+agent2.chat("What is the project status?").await?; // Gets "in_progress"
 ```
 
 ##  Contributing

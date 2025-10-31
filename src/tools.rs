@@ -749,6 +749,155 @@ fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
     h.windows(n.len()).position(|w| w == n)
 }
 
+/// In-Memory Database Tool
+/// 
+/// Provides a simple key-value store for agents to cache data during conversations.
+/// Supports set, get, delete, list keys, and clear operations.
+pub struct MemoryDBTool {
+    db: std::sync::Arc<std::sync::Mutex<HashMap<String, String>>>,
+}
+
+impl MemoryDBTool {
+    pub fn new() -> Self {
+        Self {
+            db: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub fn with_shared_db(db: std::sync::Arc<std::sync::Mutex<HashMap<String, String>>>) -> Self {
+        Self { db }
+    }
+}
+
+impl Default for MemoryDBTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl Tool for MemoryDBTool {
+    fn name(&self) -> &str {
+        "memory_db"
+    }
+
+    fn description(&self) -> &str {
+        "In-memory key-value database for caching data. Operations: set, get, delete, list, clear, exists"
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "operation".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Operation to perform: 'set', 'get', 'delete', 'list', 'clear', 'exists'".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "key".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Key for set, get, delete, exists operations".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "value".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Value for set operation".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let operation = args
+            .get("operation")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'operation' parameter".to_string()))?;
+
+        let mut db = self.db.lock().map_err(|e| {
+            HeliosError::ToolError(format!("Failed to lock database: {}", e))
+        })?;
+
+        match operation {
+            "set" => {
+                let key = args
+                    .get("key")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for set operation".to_string()))?;
+                let value = args
+                    .get("value")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'value' parameter for set operation".to_string()))?;
+
+                db.insert(key.to_string(), value.to_string());
+                Ok(ToolResult::success(format!("✓ Set '{}' = '{}'", key, value)))
+            }
+            "get" => {
+                let key = args
+                    .get("key")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for get operation".to_string()))?;
+
+                match db.get(key) {
+                    Some(value) => Ok(ToolResult::success(format!("Value for '{}': {}", key, value))),
+                    None => Ok(ToolResult::error(format!("Key '{}' not found", key))),
+                }
+            }
+            "delete" => {
+                let key = args
+                    .get("key")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for delete operation".to_string()))?;
+
+                match db.remove(key) {
+                    Some(value) => Ok(ToolResult::success(format!("✓ Deleted '{}' (was: '{}')", key, value))),
+                    None => Ok(ToolResult::error(format!("Key '{}' not found", key))),
+                }
+            }
+            "list" => {
+                if db.is_empty() {
+                    Ok(ToolResult::success("Database is empty".to_string()))
+                } else {
+                    let mut items: Vec<String> = db
+                        .iter()
+                        .map(|(k, v)| format!("  • {} = {}", k, v))
+                        .collect();
+                    items.sort();
+                    Ok(ToolResult::success(format!(
+                        "Database contents ({} items):\n{}",
+                        db.len(),
+                        items.join("\n")
+                    )))
+                }
+            }
+            "clear" => {
+                let count = db.len();
+                db.clear();
+                Ok(ToolResult::success(format!("✓ Cleared database ({} items removed)", count)))
+            }
+            "exists" => {
+                let key = args
+                    .get("key")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for exists operation".to_string()))?;
+
+                let exists = db.contains_key(key);
+                Ok(ToolResult::success(format!("Key '{}' exists: {}", key, exists)))
+            }
+            _ => Err(HeliosError::ToolError(format!(
+                "Unknown operation '{}'. Valid operations: set, get, delete, list, clear, exists",
+                operation
+            ))),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -973,5 +1122,196 @@ mod tests {
         assert_eq!(tools.len(), 2);
         assert!(tools.contains(&"calculator".to_string()));
         assert!(tools.contains(&"echo".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_set_and_get() {
+        let tool = MemoryDBTool::new();
+        
+        // Set a value
+        let set_args = json!({
+            "operation": "set",
+            "key": "name",
+            "value": "Alice"
+        });
+        let result = tool.execute(set_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("Set 'name' = 'Alice'"));
+        
+        // Get the value
+        let get_args = json!({
+            "operation": "get",
+            "key": "name"
+        });
+        let result = tool.execute(get_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("Alice"));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_delete() {
+        let tool = MemoryDBTool::new();
+        
+        // Set a value
+        let set_args = json!({
+            "operation": "set",
+            "key": "temp",
+            "value": "data"
+        });
+        tool.execute(set_args).await.unwrap();
+        
+        // Delete the value
+        let delete_args = json!({
+            "operation": "delete",
+            "key": "temp"
+        });
+        let result = tool.execute(delete_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("Deleted 'temp'"));
+        
+        // Try to get deleted value
+        let get_args = json!({
+            "operation": "get",
+            "key": "temp"
+        });
+        let result = tool.execute(get_args).await.unwrap();
+        assert!(!result.success);
+        assert!(result.output.contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_exists() {
+        let tool = MemoryDBTool::new();
+        
+        // Check non-existent key
+        let exists_args = json!({
+            "operation": "exists",
+            "key": "test"
+        });
+        let result = tool.execute(exists_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("false"));
+        
+        // Set a value
+        let set_args = json!({
+            "operation": "set",
+            "key": "test",
+            "value": "value"
+        });
+        tool.execute(set_args).await.unwrap();
+        
+        // Check existing key
+        let exists_args = json!({
+            "operation": "exists",
+            "key": "test"
+        });
+        let result = tool.execute(exists_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("true"));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_list() {
+        let tool = MemoryDBTool::new();
+        
+        // List empty database
+        let list_args = json!({
+            "operation": "list"
+        });
+        let result = tool.execute(list_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("empty"));
+        
+        // Add some items
+        tool.execute(json!({
+            "operation": "set",
+            "key": "key1",
+            "value": "value1"
+        })).await.unwrap();
+        
+        tool.execute(json!({
+            "operation": "set",
+            "key": "key2",
+            "value": "value2"
+        })).await.unwrap();
+        
+        // List items
+        let list_args = json!({
+            "operation": "list"
+        });
+        let result = tool.execute(list_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("2 items"));
+        assert!(result.output.contains("key1"));
+        assert!(result.output.contains("key2"));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_clear() {
+        let tool = MemoryDBTool::new();
+        
+        // Add some items
+        tool.execute(json!({
+            "operation": "set",
+            "key": "key1",
+            "value": "value1"
+        })).await.unwrap();
+        
+        tool.execute(json!({
+            "operation": "set",
+            "key": "key2",
+            "value": "value2"
+        })).await.unwrap();
+        
+        // Clear database
+        let clear_args = json!({
+            "operation": "clear"
+        });
+        let result = tool.execute(clear_args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("2 items removed"));
+        
+        // Verify database is empty
+        let list_args = json!({
+            "operation": "list"
+        });
+        let result = tool.execute(list_args).await.unwrap();
+        assert!(result.output.contains("empty"));
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_invalid_operation() {
+        let tool = MemoryDBTool::new();
+        
+        let args = json!({
+            "operation": "invalid_op"
+        });
+        let result = tool.execute(args).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_memory_db_shared_instance() {
+        use std::sync::{Arc, Mutex};
+        
+        // Create a shared database
+        let shared_db = Arc::new(Mutex::new(HashMap::new()));
+        let tool1 = MemoryDBTool::with_shared_db(shared_db.clone());
+        let tool2 = MemoryDBTool::with_shared_db(shared_db.clone());
+        
+        // Set value with tool1
+        tool1.execute(json!({
+            "operation": "set",
+            "key": "shared",
+            "value": "data"
+        })).await.unwrap();
+        
+        // Get value with tool2
+        let result = tool2.execute(json!({
+            "operation": "get",
+            "key": "shared"
+        })).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("data"));
     }
 }
