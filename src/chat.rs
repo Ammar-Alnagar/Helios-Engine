@@ -24,7 +24,7 @@ impl From<&str> for Role {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub role: Role,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_as_empty_string")]
     pub content: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -32,6 +32,14 @@ pub struct ChatMessage {
     pub tool_calls: Option<Vec<ToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_call_id: Option<String>,
+}
+
+fn deserialize_null_as_empty_string<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    Option::<String>::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
