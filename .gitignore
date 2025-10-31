@@ -11,3 +11,4 @@ config.toml
 .cache/models/Qwen3-0.6B-Q4_K_M.gguf
 .cache/models/.cache/huggingface
 .cache/models/.cache
+custom_endpoints.toml
