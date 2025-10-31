@@ -3,7 +3,7 @@
 //! This example demonstrates how to serve an agent using the Helios Engine serve feature.
 //! The agent will be accessible via OpenAI-compatible API endpoints.
 
-use helios_engine::{Agent, Config, CalculatorTool};
+use helios_engine::{Agent, CalculatorTool, Config};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -30,8 +30,12 @@ async fn main() -> helios_engine::Result<()> {
     println!("  -H 'Content-Type: application/json' \\");
     println!("  -d '{{\"model\": \"local-model\", \"messages\": [{{\"role\": \"user\", \"content\": \"What is 15 * 7?\"}}]}}'");
 
-    helios_engine::serve::start_server_with_agent(agent, "local-model".to_string(), "127.0.0.1:8000").await?;
+    helios_engine::serve::start_server_with_agent(
+        agent,
+        "local-model".to_string(),
+        "127.0.0.1:8000",
+    )
+    .await?;
 
     Ok(())
 }
-

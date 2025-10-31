@@ -6,8 +6,8 @@
 
 use async_trait::async_trait;
 use helios_engine::{
-    Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMConfig, Tool, ToolParameter,
-    ToolResult, serve,
+    serve, Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMConfig, Tool, ToolParameter,
+    ToolResult,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -467,8 +467,8 @@ async fn test_server_state_with_agent() {
 /// Tests the conversion of OpenAI messages to ChatMessage format.
 #[test]
 fn test_openai_message_conversion() {
-    use helios_engine::serve::{OpenAIMessage, ChatCompletionRequest};
     use helios_engine::chat::Role;
+    use helios_engine::serve::{ChatCompletionRequest, OpenAIMessage};
 
     let openai_messages = vec![
         OpenAIMessage {
@@ -512,7 +512,12 @@ fn test_openai_message_conversion() {
                 "user" => Role::User,
                 "assistant" => Role::Assistant,
                 "tool" => Role::Tool,
-                _ => return Err(helios_engine::HeliosError::ConfigError(format!("Invalid role: {}", msg.role))),
+                _ => {
+                    return Err(helios_engine::HeliosError::ConfigError(format!(
+                        "Invalid role: {}",
+                        msg.role
+                    )))
+                }
             };
             Ok(ChatMessage {
                 role,
@@ -551,7 +556,8 @@ fn test_token_estimation() {
     assert_eq!(estimate_tokens("Hello world"), 3); // ~11 chars / 4 = 2.75 -> 3
 
     // Test with longer text
-    let long_text = "This is a longer piece of text that should result in more tokens when estimated.";
+    let long_text =
+        "This is a longer piece of text that should result in more tokens when estimated.";
     let tokens = estimate_tokens(long_text);
     assert!(tokens > 10); // Should be roughly len/4
 
@@ -568,13 +574,11 @@ fn test_chat_completion_request_structure() {
 
     let request = ChatCompletionRequest {
         model: "gpt-3.5-turbo".to_string(),
-        messages: vec![
-            OpenAIMessage {
-                role: "user".to_string(),
-                content: "What is 2+2?".to_string(),
-                name: None,
-            }
-        ],
+        messages: vec![OpenAIMessage {
+            role: "user".to_string(),
+            content: "What is 2+2?".to_string(),
+            name: None,
+        }],
         temperature: Some(0.7),
         max_tokens: Some(100),
         stream: Some(false),
@@ -592,7 +596,9 @@ fn test_chat_completion_request_structure() {
 /// Tests the chat completion response structure.
 #[test]
 fn test_chat_completion_response_structure() {
-    use helios_engine::serve::{ChatCompletionResponse, CompletionChoice, OpenAIMessageResponse, Usage};
+    use helios_engine::serve::{
+        ChatCompletionResponse, CompletionChoice, OpenAIMessageResponse, Usage,
+    };
 
     let response = ChatCompletionResponse {
         id: "chatcmpl-test123".to_string(),
@@ -631,7 +637,7 @@ fn test_chat_completion_response_structure() {
 /// Tests the models response structure.
 #[test]
 fn test_models_response_structure() {
-    use helios_engine::serve::{ModelsResponse, ModelInfo};
+    use helios_engine::serve::{ModelInfo, ModelsResponse};
 
     let response = ModelsResponse {
         object: "list".to_string(),
@@ -654,8 +660,8 @@ fn test_models_response_structure() {
 /// Tests invalid role conversion in OpenAI message processing.
 #[test]
 fn test_invalid_role_conversion() {
-    use helios_engine::serve::OpenAIMessage;
     use helios_engine::chat::Role;
+    use helios_engine::serve::OpenAIMessage;
 
     let invalid_message = OpenAIMessage {
         role: "invalid_role".to_string(),
@@ -682,7 +688,12 @@ fn test_invalid_role_conversion() {
                 "user" => Role::User,
                 "assistant" => Role::Assistant,
                 "tool" => Role::Tool,
-                _ => return Err(helios_engine::HeliosError::ConfigError(format!("Invalid role: {}", msg.role))),
+                _ => {
+                    return Err(helios_engine::HeliosError::ConfigError(format!(
+                        "Invalid role: {}",
+                        msg.role
+                    )))
+                }
             };
             Ok(ChatMessage {
                 role,

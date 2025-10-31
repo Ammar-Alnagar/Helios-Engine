@@ -3,7 +3,7 @@
 //! This example demonstrates how to serve an agent with custom endpoints
 //! in addition to the standard OpenAI-compatible API.
 
-use helios_engine::{Agent, Config, CalculatorTool, CustomEndpointsConfig, CustomEndpoint};
+use helios_engine::{Agent, CalculatorTool, Config, CustomEndpoint, CustomEndpointsConfig};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -76,7 +76,8 @@ async fn main() -> helios_engine::Result<()> {
         "local-model".to_string(),
         "127.0.0.1:8000",
         Some(custom_endpoints),
-    ).await?;
+    )
+    .await?;
 
     Ok(())
 }

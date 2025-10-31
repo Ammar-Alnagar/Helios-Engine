@@ -236,8 +236,19 @@ async fn main() -> helios_engine::Result<()> {
             );
             interactive_chat(&cli.config, sys_prompt, *max_iterations, &cli.mode).await?;
         }
-        Some(Commands::Serve { port, host, custom_endpoints }) => {
-            serve_server(&cli.config, host, *port, &cli.mode, custom_endpoints.clone()).await?;
+        Some(Commands::Serve {
+            port,
+            host,
+            custom_endpoints,
+        }) => {
+            serve_server(
+                &cli.config,
+                host,
+                *port,
+                &cli.mode,
+                custom_endpoints.clone(),
+            )
+            .await?;
         }
         None => {
             // Default to chat command
@@ -493,7 +504,13 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
 }
 
 /// Starts the HTTP server.
-async fn serve_server(config_path: &str, host: &str, port: u16, mode: &str, custom_endpoints_path: Option<String>) -> helios_engine::Result<()> {
+async fn serve_server(
+    config_path: &str,
+    host: &str,
+    port: u16,
+    mode: &str,
+    custom_endpoints_path: Option<String>,
+) -> helios_engine::Result<()> {
     let mut config = load_config(config_path)?;
     apply_mode_override(&mut config, mode);
 
@@ -506,7 +523,8 @@ async fn serve_server(config_path: &str, host: &str, port: u16, mode: &str, cust
         None
     };
 
-    helios_engine::serve::start_server_with_custom_endpoints(config, &address, custom_endpoints).await?;
+    helios_engine::serve::start_server_with_custom_endpoints(config, &address, custom_endpoints)
+        .await?;
 
     Ok(())
 }

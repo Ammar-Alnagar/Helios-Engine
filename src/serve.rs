@@ -30,8 +30,11 @@ use crate::llm::{LLMClient, LLMProviderType};
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{sse::{Event, Sse}, IntoResponse},
-    routing::{get, post, delete, patch, put},
+    response::{
+        sse::{Event, Sse},
+        IntoResponse,
+    },
+    routing::{delete, get, patch, post, put},
     Json, Router,
 };
 use futures::stream::Stream;
@@ -223,7 +226,10 @@ pub async fn start_server(config: Config, address: &str) -> Result<()> {
     };
 
     let llm_client = LLMClient::new(provider_type).await?;
-    let model_name = config.local.as_ref().map(|_| "local-model".to_string())
+    let model_name = config
+        .local
+        .as_ref()
+        .map(|_| "local-model".to_string())
         .unwrap_or_else(|| config.llm.model_name.clone());
 
     let state = ServerState::with_llm_client(llm_client, model_name);
@@ -235,10 +241,12 @@ pub async fn start_server(config: Config, address: &str) -> Result<()> {
     info!("   POST /v1/chat/completions");
     info!("   GET  /v1/models");
 
-    let listener = tokio::net::TcpListener::bind(address).await
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
 
-    axum::serve(listener, app).await
+    axum::serve(listener, app)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
 
     Ok(())
@@ -255,20 +263,29 @@ pub async fn start_server(config: Config, address: &str) -> Result<()> {
 /// # Returns
 ///
 /// A `Result` that resolves when the server shuts down.
-pub async fn start_server_with_agent(agent: Agent, model_name: String, address: &str) -> Result<()> {
+pub async fn start_server_with_agent(
+    agent: Agent,
+    model_name: String,
+    address: &str,
+) -> Result<()> {
     let state = ServerState::with_agent(agent, model_name);
 
     let app = create_router(state);
 
-    info!("🚀 Starting Helios Engine server with agent on http://{}", address);
+    info!(
+        "🚀 Starting Helios Engine server with agent on http://{}",
+        address
+    );
     info!("📡 OpenAI-compatible API endpoints:");
     info!("   POST /v1/chat/completions");
     info!("   GET  /v1/models");
 
-    let listener = tokio::net::TcpListener::bind(address).await
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
 
-    axum::serve(listener, app).await
+    axum::serve(listener, app)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
 
     Ok(())
@@ -297,7 +314,10 @@ pub async fn start_server_with_custom_endpoints(
     };
 
     let llm_client = LLMClient::new(provider_type).await?;
-    let model_name = config.local.as_ref().map(|_| "local-model".to_string())
+    let model_name = config
+        .local
+        .as_ref()
+        .map(|_| "local-model".to_string())
         .unwrap_or_else(|| config.llm.model_name.clone());
 
     let state = ServerState::with_llm_client(llm_client, model_name);
@@ -316,10 +336,12 @@ pub async fn start_server_with_custom_endpoints(
         }
     }
 
-    let listener = tokio::net::TcpListener::bind(address).await
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
 
-    axum::serve(listener, app).await
+    axum::serve(listener, app)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
 
     Ok(())
@@ -347,7 +369,10 @@ pub async fn start_server_with_agent_and_custom_endpoints(
 
     let app = create_router_with_custom_endpoints(state, custom_endpoints.clone());
 
-    info!("🚀 Starting Helios Engine server with agent on http://{}", address);
+    info!(
+        "🚀 Starting Helios Engine server with agent on http://{}",
+        address
+    );
     info!("📡 OpenAI-compatible API endpoints:");
     info!("   POST /v1/chat/completions");
     info!("   GET  /v1/models");
@@ -359,10 +384,12 @@ pub async fn start_server_with_agent_and_custom_endpoints(
         }
     }
 
-    let listener = tokio::net::TcpListener::bind(address).await
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
 
-    axum::serve(listener, app).await
+    axum::serve(listener, app)
+        .await
         .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
 
     Ok(())
@@ -378,11 +405,19 @@ pub async fn start_server_with_agent_and_custom_endpoints(
 ///
 /// A `Result` containing the custom endpoints configuration.
 pub fn load_custom_endpoints_config(path: &str) -> Result<CustomEndpointsConfig> {
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| HeliosError::ConfigError(format!("Failed to read custom endpoints config file '{}': {}", path, e)))?;
+    let content = std::fs::read_to_string(path).map_err(|e| {
+        HeliosError::ConfigError(format!(
+            "Failed to read custom endpoints config file '{}': {}",
+            path, e
+        ))
+    })?;
 
-    toml::from_str(&content)
-        .map_err(|e| HeliosError::ConfigError(format!("Failed to parse custom endpoints config file '{}': {}", path, e)))
+    toml::from_str(&content).map_err(|e| {
+        HeliosError::ConfigError(format!(
+            "Failed to parse custom endpoints config file '{}': {}",
+            path, e
+        ))
+    })
 }
 
 /// Creates the router with all endpoints.
@@ -410,12 +445,9 @@ fn create_router_with_custom_endpoints(
     if let Some(config) = custom_endpoints {
         for endpoint in config.endpoints {
             let response = endpoint.response.clone();
-            let status_code = StatusCode::from_u16(endpoint.status_code)
-                .unwrap_or(StatusCode::OK);
+            let status_code = StatusCode::from_u16(endpoint.status_code).unwrap_or(StatusCode::OK);
 
-            let handler = move || async move {
-                (status_code, Json(response))
-            };
+            let handler = move || async move { (status_code, Json(response)) };
 
             match endpoint.method.to_uppercase().as_str() {
                 "GET" => router = router.route(&endpoint.path, get(handler)),
@@ -473,7 +505,12 @@ async fn chat_completions(
                 "user" => Role::User,
                 "assistant" => Role::Assistant,
                 "tool" => Role::Tool,
-                _ => return Err(HeliosError::ConfigError(format!("Invalid role: {}", msg.role))),
+                _ => {
+                    return Err(HeliosError::ConfigError(format!(
+                        "Invalid role: {}",
+                        msg.role
+                    )))
+                }
             };
             Ok(ChatMessage {
                 role,
@@ -534,7 +571,13 @@ async fn chat_completions(
     };
 
     // Estimate token usage (simplified - in production, use actual tokenizer)
-    let prompt_tokens = estimate_tokens(&messages.iter().map(|m| m.content.as_str()).collect::<Vec<_>>().join(" "));
+    let prompt_tokens = estimate_tokens(
+        &messages
+            .iter()
+            .map(|m| m.content.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+    );
     let completion_tokens = estimate_tokens(&response_content);
 
     let response = ChatCompletionResponse {
@@ -639,8 +682,7 @@ fn stream_chat_completion(
         let _ = tx.send(Ok(final_event)).await;
     });
 
-    Sse::new(ReceiverStream::new(rx))
-        .keep_alive(axum::response::sse::KeepAlive::default())
+    Sse::new(ReceiverStream::new(rx)).keep_alive(axum::response::sse::KeepAlive::default())
 }
 
 /// Estimates the number of tokens in a text (simplified approximation).
@@ -649,4 +691,3 @@ pub fn estimate_tokens(text: &str) -> u32 {
     // Rough approximation: ~4 characters per token
     (text.len() as f32 / 4.0).ceil() as u32
 }
-
