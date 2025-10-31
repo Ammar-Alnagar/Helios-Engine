@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 rust-version = "1.70"
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support Both locally and online"
@@ -39,5 +39,5 @@ tokio-stream = "0.1"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+uuid = { version = "1.0", features = ["serde", "v4"] }
 walkdir = "2.4"
-uuid = { version = "1.0", features = ["v4", "serde"] }
