@@ -187,6 +187,17 @@ enum Commands {
         /// The message to send.
         message: String,
     },
+
+    /// Start an HTTP server exposing OpenAI-compatible API endpoints.
+    Serve {
+        /// The port to bind to.
+        #[arg(short, long, default_value = "8000")]
+        port: u16,
+
+        /// The host to bind to.
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+    },
 }
 
 /// The main entry point for the Helios Engine CLI.
@@ -220,6 +231,9 @@ async fn main() -> helios_engine::Result<()> {
                 "You are a helpful AI assistant with access to various tools. Use them when needed to help the user."
             );
             interactive_chat(&cli.config, sys_prompt, *max_iterations, &cli.mode).await?;
+        }
+        Some(Commands::Serve { port, host }) => {
+            serve_server(&cli.config, host, *port, &cli.mode).await?;
         }
         None => {
             // Default to chat command
@@ -472,6 +486,17 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
             std::process::exit(1);
         }
     }
+}
+
+/// Starts the HTTP server.
+async fn serve_server(config_path: &str, host: &str, port: u16, mode: &str) -> helios_engine::Result<()> {
+    let mut config = load_config(config_path)?;
+    apply_mode_override(&mut config, mode);
+
+    let address = format!("{}:{}", host, port);
+    helios_engine::serve::start_server(config, &address).await?;
+
+    Ok(())
 }
 
 /// Prints the help message for interactive commands.

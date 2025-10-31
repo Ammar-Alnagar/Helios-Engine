@@ -85,6 +85,9 @@ pub mod llm;
 /// Contains the tool system, including the `Tool` trait and various tool implementations.
 pub mod tools;
 
+/// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
+pub mod serve;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -108,3 +111,6 @@ pub use tools::{
     CalculatorTool, EchoTool, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool,
     MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult,
 };
+
+/// Re-export of serve functionality.
+pub use serve::{start_server, start_server_with_agent, ServerState};
