@@ -1,3 +1,10 @@
+//! # Tools Module
+//!
+//! This module provides the framework for creating and managing tools that can be used by agents.
+//! It defines the `Tool` trait, which all tools must implement, and the `ToolRegistry`
+//! for managing a collection of tools.
+//! It also includes several built-in tools for common tasks.
+
 use crate::error::{HeliosError, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -8,45 +15,64 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+/// A parameter for a tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
+    /// The type of the parameter (e.g., "string", "number").
     #[serde(rename = "type")]
     pub param_type: String,
+    /// A description of the parameter.
     pub description: String,
+    /// Whether the parameter is required.
     #[serde(skip)]
     pub required: Option<bool>,
 }
 
+/// The definition of a tool that can be sent to an LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {
+    /// The type of the tool (e.g., "function").
     #[serde(rename = "type")]
     pub tool_type: String,
+    /// The function definition for the tool.
     pub function: FunctionDefinition,
 }
 
+/// The definition of a function that can be called by a tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionDefinition {
+    /// The name of the function.
     pub name: String,
+    /// A description of the function.
     pub description: String,
+    /// The parameters for the function.
     pub parameters: ParametersSchema,
 }
 
+/// The schema for the parameters of a function.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParametersSchema {
+    /// The type of the schema (should be "object").
     #[serde(rename = "type")]
     pub schema_type: String,
+    /// The properties of the schema.
     pub properties: HashMap<String, ToolParameter>,
+    /// The required properties.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
 }
 
+/// The result of a tool execution.
 #[derive(Debug, Clone)]
 pub struct ToolResult {
+    /// Whether the execution was successful.
     pub success: bool,
+    /// The output of the execution.
     pub output: String,
 }
 
 impl ToolResult {
+    /// Creates a new successful `ToolResult`.
     pub fn success(output: impl Into<String>) -> Self {
         Self {
             success: true,
@@ -54,6 +80,7 @@ impl ToolResult {
         }
     }
 
+    /// Creates a new error `ToolResult`.
     pub fn error(message: impl Into<String>) -> Self {
         Self {
             success: false,
@@ -62,13 +89,19 @@ impl ToolResult {
     }
 }
 
+/// A trait for tools that can be used by agents.
 #[async_trait]
 pub trait Tool: Send + Sync {
+    /// The name of the tool.
     fn name(&self) -> &str;
+    /// A description of the tool.
     fn description(&self) -> &str;
+    /// The parameters for the tool.
     fn parameters(&self) -> HashMap<String, ToolParameter>;
+    /// Executes the tool with the given arguments.
     async fn execute(&self, args: Value) -> Result<ToolResult>;
 
+    /// Converts the tool to a `ToolDefinition`.
     fn to_definition(&self) -> ToolDefinition {
         let required: Vec<String> = self
             .parameters()
@@ -96,26 +129,31 @@ pub trait Tool: Send + Sync {
     }
 }
 
+/// A registry for managing a collection of tools.
 pub struct ToolRegistry {
     tools: HashMap<String, Box<dyn Tool>>,
 }
 
 impl ToolRegistry {
+    /// Creates a new `ToolRegistry`.
     pub fn new() -> Self {
         Self {
             tools: HashMap::new(),
         }
     }
 
+    /// Registers a tool with the registry.
     pub fn register(&mut self, tool: Box<dyn Tool>) {
         let name = tool.name().to_string();
         self.tools.insert(name, tool);
     }
 
+    /// Gets a tool from the registry by name.
     pub fn get(&self, name: &str) -> Option<&dyn Tool> {
         self.tools.get(name).map(|b| &**b)
     }
 
+    /// Executes a tool in the registry by name.
     pub async fn execute(&self, name: &str, args: Value) -> Result<ToolResult> {
         let tool = self
             .tools
@@ -125,6 +163,7 @@ impl ToolRegistry {
         tool.execute(args).await
     }
 
+    /// Gets the definitions of all tools in the registry.
     pub fn get_definitions(&self) -> Vec<ToolDefinition> {
         self.tools
             .values()
@@ -132,6 +171,7 @@ impl ToolRegistry {
             .collect()
     }
 
+    /// Lists the names of all tools in the registry.
     pub fn list_tools(&self) -> Vec<String> {
         self.tools.keys().cloned().collect()
     }
@@ -145,6 +185,7 @@ impl Default for ToolRegistry {
 
 // Example built-in tools
 
+/// A tool for performing basic arithmetic operations.
 pub struct CalculatorTool;
 
 #[async_trait]
@@ -182,6 +223,7 @@ impl Tool for CalculatorTool {
     }
 }
 
+/// Evaluates a simple mathematical expression.
 fn evaluate_expression(expr: &str) -> Result<f64> {
     let expr = expr.replace(" ", "");
 
@@ -216,6 +258,7 @@ fn evaluate_expression(expr: &str) -> Result<f64> {
         .map_err(|_| HeliosError::ToolError(format!("Invalid expression: {}", expr)))
 }
 
+/// A tool that echoes back the provided message.
 pub struct EchoTool;
 
 #[async_trait]
@@ -251,6 +294,7 @@ impl Tool for EchoTool {
     }
 }
 
+/// A tool for searching for files.
 pub struct FileSearchTool;
 
 #[async_trait]
@@ -269,7 +313,8 @@ impl Tool for FileSearchTool {
             "path".to_string(),
             ToolParameter {
                 param_type: "string".to_string(),
-                description: "The directory path to search in (default: current directory)".to_string(),
+                description: "The directory path to search in (default: current directory)"
+                    .to_string(),
                 required: Some(false),
             },
         );
@@ -277,7 +322,8 @@ impl Tool for FileSearchTool {
             "pattern".to_string(),
             ToolParameter {
                 param_type: "string".to_string(),
-                description: "File name pattern to search for (supports wildcards like *.rs)".to_string(),
+                description: "File name pattern to search for (supports wildcards like *.rs)"
+                    .to_string(),
                 required: Some(false),
             },
         );
@@ -303,11 +349,8 @@ impl Tool for FileSearchTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         use walkdir::WalkDir;
 
-        let base_path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or(".");
-        
+        let base_path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+
         let pattern = args.get("pattern").and_then(|v| v.as_str());
         let content_search = args.get("content").and_then(|v| v.as_str());
         let max_results = args
@@ -322,13 +365,10 @@ impl Tool for FileSearchTool {
         }
 
         let mut results = Vec::new();
-        
+
         // Precompile filename pattern to avoid compiling per file
         let compiled_re = if let Some(pat) = pattern {
-            let re_pattern = pat
-                .replace(".", r"\.")
-                .replace("*", ".*")
-                .replace("?", ".");
+            let re_pattern = pat.replace(".", r"\.").replace("*", ".*").replace("?", ".");
             match regex::Regex::new(&format!("^{}$", re_pattern)) {
                 Ok(re) => Some(re),
                 Err(e) => {
@@ -343,7 +383,7 @@ impl Tool for FileSearchTool {
         } else {
             None
         };
-        
+
         for entry in WalkDir::new(base_path)
             .max_depth(10)
             .follow_links(false)
@@ -355,13 +395,14 @@ impl Tool for FileSearchTool {
             }
 
             let path = entry.path();
-            
+
             // Skip hidden files and common ignore directories
             if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                if file_name.starts_with('.') || 
-                   file_name == "target" || 
-                   file_name == "node_modules" ||
-                   file_name == "__pycache__" {
+                if file_name.starts_with('.')
+                    || file_name == "target"
+                    || file_name == "node_modules"
+                    || file_name == "__pycache__"
+                {
                     continue;
                 }
             }
@@ -394,12 +435,19 @@ impl Tool for FileSearchTool {
                                 .filter(|(_, line)| line.contains(search_term))
                                 .take(3) // Show up to 3 matching lines per file
                                 .collect();
-                            
+
                             if !matching_lines.is_empty() {
-                                results.push(format!("📄 {} (found in {} lines)", 
-                                    path.display(), matching_lines.len()));
+                                results.push(format!(
+                                    "📄 {} (found in {} lines)",
+                                    path.display(),
+                                    matching_lines.len()
+                                ));
                                 for (line_num, line) in matching_lines {
-                                    results.push(format!("  Line {}: {}", line_num + 1, line.trim()));
+                                    results.push(format!(
+                                        "  Line {}: {}",
+                                        line_num + 1,
+                                        line.trim()
+                                    ));
                                 }
                             }
                         }
@@ -409,7 +457,9 @@ impl Tool for FileSearchTool {
         }
 
         if results.is_empty() {
-            Ok(ToolResult::success("No files found matching the criteria.".to_string()))
+            Ok(ToolResult::success(
+                "No files found matching the criteria.".to_string(),
+            ))
         } else {
             let output = format!(
                 "Found {} result(s):\n\n{}",
@@ -423,6 +473,7 @@ impl Tool for FileSearchTool {
 
 // (removed) glob_match helper – logic moved to precompiled regex in FileSearchTool::execute
 
+/// A tool for reading the contents of a file.
 pub struct FileReadTool;
 
 #[async_trait]
@@ -473,21 +524,28 @@ impl Tool for FileReadTool {
         let content = std::fs::read_to_string(file_path)
             .map_err(|e| HeliosError::ToolError(format!("Failed to read file: {}", e)))?;
 
-        let start_line = args.get("start_line").and_then(|v| v.as_u64()).map(|n| n as usize);
-        let end_line = args.get("end_line").and_then(|v| v.as_u64()).map(|n| n as usize);
+        let start_line = args
+            .get("start_line")
+            .and_then(|v| v.as_u64())
+            .map(|n| n as usize);
+        let end_line = args
+            .get("end_line")
+            .and_then(|v| v.as_u64())
+            .map(|n| n as usize);
 
         let output = if let (Some(start), Some(end)) = (start_line, end_line) {
             let lines: Vec<&str> = content.lines().collect();
             let start_idx = start.saturating_sub(1);
             let end_idx = end.min(lines.len());
-            
+
             if start_idx >= lines.len() {
                 return Err(HeliosError::ToolError(format!(
                     "Start line {} is beyond file length ({})",
-                    start, lines.len()
+                    start,
+                    lines.len()
                 )));
             }
-            
+
             let selected_lines = &lines[start_idx..end_idx];
             format!(
                 "File: {} (lines {}-{}):\n\n{}",
@@ -504,6 +562,7 @@ impl Tool for FileReadTool {
     }
 }
 
+/// A tool for writing content to a file.
 pub struct FileWriteTool;
 
 #[async_trait]
@@ -550,8 +609,9 @@ impl Tool for FileWriteTool {
 
         // Create parent directories if they don't exist
         if let Some(parent) = std::path::Path::new(file_path).parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| HeliosError::ToolError(format!("Failed to create directories: {}", e)))?;
+            std::fs::create_dir_all(parent).map_err(|e| {
+                HeliosError::ToolError(format!("Failed to create directories: {}", e))
+            })?;
         }
 
         std::fs::write(file_path, content)
@@ -565,6 +625,7 @@ impl Tool for FileWriteTool {
     }
 }
 
+/// A tool for editing a file by replacing text.
 pub struct FileEditTool;
 
 #[async_trait]
@@ -623,16 +684,18 @@ impl Tool for FileEditTool {
             .ok_or_else(|| HeliosError::ToolError("Missing 'replace' parameter".to_string()))?;
 
         if find_text.is_empty() {
-            return Err(HeliosError::ToolError("'find' parameter cannot be empty".to_string()));
+            return Err(HeliosError::ToolError(
+                "'find' parameter cannot be empty".to_string(),
+            ));
         }
 
         let path = Path::new(file_path);
-        let parent = path.parent().ok_or_else(|| {
-            HeliosError::ToolError(format!("Invalid target path: {}", file_path))
-        })?;
-        let file_name = path.file_name().ok_or_else(|| {
-            HeliosError::ToolError(format!("Invalid target path: {}", file_path))
-        })?;
+        let parent = path
+            .parent()
+            .ok_or_else(|| HeliosError::ToolError(format!("Invalid target path: {}", file_path)))?;
+        let file_name = path
+            .file_name()
+            .ok_or_else(|| HeliosError::ToolError(format!("Invalid target path: {}", file_path)))?;
 
         // Build a temp file path in the same directory for atomic rename
         let pid = std::process::id();
@@ -644,12 +707,16 @@ impl Tool for FileEditTool {
         let tmp_path = parent.join(tmp_name);
 
         // Open files
-        let input_file = std::fs::File::open(&path)
+        let input_file = std::fs::File::open(path)
             .map_err(|e| HeliosError::ToolError(format!("Failed to open file for read: {}", e)))?;
         let mut reader = BufReader::new(input_file);
 
         let tmp_file = std::fs::File::create(&tmp_path).map_err(|e| {
-            HeliosError::ToolError(format!("Failed to create temp file {}: {}", tmp_path.display(), e))
+            HeliosError::ToolError(format!(
+                "Failed to create temp file {}: {}",
+                tmp_path.display(),
+                e
+            ))
         })?;
         let mut writer = BufWriter::new(&tmp_file);
 
@@ -663,19 +730,26 @@ impl Tool for FileEditTool {
         .map_err(|e| HeliosError::ToolError(format!("I/O error while replacing: {}", e)))?;
 
         // Ensure all data is flushed and synced before rename
-        writer.flush().map_err(|e| HeliosError::ToolError(format!("Failed to flush temp file: {}", e)))?;
-        tmp_file.sync_all().map_err(|e| HeliosError::ToolError(format!("Failed to sync temp file: {}", e)))?;
+        writer
+            .flush()
+            .map_err(|e| HeliosError::ToolError(format!("Failed to flush temp file: {}", e)))?;
+        tmp_file
+            .sync_all()
+            .map_err(|e| HeliosError::ToolError(format!("Failed to sync temp file: {}", e)))?;
 
         // Preserve permissions
-        if let Ok(meta) = std::fs::metadata(&path) {
+        if let Ok(meta) = std::fs::metadata(path) {
             if let Err(e) = std::fs::set_permissions(&tmp_path, meta.permissions()) {
                 let _ = std::fs::remove_file(&tmp_path);
-                return Err(HeliosError::ToolError(format!("Failed to set permissions: {}", e)));
+                return Err(HeliosError::ToolError(format!(
+                    "Failed to set permissions: {}",
+                    e
+                )));
             }
         }
 
         // Atomic replace
-        std::fs::rename(&tmp_path, &path).map_err(|e| {
+        std::fs::rename(&tmp_path, path).map_err(|e| {
             let _ = std::fs::remove_file(&tmp_path);
             HeliosError::ToolError(format!("Failed to replace original file: {}", e))
         })?;
@@ -694,13 +768,22 @@ impl Tool for FileEditTool {
     }
 }
 
-// Streamed replacement helpers
-fn replace_streaming<R: Read, W: Write>(reader: &mut R, writer: &mut W, needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
+/// Performs a streaming replacement of a needle in a reader, writing to a writer.
+fn replace_streaming<R: Read, W: Write>(
+    reader: &mut R,
+    writer: &mut W,
+    needle: &[u8],
+    replacement: &[u8],
+) -> std::io::Result<usize> {
     let mut replaced = 0usize;
     let mut carry: Vec<u8> = Vec::new();
     let mut buf = [0u8; 8192];
 
-    let tail = if needle.len() > 1 { needle.len() - 1 } else { 0 };
+    let tail = if needle.len() > 1 {
+        needle.len() - 1
+    } else {
+        0
+    };
 
     loop {
         let n = reader.read(&mut buf)?;
@@ -724,7 +807,13 @@ fn replace_streaming<R: Read, W: Write>(reader: &mut R, writer: &mut W, needle: 
     Ok(replaced)
 }
 
-fn write_with_replacements<W: Write>(writer: &mut W, haystack: &[u8], needle: &[u8], replacement: &[u8]) -> std::io::Result<usize> {
+/// Writes the haystack to the writer, replacing all occurrences of the needle with the replacement.
+fn write_with_replacements<W: Write>(
+    writer: &mut W,
+    haystack: &[u8],
+    needle: &[u8],
+    replacement: &[u8],
+) -> std::io::Result<usize> {
     if needle.is_empty() {
         writer.write_all(haystack)?;
         return Ok(0);
@@ -743,6 +832,7 @@ fn write_with_replacements<W: Write>(writer: &mut W, haystack: &[u8], needle: &[
     Ok(count)
 }
 
+/// Finds the first occurrence of a subslice in a slice.
 fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
     if n.is_empty() {
         return Some(0);
@@ -751,7 +841,7 @@ fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
 }
 
 /// RAG (Retrieval-Augmented Generation) Tool with Qdrant Vector Database
-/// 
+///
 /// Provides document embedding, storage, retrieval, and reranking capabilities.
 /// Supports operations: add_document, search, delete, list, clear
 #[derive(Clone)]
@@ -763,6 +853,7 @@ pub struct QdrantRAGTool {
     client: reqwest::Client,
 }
 
+/// A point in a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantPoint {
     id: String,
@@ -770,6 +861,7 @@ struct QdrantPoint {
     payload: HashMap<String, serde_json::Value>,
 }
 
+/// A search request to a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchRequest {
     vector: Vec<f32>,
@@ -778,11 +870,13 @@ struct QdrantSearchRequest {
     with_vector: bool,
 }
 
+/// A search response from a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchResponse {
     result: Vec<QdrantSearchResult>,
 }
 
+/// A search result from a Qdrant collection.
 #[derive(Debug, Serialize, Deserialize)]
 struct QdrantSearchResult {
     id: String,
@@ -790,24 +884,27 @@ struct QdrantSearchResult {
     payload: Option<HashMap<String, serde_json::Value>>,
 }
 
+/// A request to an embedding API.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingRequest {
     input: String,
     model: String,
 }
 
+/// A response from an embedding API.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingResponse {
     data: Vec<EmbeddingData>,
 }
 
+/// The data for an embedding.
 #[derive(Debug, Serialize, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
 }
 
 impl QdrantRAGTool {
-    /// Create a new RAG tool with Qdrant backend
+    /// Creates a new `QdrantRAGTool`.
     pub fn new(
         qdrant_url: impl Into<String>,
         collection_name: impl Into<String>,
@@ -823,7 +920,7 @@ impl QdrantRAGTool {
         }
     }
 
-    /// Generate embeddings using OpenAI-compatible API
+    /// Generates an embedding for the given text.
     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let request = EmbeddingRequest {
             input: text.to_string(),
@@ -833,21 +930,29 @@ impl QdrantRAGTool {
         let response = self
             .client
             .post(&self.embedding_api_url)
-            .header("Authorization", format!("Bearer {}", self.embedding_api_key))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.embedding_api_key),
+            )
             .json(&request)
             .send()
             .await
             .map_err(|e| HeliosError::ToolError(format!("Embedding API error: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Embedding failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Embedding failed: {}",
+                error_text
+            )));
         }
 
-        let embedding_response: EmbeddingResponse = response
-            .json()
-            .await
-            .map_err(|e| HeliosError::ToolError(format!("Failed to parse embedding response: {}", e)))?;
+        let embedding_response: EmbeddingResponse = response.json().await.map_err(|e| {
+            HeliosError::ToolError(format!("Failed to parse embedding response: {}", e))
+        })?;
 
         embedding_response
             .data
@@ -857,13 +962,13 @@ impl QdrantRAGTool {
             .ok_or_else(|| HeliosError::ToolError("No embedding returned".to_string()))
     }
 
-    /// Ensure collection exists in Qdrant
+    /// Ensures that the Qdrant collection exists.
     async fn ensure_collection(&self) -> Result<()> {
         let collection_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
-        
+
         // Check if collection exists
         let response = self.client.get(&collection_url).send().await;
-        
+
         if response.is_ok() && response.unwrap().status().is_success() {
             return Ok(()); // Collection exists
         }
@@ -885,15 +990,25 @@ impl QdrantRAGTool {
             .map_err(|e| HeliosError::ToolError(format!("Failed to create collection: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Collection creation failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Collection creation failed: {}",
+                error_text
+            )));
         }
 
         Ok(())
     }
 
-    /// Add a document to Qdrant
-    async fn add_document(&self, text: &str, metadata: HashMap<String, serde_json::Value>) -> Result<String> {
+    /// Adds a document to the Qdrant collection.
+    async fn add_document(
+        &self,
+        text: &str,
+        metadata: HashMap<String, serde_json::Value>,
+    ) -> Result<String> {
         self.ensure_collection().await?;
 
         // Generate embedding
@@ -903,7 +1018,10 @@ impl QdrantRAGTool {
         let point_id = Uuid::new_v4().to_string();
         let mut payload = metadata;
         payload.insert("text".to_string(), serde_json::json!(text));
-        payload.insert("timestamp".to_string(), serde_json::json!(chrono::Utc::now().to_rfc3339()));
+        payload.insert(
+            "timestamp".to_string(),
+            serde_json::json!(chrono::Utc::now().to_rfc3339()),
+        );
 
         let point = QdrantPoint {
             id: point_id.clone(),
@@ -912,7 +1030,10 @@ impl QdrantRAGTool {
         };
 
         // Upload point to Qdrant
-        let upsert_url = format!("{}/collections/{}/points", self.qdrant_url, self.collection_name);
+        let upsert_url = format!(
+            "{}/collections/{}/points",
+            self.qdrant_url, self.collection_name
+        );
         let upsert_payload = serde_json::json!({
             "points": [point]
         });
@@ -926,20 +1047,29 @@ impl QdrantRAGTool {
             .map_err(|e| HeliosError::ToolError(format!("Failed to upload document: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Document upload failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Document upload failed: {}",
+                error_text
+            )));
         }
 
         Ok(point_id)
     }
 
-    /// Search for similar documents
+    /// Searches for similar documents in the Qdrant collection.
     async fn search(&self, query: &str, limit: usize) -> Result<Vec<(String, f64, String)>> {
         // Generate query embedding
         let query_embedding = self.generate_embedding(query).await?;
 
         // Search in Qdrant
-        let search_url = format!("{}/collections/{}/points/search", self.qdrant_url, self.collection_name);
+        let search_url = format!(
+            "{}/collections/{}/points/search",
+            self.qdrant_url, self.collection_name
+        );
         let search_request = QdrantSearchRequest {
             vector: query_embedding,
             limit,
@@ -956,14 +1086,19 @@ impl QdrantRAGTool {
             .map_err(|e| HeliosError::ToolError(format!("Search failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Search request failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Search request failed: {}",
+                error_text
+            )));
         }
 
-        let search_response: QdrantSearchResponse = response
-            .json()
-            .await
-            .map_err(|e| HeliosError::ToolError(format!("Failed to parse search response: {}", e)))?;
+        let search_response: QdrantSearchResponse = response.json().await.map_err(|e| {
+            HeliosError::ToolError(format!("Failed to parse search response: {}", e))
+        })?;
 
         // Extract results
         let results: Vec<(String, f64, String)> = search_response
@@ -981,9 +1116,12 @@ impl QdrantRAGTool {
         Ok(results)
     }
 
-    /// Delete a document by ID
+    /// Deletes a document from the Qdrant collection by ID.
     async fn delete_document(&self, doc_id: &str) -> Result<()> {
-        let delete_url = format!("{}/collections/{}/points/delete", self.qdrant_url, self.collection_name);
+        let delete_url = format!(
+            "{}/collections/{}/points/delete",
+            self.qdrant_url, self.collection_name
+        );
         let delete_payload = serde_json::json!({
             "points": [doc_id]
         });
@@ -997,17 +1135,23 @@ impl QdrantRAGTool {
             .map_err(|e| HeliosError::ToolError(format!("Delete failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Delete request failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Delete request failed: {}",
+                error_text
+            )));
         }
 
         Ok(())
     }
 
-    /// Clear all documents in the collection
+    /// Clears all documents from the Qdrant collection.
     async fn clear_collection(&self) -> Result<()> {
         let delete_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
-        
+
         let response = self
             .client
             .delete(&delete_url)
@@ -1016,8 +1160,14 @@ impl QdrantRAGTool {
             .map_err(|e| HeliosError::ToolError(format!("Clear failed: {}", e)))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HeliosError::ToolError(format!("Clear collection failed: {}", error_text)));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!(
+                "Clear collection failed: {}",
+                error_text
+            )));
         }
 
         Ok(())
@@ -1087,10 +1237,9 @@ impl Tool for QdrantRAGTool {
 
         match operation {
             "add_document" => {
-                let text = args
-                    .get("text")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'text' for add_document".to_string()))?;
+                let text = args.get("text").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError("Missing 'text' for add_document".to_string())
+                })?;
 
                 let metadata: HashMap<String, serde_json::Value> = args
                     .get("metadata")
@@ -1105,20 +1254,18 @@ impl Tool for QdrantRAGTool {
                 )))
             }
             "search" => {
-                let query = args
-                    .get("text")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'text' for search".to_string()))?;
+                let query = args.get("text").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError("Missing 'text' for search".to_string())
+                })?;
 
-                let limit = args
-                    .get("limit")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(5) as usize;
+                let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
 
                 let results = self.search(query, limit).await?;
 
                 if results.is_empty() {
-                    Ok(ToolResult::success("No matching documents found".to_string()))
+                    Ok(ToolResult::success(
+                        "No matching documents found".to_string(),
+                    ))
                 } else {
                     let formatted_results: Vec<String> = results
                         .iter()
@@ -1142,17 +1289,21 @@ impl Tool for QdrantRAGTool {
                 }
             }
             "delete" => {
-                let doc_id = args
-                    .get("doc_id")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'doc_id' for delete".to_string()))?;
+                let doc_id = args.get("doc_id").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError("Missing 'doc_id' for delete".to_string())
+                })?;
 
                 self.delete_document(doc_id).await?;
-                Ok(ToolResult::success(format!("✓ Document '{}' deleted", doc_id)))
+                Ok(ToolResult::success(format!(
+                    "✓ Document '{}' deleted",
+                    doc_id
+                )))
             }
             "clear" => {
                 self.clear_collection().await?;
-                Ok(ToolResult::success("✓ All documents cleared from collection".to_string()))
+                Ok(ToolResult::success(
+                    "✓ All documents cleared from collection".to_string(),
+                ))
             }
             _ => Err(HeliosError::ToolError(format!(
                 "Unknown operation '{}'. Valid: add_document, search, delete, clear",
@@ -1163,7 +1314,7 @@ impl Tool for QdrantRAGTool {
 }
 
 /// In-Memory Database Tool
-/// 
+///
 /// Provides a simple key-value store for agents to cache data during conversations.
 /// Supports set, get, delete, list keys, and clear operations.
 pub struct MemoryDBTool {
@@ -1171,12 +1322,14 @@ pub struct MemoryDBTool {
 }
 
 impl MemoryDBTool {
+    /// Creates a new `MemoryDBTool`.
     pub fn new() -> Self {
         Self {
             db: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
+    /// Creates a new `MemoryDBTool` with a shared database.
     pub fn with_shared_db(db: std::sync::Arc<std::sync::Mutex<HashMap<String, String>>>) -> Self {
         Self { db }
     }
@@ -1204,7 +1357,9 @@ impl Tool for MemoryDBTool {
             "operation".to_string(),
             ToolParameter {
                 param_type: "string".to_string(),
-                description: "Operation to perform: 'set', 'get', 'delete', 'list', 'clear', 'exists'".to_string(),
+                description:
+                    "Operation to perform: 'set', 'get', 'delete', 'list', 'clear', 'exists'"
+                        .to_string(),
                 required: Some(true),
             },
         );
@@ -1233,43 +1388,53 @@ impl Tool for MemoryDBTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| HeliosError::ToolError("Missing 'operation' parameter".to_string()))?;
 
-        let mut db = self.db.lock().map_err(|e| {
-            HeliosError::ToolError(format!("Failed to lock database: {}", e))
-        })?;
+        let mut db = self
+            .db
+            .lock()
+            .map_err(|e| HeliosError::ToolError(format!("Failed to lock database: {}", e)))?;
 
         match operation {
             "set" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for set operation".to_string()))?;
-                let value = args
-                    .get("value")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'value' parameter for set operation".to_string()))?;
+                let key = args.get("key").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError("Missing 'key' parameter for set operation".to_string())
+                })?;
+                let value = args.get("value").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError(
+                        "Missing 'value' parameter for set operation".to_string(),
+                    )
+                })?;
 
                 db.insert(key.to_string(), value.to_string());
-                Ok(ToolResult::success(format!("✓ Set '{}' = '{}'", key, value)))
+                Ok(ToolResult::success(format!(
+                    "✓ Set '{}' = '{}'",
+                    key, value
+                )))
             }
             "get" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for get operation".to_string()))?;
+                let key = args.get("key").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError("Missing 'key' parameter for get operation".to_string())
+                })?;
 
                 match db.get(key) {
-                    Some(value) => Ok(ToolResult::success(format!("Value for '{}': {}", key, value))),
+                    Some(value) => Ok(ToolResult::success(format!(
+                        "Value for '{}': {}",
+                        key, value
+                    ))),
                     None => Ok(ToolResult::error(format!("Key '{}' not found", key))),
                 }
             }
             "delete" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for delete operation".to_string()))?;
+                let key = args.get("key").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError(
+                        "Missing 'key' parameter for delete operation".to_string(),
+                    )
+                })?;
 
                 match db.remove(key) {
-                    Some(value) => Ok(ToolResult::success(format!("✓ Deleted '{}' (was: '{}')", key, value))),
+                    Some(value) => Ok(ToolResult::success(format!(
+                        "✓ Deleted '{}' (was: '{}')",
+                        key, value
+                    ))),
                     None => Ok(ToolResult::error(format!("Key '{}' not found", key))),
                 }
             }
@@ -1292,16 +1457,23 @@ impl Tool for MemoryDBTool {
             "clear" => {
                 let count = db.len();
                 db.clear();
-                Ok(ToolResult::success(format!("✓ Cleared database ({} items removed)", count)))
+                Ok(ToolResult::success(format!(
+                    "✓ Cleared database ({} items removed)",
+                    count
+                )))
             }
             "exists" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| HeliosError::ToolError("Missing 'key' parameter for exists operation".to_string()))?;
+                let key = args.get("key").and_then(|v| v.as_str()).ok_or_else(|| {
+                    HeliosError::ToolError(
+                        "Missing 'key' parameter for exists operation".to_string(),
+                    )
+                })?;
 
                 let exists = db.contains_key(key);
-                Ok(ToolResult::success(format!("Key '{}' exists: {}", key, exists)))
+                Ok(ToolResult::success(format!(
+                    "Key '{}' exists: {}",
+                    key, exists
+                )))
             }
             _ => Err(HeliosError::ToolError(format!(
                 "Unknown operation '{}'. Valid operations: set, get, delete, list, clear, exists",
@@ -1316,6 +1488,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// Tests the creation of a successful `ToolResult`.
     #[test]
     fn test_tool_result_success() {
         let result = ToolResult::success("test output");
@@ -1323,6 +1496,7 @@ mod tests {
         assert_eq!(result.output, "test output");
     }
 
+    /// Tests the file search tool with a glob pattern.
     #[tokio::test]
     async fn test_file_search_tool_glob_pattern_precompiled_regex() {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -1365,6 +1539,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&test_dir);
     }
 
+    /// Tests the file search tool with an invalid pattern.
     #[tokio::test]
     async fn test_file_search_tool_invalid_pattern_fallback_contains() {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -1396,6 +1571,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&test_dir);
     }
 
+    /// Tests the creation of an error `ToolResult`.
     #[test]
     fn test_tool_result_error() {
         let result = ToolResult::error("test error");
@@ -1403,6 +1579,7 @@ mod tests {
         assert_eq!(result.output, "test error");
     }
 
+    /// Tests the calculator tool.
     #[tokio::test]
     async fn test_calculator_tool() {
         let tool = CalculatorTool;
@@ -1410,7 +1587,7 @@ mod tests {
         assert_eq!(
             tool.description(),
             "Perform basic arithmetic operations. Supports +, -, *, / operations."
-);
+        );
 
         let args = json!({"expression": "2 + 2"});
         let result = tool.execute(args).await.unwrap();
@@ -1418,6 +1595,7 @@ mod tests {
         assert_eq!(result.output, "4");
     }
 
+    /// Tests the calculator tool with multiplication.
     #[tokio::test]
     async fn test_calculator_tool_multiplication() {
         let tool = CalculatorTool;
@@ -1427,6 +1605,7 @@ mod tests {
         assert_eq!(result.output, "12");
     }
 
+    /// Tests the calculator tool with division.
     #[tokio::test]
     async fn test_calculator_tool_division() {
         let tool = CalculatorTool;
@@ -1436,6 +1615,7 @@ mod tests {
         assert_eq!(result.output, "4");
     }
 
+    /// Tests the calculator tool with division by zero.
     #[tokio::test]
     async fn test_calculator_tool_division_by_zero() {
         let tool = CalculatorTool;
@@ -1444,6 +1624,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the calculator tool with an invalid expression.
     #[tokio::test]
     async fn test_calculator_tool_invalid_expression() {
         let tool = CalculatorTool;
@@ -1452,6 +1633,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the echo tool.
     #[tokio::test]
     async fn test_echo_tool() {
         let tool = EchoTool;
@@ -1464,6 +1646,7 @@ mod tests {
         assert_eq!(result.output, "Echo: Hello, world!");
     }
 
+    /// Tests the echo tool with a missing parameter.
     #[tokio::test]
     async fn test_echo_tool_missing_parameter() {
         let tool = EchoTool;
@@ -1472,12 +1655,14 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests the creation of a new `ToolRegistry`.
     #[test]
     fn test_tool_registry_new() {
         let registry = ToolRegistry::new();
         assert!(registry.tools.is_empty());
     }
 
+    /// Tests registering and getting a tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_register_and_get() {
         let mut registry = ToolRegistry::new();
@@ -1488,6 +1673,7 @@ mod tests {
         assert_eq!(tool.unwrap().name(), "calculator");
     }
 
+    /// Tests executing a tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_execute() {
         let mut registry = ToolRegistry::new();
@@ -1499,6 +1685,7 @@ mod tests {
         assert_eq!(result.output, "30");
     }
 
+    /// Tests executing a nonexistent tool from the `ToolRegistry`.
     #[tokio::test]
     async fn test_tool_registry_execute_nonexistent_tool() {
         let registry = ToolRegistry::new();
@@ -1507,6 +1694,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests getting the definitions of all tools in the `ToolRegistry`.
     #[test]
     fn test_tool_registry_get_definitions() {
         let mut registry = ToolRegistry::new();
@@ -1525,6 +1713,7 @@ mod tests {
         assert!(names.contains(&"echo".to_string()));
     }
 
+    /// Tests listing the names of all tools in the `ToolRegistry`.
     #[test]
     fn test_tool_registry_list_tools() {
         let mut registry = ToolRegistry::new();
@@ -1537,10 +1726,11 @@ mod tests {
         assert!(tools.contains(&"echo".to_string()));
     }
 
+    /// Tests setting and getting a value in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_set_and_get() {
         let tool = MemoryDBTool::new();
-        
+
         // Set a value
         let set_args = json!({
             "operation": "set",
@@ -1550,7 +1740,7 @@ mod tests {
         let result = tool.execute(set_args).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("Set 'name' = 'Alice'"));
-        
+
         // Get the value
         let get_args = json!({
             "operation": "get",
@@ -1561,10 +1751,11 @@ mod tests {
         assert!(result.output.contains("Alice"));
     }
 
+    /// Tests deleting a value from the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_delete() {
         let tool = MemoryDBTool::new();
-        
+
         // Set a value
         let set_args = json!({
             "operation": "set",
@@ -1572,7 +1763,7 @@ mod tests {
             "value": "data"
         });
         tool.execute(set_args).await.unwrap();
-        
+
         // Delete the value
         let delete_args = json!({
             "operation": "delete",
@@ -1581,7 +1772,7 @@ mod tests {
         let result = tool.execute(delete_args).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("Deleted 'temp'"));
-        
+
         // Try to get deleted value
         let get_args = json!({
             "operation": "get",
@@ -1592,10 +1783,11 @@ mod tests {
         assert!(result.output.contains("not found"));
     }
 
+    /// Tests checking if a key exists in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_exists() {
         let tool = MemoryDBTool::new();
-        
+
         // Check non-existent key
         let exists_args = json!({
             "operation": "exists",
@@ -1604,7 +1796,7 @@ mod tests {
         let result = tool.execute(exists_args).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("false"));
-        
+
         // Set a value
         let set_args = json!({
             "operation": "set",
@@ -1612,7 +1804,7 @@ mod tests {
             "value": "value"
         });
         tool.execute(set_args).await.unwrap();
-        
+
         // Check existing key
         let exists_args = json!({
             "operation": "exists",
@@ -1623,10 +1815,11 @@ mod tests {
         assert!(result.output.contains("true"));
     }
 
+    /// Tests listing the contents of the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_list() {
         let tool = MemoryDBTool::new();
-        
+
         // List empty database
         let list_args = json!({
             "operation": "list"
@@ -1634,20 +1827,24 @@ mod tests {
         let result = tool.execute(list_args).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("empty"));
-        
+
         // Add some items
         tool.execute(json!({
             "operation": "set",
             "key": "key1",
             "value": "value1"
-        })).await.unwrap();
-        
+        }))
+        .await
+        .unwrap();
+
         tool.execute(json!({
             "operation": "set",
             "key": "key2",
             "value": "value2"
-        })).await.unwrap();
-        
+        }))
+        .await
+        .unwrap();
+
         // List items
         let list_args = json!({
             "operation": "list"
@@ -1659,23 +1856,28 @@ mod tests {
         assert!(result.output.contains("key2"));
     }
 
+    /// Tests clearing the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_clear() {
         let tool = MemoryDBTool::new();
-        
+
         // Add some items
         tool.execute(json!({
             "operation": "set",
             "key": "key1",
             "value": "value1"
-        })).await.unwrap();
-        
+        }))
+        .await
+        .unwrap();
+
         tool.execute(json!({
             "operation": "set",
             "key": "key2",
             "value": "value2"
-        })).await.unwrap();
-        
+        }))
+        .await
+        .unwrap();
+
         // Clear database
         let clear_args = json!({
             "operation": "clear"
@@ -1683,7 +1885,7 @@ mod tests {
         let result = tool.execute(clear_args).await.unwrap();
         assert!(result.success);
         assert!(result.output.contains("2 items removed"));
-        
+
         // Verify database is empty
         let list_args = json!({
             "operation": "list"
@@ -1692,10 +1894,11 @@ mod tests {
         assert!(result.output.contains("empty"));
     }
 
+    /// Tests an invalid operation in the `MemoryDBTool`.
     #[tokio::test]
     async fn test_memory_db_invalid_operation() {
         let tool = MemoryDBTool::new();
-        
+
         let args = json!({
             "operation": "invalid_op"
         });
@@ -1703,27 +1906,34 @@ mod tests {
         assert!(result.is_err());
     }
 
+    /// Tests sharing the database between `MemoryDBTool` instances.
     #[tokio::test]
     async fn test_memory_db_shared_instance() {
         use std::sync::{Arc, Mutex};
-        
+
         // Create a shared database
         let shared_db = Arc::new(Mutex::new(HashMap::new()));
         let tool1 = MemoryDBTool::with_shared_db(shared_db.clone());
         let tool2 = MemoryDBTool::with_shared_db(shared_db.clone());
-        
+
         // Set value with tool1
-        tool1.execute(json!({
-            "operation": "set",
-            "key": "shared",
-            "value": "data"
-        })).await.unwrap();
-        
+        tool1
+            .execute(json!({
+                "operation": "set",
+                "key": "shared",
+                "value": "data"
+            }))
+            .await
+            .unwrap();
+
         // Get value with tool2
-        let result = tool2.execute(json!({
-            "operation": "get",
-            "key": "shared"
-        })).await.unwrap();
+        let result = tool2
+            .execute(json!({
+                "operation": "get",
+                "key": "shared"
+            }))
+            .await
+            .unwrap();
         assert!(result.success);
         assert!(result.output.contains("data"));
     }

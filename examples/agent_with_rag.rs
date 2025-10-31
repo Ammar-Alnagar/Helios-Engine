@@ -1,13 +1,21 @@
-/// Example: Using the Agent with RAG (Retrieval-Augmented Generation)
-///
-/// This example demonstrates:
-/// - Document embedding and storage in Qdrant vector database
-/// - Semantic search with vector similarity
-/// - RAG workflow for context-aware responses
-///
-/// Prerequisites:
-/// 1. Qdrant running locally: docker run -p 6333:6333 qdrant/qdrant
-/// 2. OpenAI API key for embeddings: export OPENAI_API_KEY=your-key
+//! # Example: Agent with RAG (Retrieval-Augmented Generation)
+//!
+//! This example demonstrates how to create an agent with a `QdrantRAGTool` to
+//! perform Retrieval-Augmented Generation. The agent can store documents in a
+//! Qdrant vector database, perform semantic search, and use the retrieved
+//! information to answer questions.
+//!
+//! ## Prerequisites
+//!
+//! 1.  **Qdrant**: You need a running Qdrant instance. You can start one with Docker:
+//!     ```sh
+//!     docker run -p 6333:6333 qdrant/qdrant
+//!     ```
+//! 2.  **OpenAI API Key**: You need an OpenAI API key for generating embeddings.
+//!     Set it as an environment variable:
+//!     ```sh
+//!     export OPENAI_API_KEY=your-key
+//!     ```
 
 use helios_engine::{Agent, Config, QdrantRAGTool};
 
@@ -16,28 +24,27 @@ async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Agent with RAG Example");
     println!("==========================================\n");
 
-    // Check for required environment variables
-    let embedding_api_key = std::env::var("OPENAI_API_KEY")
-        .unwrap_or_else(|_| {
-            println!("⚠ Warning: OPENAI_API_KEY not set. Using placeholder.");
-            "your-api-key-here".to_string()
-        });
+    // Check for the required OpenAI API key.
+    let embedding_api_key = std::env::var("OPENAI_API_KEY").unwrap_or_else(|_| {
+        println!("⚠ Warning: OPENAI_API_KEY not set. Using placeholder.");
+        "your-api-key-here".to_string()
+    });
 
-    // Load configuration
+    // Load configuration from `config.toml` or use default.
     let config = Config::from_file("config.toml").unwrap_or_else(|_| {
         println!("⚠ No config.toml found, using default configuration");
         Config::new_default()
     });
 
-    // Create RAG tool with Qdrant backend
+    // Create a new `QdrantRAGTool`.
     let rag_tool = QdrantRAGTool::new(
-        "http://localhost:6333",           // Qdrant URL
-        "helios_knowledge",                 // Collection name
+        "http://localhost:6333",                // Qdrant URL
+        "helios_knowledge",                     // Collection name
         "https://api.openai.com/v1/embeddings", // Embedding API
-        embedding_api_key,                  // API key
+        embedding_api_key,                      // API key
     );
 
-    // Create agent with RAG tool
+    // Create an agent named "KnowledgeAgent" and equip it with the RAG tool.
     let mut agent = Agent::builder("KnowledgeAgent")
         .config(config)
         .system_prompt(
@@ -52,7 +59,7 @@ async fn main() -> helios_engine::Result<()> {
 
     println!("✓ Agent created with RAG capabilities\n");
 
-    // Example 1: Add knowledge to the database
+    // --- Example 1: Add knowledge to the database ---
     println!("Example 1: Adding Documents to Knowledge Base");
     println!("==============================================\n");
 
@@ -67,7 +74,7 @@ async fn main() -> helios_engine::Result<()> {
     let response = agent
         .chat(
             "Store this: Python is a high-level, interpreted programming language known for its \
-             clear syntax and readability. It was created by Guido van Rossum in 1991."
+             clear syntax and readability. It was created by Guido van Rossum in 1991.",
         )
         .await?;
     println!("Agent: {}\n", response);
@@ -75,12 +82,12 @@ async fn main() -> helios_engine::Result<()> {
     let response = agent
         .chat(
             "Store this: JavaScript is a programming language commonly used for web development. \
-             It allows developers to create interactive web pages and runs in web browsers."
+             It allows developers to create interactive web pages and runs in web browsers.",
         )
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 2: Semantic search - ask questions
+    // --- Example 2: Semantic search - ask questions ---
     println!("\nExample 2: Semantic Search and Q&A");
     println!("===================================\n");
 
@@ -94,7 +101,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 3: Multi-document retrieval
+    // --- Example 3: Multi-document retrieval ---
     println!("\nExample 3: Multi-Document Retrieval");
     println!("====================================\n");
 
@@ -103,7 +110,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    // Example 4: Adding documents with metadata
+    // --- Example 4: Adding documents with metadata ---
     println!("\nExample 4: Documents with Metadata");
     println!("===================================\n");
 
@@ -111,7 +118,7 @@ async fn main() -> helios_engine::Result<()> {
         .chat(
             "Store this with metadata: \
              The Helios Engine is a Rust framework for building LLM agents. \
-             Metadata: category=framework, language=rust, year=2024"
+             Metadata: category=framework, language=rust, year=2024",
         )
         .await?;
     println!("Agent: {}\n", response);
@@ -123,13 +130,13 @@ async fn main() -> helios_engine::Result<()> {
     println!("  • Semantic search with cosine similarity");
     println!("  • RAG workflow for context-aware answers");
     println!("  • Metadata support for document organization");
-    
+
     println!("\n📝 RAG Use Cases:");
     println!("  • Question answering over custom knowledge bases");
     println!("  • Document search and retrieval");
     println!("  • Building chatbots with domain-specific knowledge");
     println!("  • Information extraction from large document sets");
-    
+
     println!("\n🔧 Setup Instructions:");
     println!("  1. Start Qdrant: docker run -p 6333:6333 qdrant/qdrant");
     println!("  2. Set API key: export OPENAI_API_KEY=your-key");

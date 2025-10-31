@@ -1,3 +1,9 @@
+//! # Helios Engine CLI
+//!
+//! This is the command-line interface for the Helios Engine.
+//! It provides commands for interactive chat, asking single questions,
+//! and initializing the configuration.
+
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
@@ -5,13 +11,14 @@ use clap::{Parser, Subcommand};
 use helios_engine::{ChatMessage, Config, LLMClient};
 use std::io::{self, Write};
 
-/// Helper to track and display thinking tags
+/// A helper struct to track and display thinking tags in streamed responses.
 struct ThinkingTracker {
     in_thinking: bool,
     thinking_buffer: String,
 }
 
 impl ThinkingTracker {
+    /// Creates a new `ThinkingTracker`.
     fn new() -> Self {
         Self {
             in_thinking: false,
@@ -19,6 +26,7 @@ impl ThinkingTracker {
         }
     }
 
+    /// Processes a chunk of a streamed response and returns the processed output.
     fn process_chunk(&mut self, chunk: &str) -> Option<String> {
         let mut output = String::new();
         let mut chars = chunk.chars().peekable();
@@ -82,7 +90,7 @@ impl ThinkingTracker {
     }
 }
 
-/// Process thinking tags in response content for non-streaming responses
+/// Processes thinking tags in the content of a non-streaming response.
 #[allow(dead_code)]
 fn process_thinking_tags_in_content(content: &str) -> String {
     let mut result = String::new();
@@ -132,20 +140,20 @@ fn process_thinking_tags_in_content(content: &str) -> String {
     result
 }
 
-/// Helios Engine - A powerful LLM Agent Framework
+/// The command-line interface for the Helios Engine.
 #[derive(Parser)]
 #[command(name = "helios-engine")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Path to configuration file
+    /// Path to the configuration file.
     #[arg(short, long, default_value = "config.toml")]
     config: String,
 
-    /// Enable verbose logging
+    /// Enable verbose logging.
     #[arg(short, long)]
     verbose: bool,
 
-    /// LLM mode: auto (use local if configured), online (force remote API), offline (force local models)
+    /// The LLM mode to use.
     #[arg(long, default_value = "auto")]
     mode: String,
 
@@ -153,33 +161,35 @@ struct Cli {
     command: Option<Commands>,
 }
 
+/// The subcommands for the Helios Engine CLI.
 #[derive(Subcommand)]
 enum Commands {
-    /// Start an interactive chat session (default)
+    /// Start an interactive chat session.
     Chat {
-        /// System prompt for the agent
+        /// The system prompt for the agent.
         #[arg(short, long)]
         system_prompt: Option<String>,
 
-        /// Maximum iterations for tool calls
+        /// The maximum number of iterations for tool calls.
         #[arg(short, long, default_value = "5")]
         max_iterations: usize,
     },
 
-    /// Initialize a new config file
+    /// Initialize a new configuration file.
     Init {
-        /// Path where to create the config file
+        /// The path where to create the configuration file.
         #[arg(short, long, default_value = "config.toml")]
         output: String,
     },
 
-    /// Send a single message and exit
+    /// Send a single message and exit.
     Ask {
-        /// The message to send
+        /// The message to send.
         message: String,
     },
 }
 
+/// The main entry point for the Helios Engine CLI.
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let cli = Cli::parse();
@@ -221,7 +231,7 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 
-/// Initialize a new configuration file
+/// Initializes a new configuration file.
 fn init_config(output: &str) -> helios_engine::Result<()> {
     if std::path::Path::new(output).exists() {
         println!("⚠ Configuration file '{}' already exists!", output);
@@ -253,7 +263,7 @@ fn init_config(output: &str) -> helios_engine::Result<()> {
     Ok(())
 }
 
-/// Send a single message and exit
+/// Sends a single message to the LLM and exits.
 async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine::Result<()> {
     let mut config = load_config(config_path)?;
     apply_mode_override(&mut config, mode);
@@ -293,7 +303,7 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     Ok(())
 }
 
-/// Start an interactive chat session
+/// Starts an interactive chat session with the LLM.
 async fn interactive_chat(
     config_path: &str,
     system_prompt: &str,
@@ -395,7 +405,7 @@ async fn interactive_chat(
     Ok(())
 }
 
-/// Load configuration from file
+/// Loads the configuration from a file.
 fn load_config(config_path: &str) -> helios_engine::Result<Config> {
     match Config::from_file(config_path) {
         Ok(cfg) => {
@@ -416,7 +426,7 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
     }
 }
 
-/// Apply mode override to config
+/// Applies the mode override to the configuration.
 fn apply_mode_override(config: &mut Config, mode: &str) {
     match mode {
         "online" => {
@@ -464,7 +474,7 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
     }
 }
 
-/// Print help for interactive commands
+/// Prints the help message for interactive commands.
 fn print_help() {
     println!("\n📖 Interactive Commands:");
     println!("  exit, quit  - Exit the chat session");

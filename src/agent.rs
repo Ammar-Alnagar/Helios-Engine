@@ -1,3 +1,10 @@
+//! # Agent Module
+//!
+//! This module defines the `Agent` struct, the core of the Helios Engine. Agents are
+//! autonomous entities that can interact with users, use tools, and manage their
+//! own chat history. The `AgentBuilder` provides a convenient way to construct
+//! and configure agents.
+
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use crate::chat::{ChatMessage, ChatSession};
@@ -7,17 +14,34 @@ use crate::llm::{LLMClient, LLMProviderType};
 use crate::tools::{ToolRegistry, ToolResult};
 use serde_json::Value;
 
+/// Prefix for agent-specific keys in the chat session metadata.
 const AGENT_MEMORY_PREFIX: &str = "agent:";
 
+/// Represents an LLM-powered agent that can chat, use tools, and manage a conversation.
 pub struct Agent {
+    /// The name of the agent.
     name: String,
+    /// The client for interacting with the Large Language Model.
     llm_client: LLMClient,
+    /// The registry of tools available to the agent.
     tool_registry: ToolRegistry,
+    /// The chat session, which stores the conversation history.
     chat_session: ChatSession,
+    /// The maximum number of iterations for tool execution in a single turn.
     max_iterations: usize,
 }
 
 impl Agent {
+    /// Creates a new agent with the given name and configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the agent.
+    /// * `config` - The configuration for the agent.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the new `Agent` instance.
     async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
         let provider_type = if let Some(local_config) = config.local {
             LLMProviderType::Local(local_config)
@@ -36,42 +60,72 @@ impl Agent {
         })
     }
 
+    /// Returns a new `AgentBuilder` for constructing an agent.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the agent.
     pub fn builder(name: impl Into<String>) -> AgentBuilder {
         AgentBuilder::new(name)
     }
 
+    /// Returns the name of the agent.
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Sets the system prompt for the agent.
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - The system prompt to set.
     pub fn set_system_prompt(&mut self, prompt: impl Into<String>) {
         self.chat_session = self.chat_session.clone().with_system_prompt(prompt);
     }
 
+    /// Registers a tool with the agent.
+    ///
+    /// # Arguments
+    ///
+    /// * `tool` - The tool to register.
     pub fn register_tool(&mut self, tool: Box<dyn crate::tools::Tool>) {
         self.tool_registry.register(tool);
     }
 
+    /// Returns a reference to the agent's tool registry.
     pub fn tool_registry(&self) -> &ToolRegistry {
         &self.tool_registry
     }
 
+    /// Returns a mutable reference to the agent's tool registry.
     pub fn tool_registry_mut(&mut self) -> &mut ToolRegistry {
         &mut self.tool_registry
     }
 
+    /// Returns a reference to the agent's chat session.
     pub fn chat_session(&self) -> &ChatSession {
         &self.chat_session
     }
 
+    /// Returns a mutable reference to the agent's chat session.
     pub fn chat_session_mut(&mut self) -> &mut ChatSession {
         &mut self.chat_session
     }
 
+    /// Clears the agent's chat history.
     pub fn clear_history(&mut self) {
         self.chat_session.clear();
     }
 
+    /// Sends a message to the agent and gets a response.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to send.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the agent's response.
     pub async fn send_message(&mut self, message: impl Into<String>) -> Result<String> {
         let user_message = message.into();
         self.chat_session.add_user_message(user_message.clone());
@@ -82,6 +136,7 @@ impl Agent {
         Ok(response)
     }
 
+    /// Executes the agent's main loop, including tool calls.
     async fn execute_with_tools(&mut self) -> Result<String> {
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
@@ -136,18 +191,26 @@ impl Agent {
         }
     }
 
+    /// A convenience method for sending a message to the agent.
     pub async fn chat(&mut self, message: impl Into<String>) -> Result<String> {
         self.send_message(message).await
     }
 
+    /// Sets the maximum number of iterations for tool execution.
+    ///
+    /// # Arguments
+    ///
+    /// * `max` - The maximum number of iterations.
     pub fn set_max_iterations(&mut self, max: usize) {
         self.max_iterations = max;
     }
 
+    /// Returns a summary of the current chat session.
     pub fn get_session_summary(&self) -> String {
         self.chat_session.get_summary()
     }
 
+    /// Clears the agent's memory (agent-scoped metadata).
     pub fn clear_memory(&mut self) {
         // Only clear agent-scoped memory keys to avoid wiping general session metadata
         self.chat_session
@@ -155,27 +218,32 @@ impl Agent {
             .retain(|k, _| !k.starts_with(AGENT_MEMORY_PREFIX));
     }
 
+    /// Prefixes a key with the agent memory prefix.
     #[inline]
     fn prefixed_key(key: &str) -> String {
         format!("{}{}", AGENT_MEMORY_PREFIX, key)
     }
 
     // Agent-scoped memory API (namespaced under "agent:")
+    /// Sets a value in the agent's memory.
     pub fn set_memory(&mut self, key: impl Into<String>, value: impl Into<String>) {
         let key = key.into();
         self.chat_session
             .set_metadata(Self::prefixed_key(&key), value);
     }
 
+    /// Gets a value from the agent's memory.
     pub fn get_memory(&self, key: &str) -> Option<&String> {
         self.chat_session.get_metadata(&Self::prefixed_key(key))
     }
 
+    /// Removes a value from the agent's memory.
     pub fn remove_memory(&mut self, key: &str) -> Option<String> {
         self.chat_session.remove_metadata(&Self::prefixed_key(key))
     }
 
     // Convenience helpers to reduce duplication in examples
+    /// Increments a counter in the agent's memory.
     pub fn increment_counter(&mut self, key: &str) -> u32 {
         let current = self
             .get_memory(key)
@@ -186,6 +254,7 @@ impl Agent {
         next
     }
 
+    /// Increments the "tasks_completed" counter in the agent's memory.
     pub fn increment_tasks_completed(&mut self) -> u32 {
         self.increment_counter("tasks_completed")
     }
@@ -199,16 +268,15 @@ mod tests {
     use serde_json::Value;
     use std::collections::HashMap;
 
+    /// Tests that an agent can be created using the builder.
     #[tokio::test]
     async fn test_agent_creation_via_builder() {
         let config = Config::new_default();
-        let agent = Agent::builder("test_agent")
-            .config(config)
-            .build()
-            .await;
+        let agent = Agent::builder("test_agent").config(config).build().await;
         assert!(agent.is_ok());
     }
 
+    /// Tests the namespacing of agent memory.
     #[tokio::test]
     async fn test_agent_memory_namespacing_set_get_remove() {
         let config = Config::new_default();
@@ -227,13 +295,14 @@ mod tests {
 
         // Ensure underlying chat session stored the prefixed key
         assert_eq!(
-            agent
-                .chat_session()
-                .get_metadata("agent:working_directory"),
+            agent.chat_session().get_metadata("agent:working_directory"),
             Some(&"/tmp".to_string())
         );
         // Non-prefixed key should not exist
-        assert!(agent.chat_session().get_metadata("working_directory").is_none());
+        assert!(agent
+            .chat_session()
+            .get_metadata("working_directory")
+            .is_none());
 
         // Remove should also be namespaced
         let removed = agent.remove_memory("working_directory");
@@ -241,6 +310,7 @@ mod tests {
         assert!(agent.get_memory("working_directory").is_none());
     }
 
+    /// Tests that clearing agent memory only affects agent-scoped data.
     #[tokio::test]
     async fn test_agent_clear_memory_scoped() {
         let config = Config::new_default();
@@ -268,6 +338,7 @@ mod tests {
         );
     }
 
+    /// Tests the increment helper methods for agent memory.
     #[tokio::test]
     async fn test_agent_increment_helpers() {
         let config = Config::new_default();
@@ -294,6 +365,7 @@ mod tests {
         assert_eq!(agent.get_memory("files_accessed"), Some(&"2".to_string()));
     }
 
+    /// Tests the full functionality of the agent builder.
     #[tokio::test]
     async fn test_agent_builder() {
         let config = Config::new_default();
@@ -314,6 +386,7 @@ mod tests {
         );
     }
 
+    /// Tests setting the system prompt for an agent.
     #[tokio::test]
     async fn test_agent_system_prompt() {
         let config = Config::new_default();
@@ -332,6 +405,7 @@ mod tests {
         );
     }
 
+    /// Tests the tool registry functionality of an agent.
     #[tokio::test]
     async fn test_agent_tool_registry() {
         let config = Config::new_default();
@@ -352,6 +426,7 @@ mod tests {
         );
     }
 
+    /// Tests clearing the chat history of an agent.
     #[tokio::test]
     async fn test_agent_clear_history() {
         let config = Config::new_default();

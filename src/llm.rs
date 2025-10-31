@@ -1,3 +1,9 @@
+//! # LLM Module
+//!
+//! This module provides the functionality for interacting with Large Language Models (LLMs).
+//! It supports both remote LLMs (like OpenAI) and local LLMs (via `llama.cpp`).
+//! The `LLMClient` provides a unified interface for both types of providers.
+
 use crate::chat::ChatMessage;
 use crate::config::{LLMConfig, LocalConfig};
 use crate::error::{HeliosError, Result};
@@ -12,10 +18,10 @@ use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::token::LlamaToken;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::task;
 use std::fs::File;
 use std::os::fd::AsRawFd;
+use std::sync::Arc;
+use tokio::task;
 
 // Add From trait for LLamaCppError to convert to HeliosError
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
@@ -24,88 +30,132 @@ impl From<llama_cpp_2::LLamaCppError> for HeliosError {
     }
 }
 
+/// The type of LLM provider to use.
 #[derive(Clone)]
 pub enum LLMProviderType {
+    /// A remote LLM provider, such as OpenAI.
     Remote(LLMConfig),
+    /// A local LLM provider, using `llama.cpp`.
     Local(LocalConfig),
 }
 
+/// A request to an LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMRequest {
+    /// The model to use for the request.
     pub model: String,
+    /// The messages to send to the model.
     pub messages: Vec<ChatMessage>,
+    /// The temperature to use for the request.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
+    /// The maximum number of tokens to generate.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
+    /// The tools to make available to the model.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<ToolDefinition>>,
+    /// The tool choice to use for the request.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<String>,
+    /// Whether to stream the response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
 }
 
+/// A chunk of a streamed response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StreamChunk {
+    /// The ID of the chunk.
     pub id: String,
+    /// The object type.
     pub object: String,
+    /// The creation timestamp.
     pub created: u64,
+    /// The model that generated the chunk.
     pub model: String,
+    /// The choices in the chunk.
     pub choices: Vec<StreamChoice>,
 }
 
+/// A choice in a streamed response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StreamChoice {
+    /// The index of the choice.
     pub index: u32,
+    /// The delta of the choice.
     pub delta: Delta,
+    /// The reason the stream finished.
     pub finish_reason: Option<String>,
 }
 
+/// The delta of a streamed choice.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delta {
+    /// The role of the delta.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
+    /// The content of the delta.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
 }
 
+/// A response from an LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMResponse {
+    /// The ID of the response.
     pub id: String,
+    /// The object type.
     pub object: String,
+    /// The creation timestamp.
     pub created: u64,
+    /// The model that generated the response.
     pub model: String,
+    /// The choices in the response.
     pub choices: Vec<Choice>,
+    /// The usage statistics for the response.
     pub usage: Usage,
 }
 
+/// A choice in an LLM response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Choice {
+    /// The index of the choice.
     pub index: u32,
+    /// The message of the choice.
     pub message: ChatMessage,
+    /// The reason the generation finished.
     pub finish_reason: Option<String>,
 }
 
+/// The usage statistics for an LLM response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Usage {
+    /// The number of tokens in the prompt.
     pub prompt_tokens: u32,
+    /// The number of tokens in the completion.
     pub completion_tokens: u32,
+    /// The total number of tokens.
     pub total_tokens: u32,
 }
 
+/// A trait for LLM providers.
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
+    /// Generates a response from the LLM.
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse>;
+    /// Returns the provider as an `Any` type.
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
+/// A client for interacting with an LLM.
 pub struct LLMClient {
     provider: Box<dyn LLMProvider + Send + Sync>,
     provider_type: LLMProviderType,
 }
 
 impl LLMClient {
+    /// Creates a new `LLMClient`.
     pub async fn new(provider_type: LLMProviderType) -> Result<Self> {
         let provider: Box<dyn LLMProvider + Send + Sync> = match &provider_type {
             LLMProviderType::Remote(config) => Box::new(RemoteLLMClient::new(config.clone())),
@@ -120,18 +170,20 @@ impl LLMClient {
         })
     }
 
+    /// Returns the type of the LLM provider.
     pub fn provider_type(&self) -> &LLMProviderType {
         &self.provider_type
     }
 }
 
-// Rename the old LLMClient to RemoteLLMClient
+/// A client for interacting with a remote LLM.
 pub struct RemoteLLMClient {
     config: LLMConfig,
     client: Client,
 }
 
 impl RemoteLLMClient {
+    /// Creates a new `RemoteLLMClient`.
     pub fn new(config: LLMConfig) -> Self {
         Self {
             config,
@@ -139,12 +191,13 @@ impl RemoteLLMClient {
         }
     }
 
+    /// Returns the configuration of the client.
     pub fn config(&self) -> &LLMConfig {
         &self.config
     }
 }
 
-/// Helper function to suppress stdout and stderr during model loading
+/// Suppresses stdout and stderr.
 fn suppress_output() -> (i32, i32) {
     // Open /dev/null for writing
     let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
@@ -162,7 +215,7 @@ fn suppress_output() -> (i32, i32) {
     (stdout_backup, stderr_backup)
 }
 
-/// Helper function to restore stdout and stderr
+/// Restores stdout and stderr.
 fn restore_output(stdout_backup: i32, stderr_backup: i32) {
     unsafe {
         libc::dup2(stdout_backup, 1); // restore stdout
@@ -172,7 +225,7 @@ fn restore_output(stdout_backup: i32, stderr_backup: i32) {
     }
 }
 
-/// Helper function to suppress only stderr (used to hide llama.cpp context logs while preserving stdout streaming)
+/// Suppresses stderr.
 fn suppress_stderr() -> i32 {
     let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
     let stderr_backup = unsafe { libc::dup(2) };
@@ -182,7 +235,7 @@ fn suppress_stderr() -> i32 {
     stderr_backup
 }
 
-/// Helper function to restore only stderr
+/// Restores stderr.
 fn restore_stderr(stderr_backup: i32) {
     unsafe {
         libc::dup2(stderr_backup, 2);
@@ -190,12 +243,14 @@ fn restore_stderr(stderr_backup: i32) {
     }
 }
 
+/// A provider for a local LLM.
 pub struct LocalLLMProvider {
     model: Arc<LlamaModel>,
     backend: Arc<LlamaBackend>,
 }
 
 impl LocalLLMProvider {
+    /// Creates a new `LocalLLMProvider`.
     pub async fn new(config: LocalConfig) -> Result<Self> {
         // Suppress verbose output during model loading in offline mode
         let (stdout_backup, stderr_backup) = suppress_output();
@@ -215,8 +270,8 @@ impl LocalLLMProvider {
         // Load the model
         let model_params = LlamaModelParams::default().with_n_gpu_layers(99); // Use GPU if available
 
-        let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
-            .map_err(|e| {
+        let model =
+            LlamaModel::load_from_file(&backend, &model_path, &model_params).map_err(|e| {
                 restore_output(stdout_backup, stderr_backup);
                 HeliosError::LLMError(format!("Failed to load model: {:?}", e))
             })?;
@@ -230,11 +285,14 @@ impl LocalLLMProvider {
         })
     }
 
+    /// Downloads a model from Hugging Face.
     async fn download_model(config: &LocalConfig) -> Result<std::path::PathBuf> {
         use std::process::Command;
 
         // Check if model is already in HuggingFace cache
-        if let Some(cached_path) = Self::find_model_in_cache(&config.huggingface_repo, &config.model_file) {
+        if let Some(cached_path) =
+            Self::find_model_in_cache(&config.huggingface_repo, &config.model_file)
+        {
             // Model found in cache - no output needed in offline mode
             return Ok(cached_path);
         }
@@ -243,7 +301,7 @@ impl LocalLLMProvider {
 
         // Use huggingface_hub to download the model (suppress output)
         let output = Command::new("huggingface-cli")
-            .args(&[
+            .args([
                 "download",
                 &config.huggingface_repo,
                 &config.model_file,
@@ -275,13 +333,16 @@ impl LocalLLMProvider {
         Ok(model_path)
     }
 
+    /// Finds a model in the Hugging Face cache.
     fn find_model_in_cache(repo: &str, model_file: &str) -> Option<std::path::PathBuf> {
         // Check HuggingFace cache directory
         let cache_dir = std::env::var("HF_HOME")
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|_| {
                 let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                std::path::PathBuf::from(home).join(".cache").join("huggingface")
+                std::path::PathBuf::from(home)
+                    .join(".cache")
+                    .join("huggingface")
             });
 
         let hub_dir = cache_dir.join("hub");
@@ -320,6 +381,7 @@ impl LocalLLMProvider {
         None
     }
 
+    /// Formats a list of messages into a single string.
     fn format_messages(&self, messages: &[ChatMessage]) -> String {
         let mut formatted = String::new();
 
@@ -393,6 +455,7 @@ impl LLMProvider for RemoteLLMClient {
 }
 
 impl RemoteLLMClient {
+    /// Sends a chat request to the remote LLM.
     pub async fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -418,6 +481,7 @@ impl RemoteLLMClient {
             .ok_or_else(|| HeliosError::LLMError("No response from LLM".to_string()))
     }
 
+    /// Sends a streaming chat request to the remote LLM.
     pub async fn chat_stream<F>(
         &self,
         messages: Vec<ChatMessage>,
@@ -589,7 +653,7 @@ impl LLMProvider for LocalLLMProvider {
                 match context.model.token_to_str(token, Special::Plaintext) {
                     Ok(text) => {
                         generated_text.push_str(&text);
-                    },
+                    }
                     Err(_) => continue, // Skip invalid tokens
                 }
 
@@ -649,7 +713,7 @@ impl LLMProvider for LocalLLMProvider {
 }
 
 impl LocalLLMProvider {
-    // Add streaming support for local models
+    /// Sends a streaming chat request to the local LLM.
     async fn chat_stream_local<F>(
         &self,
         messages: Vec<ChatMessage>,
@@ -736,7 +800,7 @@ impl LocalLLMProvider {
                         if tx.send(text).is_err() {
                             break;
                         }
-                    },
+                    }
                     Err(_) => continue,
                 }
 
@@ -803,6 +867,7 @@ impl LLMProvider for LLMClient {
 }
 
 impl LLMClient {
+    /// Sends a chat request to the LLM.
     pub async fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -841,6 +906,7 @@ impl LLMClient {
             .ok_or_else(|| HeliosError::LLMError("No response from LLM".to_string()))
     }
 
+    /// Sends a streaming chat request to the LLM.
     pub async fn chat_stream<F>(
         &self,
         messages: Vec<ChatMessage>,
