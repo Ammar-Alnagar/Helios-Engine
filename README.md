@@ -34,6 +34,7 @@
 -  **Streaming Support**: Real-time response streaming for both remote and local models
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
+-  **HTTP Server & API**: Expose OpenAI-compatible API endpoints for agents and LLM clients
 -  **Async/Await**: Built on Tokio for high-performance async operations
 -  **Type-Safe**: Leverages Rust's type system for safe and reliable code
 -  **Extensible**: Easy to add custom tools and extend functionality
@@ -49,6 +50,7 @@
   - [Using as a Library Crate](#using-as-a-library-crate)
   - [Using Offline Mode with Local Models](#using-offline-mode-with-local-models)
   - [Using with Agent System](#using-with-agent-system)
+  - [Serve API](#serve-api)
 - [CLI Usage](#cli-usage)
 - [Configuration](#configuration)
 - [Local Inference Setup](#local-inference-setup)
@@ -107,6 +109,12 @@ helios-engine chat --system-prompt "You are a Python expert"
 
 # One-off question with custom config
 helios-engine --config /path/to/config.toml ask "Calculate 15 * 7"
+
+# NEW: Serve OpenAI-compatible API endpoints
+helios-engine serve --port 8000 --host 127.0.0.1
+
+# Serve on all interfaces
+helios-engine serve --host 0.0.0.0
 ```
 
 ### As a Library Crate
@@ -269,6 +277,145 @@ async fn main() -> helios_engine::Result<()> {
 cargo run
 ```
 
+### Serve API
+
+Expose your agents and LLM configurations as OpenAI-compatible HTTP API endpoints:
+
+#### Serve an LLM Client (Direct API Access)
+
+```rust
+use helios_engine::{Config, serve};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+    serve::start_server(config, "127.0.0.1:8000").await?;
+    Ok(())
+}
+```
+
+#### Serve an Agent with Tools
+
+```rust
+use helios_engine::{Agent, Config, CalculatorTool, serve};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt().init();
+
+    let config = Config::from_file("config.toml")?;
+
+    // Create an agent with tools
+    let agent = Agent::builder("API Agent")
+        .config(config)
+        .system_prompt("You are a helpful AI assistant with access to a calculator tool.")
+        .tool(Box::new(CalculatorTool))
+        .max_iterations(5)
+        .build()
+        .await?;
+
+    // Start the server
+    println!("Starting server on http://127.0.0.1:8000");
+    println!("Try: curl http://127.0.0.1:8000/v1/chat/completions \\");
+    println!("  -H 'Content-Type: application/json' \\");
+    println!("  -d '{{\"model\": \"local-model\", \"messages\": [{{\"role\": \"user\", \"content\": \"What is 15 * 7?\"}}]}}'");
+
+    serve::start_server_with_agent(agent, "local-model".to_string(), "127.0.0.1:8000").await?;
+
+    Ok(())
+}
+```
+
+#### API Endpoints
+
+The server exposes OpenAI-compatible endpoints:
+
+- `POST /v1/chat/completions` - Chat completions (with streaming support)
+- `GET /v1/models` - List available models
+- `GET /health` - Health check
+
+#### Custom Endpoints
+
+You can define additional custom endpoints alongside the OpenAI-compatible API. Custom endpoints allow you to expose static JSON responses for monitoring, configuration, or integration purposes.
+
+Create a custom endpoints configuration file (`custom_endpoints.toml`):
+
+```toml
+[[endpoints]]
+method = "GET"
+path = "/api/version"
+response = { version = "0.2.8", service = "Helios Engine" }
+status_code = 200
+
+[[endpoints]]
+method = "GET"
+path = "/api/status"
+response = { status = "operational", uptime = "unknown" }
+status_code = 200
+
+[[endpoints]]
+method = "POST"
+path = "/api/echo"
+response = { message = "Echo endpoint", note = "Static response" }
+status_code = 200
+```
+
+Use custom endpoints programmatically:
+
+```rust
+use helios_engine::{serve, CustomEndpointsConfig, CustomEndpoint};
+
+let custom_endpoints = CustomEndpointsConfig {
+    endpoints: vec![
+        CustomEndpoint {
+            method: "GET".to_string(),
+            path: "/api/config".to_string(),
+            response: serde_json::json!({
+                "model": "configurable",
+                "features": ["chat", "tools", "streaming"]
+            }),
+            status_code: 200,
+        }
+    ]
+};
+
+serve::start_server_with_custom_endpoints(config, "127.0.0.1:8000", Some(custom_endpoints)).await?;
+```
+
+Or serve an agent with custom endpoints:
+
+```rust
+serve::start_server_with_agent_and_custom_endpoints(
+    agent,
+    "model-name".to_string(),
+    "127.0.0.1:8000",
+    Some(custom_endpoints)
+).await?;
+```
+
+#### Example API Usage
+
+```bash
+# Non-streaming request
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "your-model",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": false
+  }'
+
+# Streaming request
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "your-model",
+    "messages": [{"role": "user", "content": "Tell me a story"}],
+    "stream": true
+  }'
+```
+
 ##  CLI Usage
 
 Helios Engine provides a powerful command-line interface with multiple modes and options:
@@ -308,6 +455,31 @@ helios-engine init
 # Create config in custom location
 helios-engine init --output ~/.helios/config.toml
 ```
+
+### HTTP Server (Serve Command)
+Serve OpenAI-compatible API endpoints:
+```bash
+# Start server with default settings (port 8000, localhost)
+helios-engine serve
+
+# Serve on custom port and host
+helios-engine serve --port 3000 --host 127.0.0.1
+
+# Serve on all interfaces (accessible from other machines)
+helios-engine serve --host 0.0.0.0
+
+# Serve with custom endpoints from a configuration file
+helios-engine serve --custom-endpoints custom_endpoints.toml
+
+# Serve with verbose logging
+helios-engine --verbose serve
+```
+
+The serve command exposes the following endpoints:
+- `POST /v1/chat/completions` - Chat completions with optional streaming
+- `GET /v1/models` - List available models
+- `GET /health` - Health check endpoint
+- Custom endpoints (when `--custom-endpoints` is specified)
 
 ### Mode Selection
 Choose between different operation modes:
@@ -1068,6 +1240,7 @@ helios/
 │   ├── tools.rs           # Tool system and built-in tools
 │   ├── chat.rs            # Chat message and session types
 │   ├── config.rs          # Configuration management
+│   ├── serve.rs           # HTTP server for OpenAI-compatible API
 │   └── error.rs           # Error types
 │
 ├── docs/
@@ -1084,6 +1257,8 @@ helios/
     ├── custom_tool.rs            # Custom tool implementation
     ├── multiple_agents.rs        # Multiple agents example
     ├── direct_llm_usage.rs       # Direct LLM client usage
+    ├── serve_agent.rs            # Serve agent via HTTP API
+    ├── serve_with_custom_endpoints.rs # Serve with custom endpoints
     ├── streaming_chat.rs         # Streaming responses example
     ├── local_streaming.rs        # Local model streaming example
     └── complete_demo.rs          # Complete feature demonstration
@@ -1133,6 +1308,12 @@ cargo run --example streaming_chat
 
 # Local model streaming example
 cargo run --example local_streaming
+
+# NEW: Serve an agent via HTTP API
+cargo run --example serve_agent
+
+# NEW: Serve with custom endpoints
+cargo run --example serve_with_custom_endpoints
 
 # Complete demo with all features
 cargo run --example complete_demo

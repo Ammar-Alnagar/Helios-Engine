@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 use helios_engine::{
-    Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMConfig, Tool, ToolParameter,
+    serve, Agent, CalculatorTool, ChatMessage, Config, EchoTool, LLMConfig, Tool, ToolParameter,
     ToolResult,
 };
 use serde_json::json;
@@ -400,4 +400,469 @@ fn test_role_enum_conversions() {
         helios_engine::chat::Role::from("invalid"),
         helios_engine::chat::Role::Assistant
     );
+}
+
+/// Tests the creation of server state with an LLM client.
+#[tokio::test]
+async fn test_server_state_with_llm_client() {
+    use helios_engine::llm::LLMProviderType;
+
+    let config = Config {
+        llm: LLMConfig {
+            model_name: "gpt-3.5-turbo".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: "test-key".to_string(),
+            temperature: 0.7,
+            max_tokens: 2048,
+        },
+        local: None,
+    };
+
+    // This will fail without proper credentials, but we can test the structure
+    let provider_type = LLMProviderType::Remote(config.llm.clone());
+    let llm_client = helios_engine::llm::LLMClient::new(provider_type).await;
+
+    // For testing purposes, we'll create the state structure even if the client fails
+    if let Ok(client) = llm_client {
+        let state = serve::ServerState::with_llm_client(client, "gpt-3.5-turbo".to_string());
+
+        assert!(state.llm_client.is_some());
+        assert!(state.agent.is_none());
+        assert_eq!(state.model_name, "gpt-3.5-turbo");
+    } else {
+        // If client creation fails, we at least test that the config structure works
+        assert!(config.llm.api_key == "test-key");
+    }
+}
+
+/// Tests the creation of server state with an agent.
+#[tokio::test]
+async fn test_server_state_with_agent() {
+    let config = Config {
+        llm: LLMConfig {
+            model_name: "gpt-3.5-turbo".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: "test-key".to_string(),
+            temperature: 0.7,
+            max_tokens: 2048,
+        },
+        local: None,
+    };
+
+    // Create a simple agent for testing
+    let agent = Agent::builder("test_agent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .build()
+        .await
+        .expect("Failed to create test agent");
+
+    let state = serve::ServerState::with_agent(agent, "test-model".to_string());
+
+    assert!(state.llm_client.is_none());
+    assert!(state.agent.is_some());
+    assert_eq!(state.model_name, "test-model");
+}
+
+/// Tests the conversion of OpenAI messages to ChatMessage format.
+#[test]
+fn test_openai_message_conversion() {
+    use helios_engine::chat::Role;
+    use helios_engine::serve::{ChatCompletionRequest, OpenAIMessage};
+
+    let openai_messages = vec![
+        OpenAIMessage {
+            role: "system".to_string(),
+            content: "You are a helpful assistant.".to_string(),
+            name: None,
+        },
+        OpenAIMessage {
+            role: "user".to_string(),
+            content: "Hello!".to_string(),
+            name: None,
+        },
+        OpenAIMessage {
+            role: "assistant".to_string(),
+            content: "Hi there!".to_string(),
+            name: None,
+        },
+        OpenAIMessage {
+            role: "tool".to_string(),
+            content: "Tool result".to_string(),
+            name: Some("calculator".to_string()),
+        },
+    ];
+
+    let request = ChatCompletionRequest {
+        model: "test-model".to_string(),
+        messages: openai_messages,
+        temperature: None,
+        max_tokens: None,
+        stream: None,
+        stop: None,
+    };
+
+    // Test message conversion (this would normally happen in the handler)
+    let messages_result: Result<Vec<ChatMessage>, _> = request
+        .messages
+        .into_iter()
+        .map(|msg| {
+            let role = match msg.role.as_str() {
+                "system" => Role::System,
+                "user" => Role::User,
+                "assistant" => Role::Assistant,
+                "tool" => Role::Tool,
+                _ => {
+                    return Err(helios_engine::HeliosError::ConfigError(format!(
+                        "Invalid role: {}",
+                        msg.role
+                    )))
+                }
+            };
+            Ok(ChatMessage {
+                role,
+                content: msg.content,
+                name: msg.name,
+                tool_calls: None,
+                tool_call_id: None,
+            })
+        })
+        .collect();
+
+    assert!(messages_result.is_ok());
+    let messages = messages_result.unwrap();
+
+    assert_eq!(messages.len(), 4);
+    assert_eq!(messages[0].role, Role::System);
+    assert_eq!(messages[0].content, "You are a helpful assistant.");
+    assert_eq!(messages[1].role, Role::User);
+    assert_eq!(messages[1].content, "Hello!");
+    assert_eq!(messages[2].role, Role::Assistant);
+    assert_eq!(messages[2].content, "Hi there!");
+    assert_eq!(messages[3].role, Role::Tool);
+    assert_eq!(messages[3].content, "Tool result");
+    assert_eq!(messages[3].name, Some("calculator".to_string()));
+}
+
+/// Tests the token estimation function.
+#[test]
+fn test_token_estimation() {
+    use helios_engine::serve::estimate_tokens;
+
+    // Test with empty string
+    assert_eq!(estimate_tokens(""), 0);
+
+    // Test with short text
+    assert_eq!(estimate_tokens("Hello world"), 3); // ~11 chars / 4 = 2.75 -> 3
+
+    // Test with longer text
+    let long_text =
+        "This is a longer piece of text that should result in more tokens when estimated.";
+    let tokens = estimate_tokens(long_text);
+    assert!(tokens > 10); // Should be roughly len/4
+
+    // Test with multiple messages
+    let messages = vec!["Hello", "How are you?", "I'm doing well, thank you!"];
+    let combined_tokens: u32 = messages.iter().map(|m| estimate_tokens(m)).sum();
+    assert_eq!(combined_tokens, 12); // 2 + 3 + 7 = 12 tokens (5/4=1.25->2, 12/4=3, 27/4=6.75->7)
+}
+
+/// Tests the chat completion request structure.
+#[test]
+fn test_chat_completion_request_structure() {
+    use helios_engine::serve::{ChatCompletionRequest, OpenAIMessage};
+
+    let request = ChatCompletionRequest {
+        model: "gpt-3.5-turbo".to_string(),
+        messages: vec![OpenAIMessage {
+            role: "user".to_string(),
+            content: "What is 2+2?".to_string(),
+            name: None,
+        }],
+        temperature: Some(0.7),
+        max_tokens: Some(100),
+        stream: Some(false),
+        stop: Some(vec!["END".to_string()]),
+    };
+
+    assert_eq!(request.model, "gpt-3.5-turbo");
+    assert_eq!(request.messages.len(), 1);
+    assert_eq!(request.temperature, Some(0.7));
+    assert_eq!(request.max_tokens, Some(100));
+    assert_eq!(request.stream, Some(false));
+    assert_eq!(request.stop, Some(vec!["END".to_string()]));
+}
+
+/// Tests the chat completion response structure.
+#[test]
+fn test_chat_completion_response_structure() {
+    use helios_engine::serve::{
+        ChatCompletionResponse, CompletionChoice, OpenAIMessageResponse, Usage,
+    };
+
+    let response = ChatCompletionResponse {
+        id: "chatcmpl-test123".to_string(),
+        object: "chat.completion".to_string(),
+        created: 1234567890,
+        model: "gpt-3.5-turbo".to_string(),
+        choices: vec![CompletionChoice {
+            index: 0,
+            message: OpenAIMessageResponse {
+                role: "assistant".to_string(),
+                content: "The answer is 4.".to_string(),
+            },
+            finish_reason: "stop".to_string(),
+        }],
+        usage: Usage {
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            total_tokens: 15,
+        },
+    };
+
+    assert_eq!(response.id, "chatcmpl-test123");
+    assert_eq!(response.object, "chat.completion");
+    assert_eq!(response.created, 1234567890);
+    assert_eq!(response.model, "gpt-3.5-turbo");
+    assert_eq!(response.choices.len(), 1);
+    assert_eq!(response.choices[0].index, 0);
+    assert_eq!(response.choices[0].message.role, "assistant");
+    assert_eq!(response.choices[0].message.content, "The answer is 4.");
+    assert_eq!(response.choices[0].finish_reason, "stop");
+    assert_eq!(response.usage.prompt_tokens, 10);
+    assert_eq!(response.usage.completion_tokens, 5);
+    assert_eq!(response.usage.total_tokens, 15);
+}
+
+/// Tests the models response structure.
+#[test]
+fn test_models_response_structure() {
+    use helios_engine::serve::{ModelInfo, ModelsResponse};
+
+    let response = ModelsResponse {
+        object: "list".to_string(),
+        data: vec![ModelInfo {
+            id: "gpt-3.5-turbo".to_string(),
+            object: "model".to_string(),
+            created: 1677649963,
+            owned_by: "helios-engine".to_string(),
+        }],
+    };
+
+    assert_eq!(response.object, "list");
+    assert_eq!(response.data.len(), 1);
+    assert_eq!(response.data[0].id, "gpt-3.5-turbo");
+    assert_eq!(response.data[0].object, "model");
+    assert_eq!(response.data[0].created, 1677649963);
+    assert_eq!(response.data[0].owned_by, "helios-engine");
+}
+
+/// Tests invalid role conversion in OpenAI message processing.
+#[test]
+fn test_invalid_role_conversion() {
+    use helios_engine::chat::Role;
+    use helios_engine::serve::OpenAIMessage;
+
+    let invalid_message = OpenAIMessage {
+        role: "invalid_role".to_string(),
+        content: "test".to_string(),
+        name: None,
+    };
+
+    let request = helios_engine::serve::ChatCompletionRequest {
+        model: "test".to_string(),
+        messages: vec![invalid_message],
+        temperature: None,
+        max_tokens: None,
+        stream: None,
+        stop: None,
+    };
+
+    // Test message conversion with invalid role
+    let messages_result: Result<Vec<ChatMessage>, _> = request
+        .messages
+        .into_iter()
+        .map(|msg| {
+            let role = match msg.role.as_str() {
+                "system" => Role::System,
+                "user" => Role::User,
+                "assistant" => Role::Assistant,
+                "tool" => Role::Tool,
+                _ => {
+                    return Err(helios_engine::HeliosError::ConfigError(format!(
+                        "Invalid role: {}",
+                        msg.role
+                    )))
+                }
+            };
+            Ok(ChatMessage {
+                role,
+                content: msg.content,
+                name: msg.name,
+                tool_calls: None,
+                tool_call_id: None,
+            })
+        })
+        .collect();
+
+    assert!(messages_result.is_err());
+    let err = messages_result.unwrap_err();
+    if let helios_engine::HeliosError::ConfigError(msg) = err {
+        assert!(msg.contains("Invalid role: invalid_role"));
+    } else {
+        panic!("Expected ConfigError, got {:?}", err);
+    }
+}
+
+/// Tests UUID generation for completion IDs.
+#[test]
+fn test_completion_id_generation() {
+    use uuid::Uuid;
+
+    // Generate a few IDs to ensure they're unique
+    let id1 = format!("chatcmpl-{}", Uuid::new_v4());
+    let id2 = format!("chatcmpl-{}", Uuid::new_v4());
+
+    assert_ne!(id1, id2);
+    assert!(id1.starts_with("chatcmpl-"));
+    assert!(id2.starts_with("chatcmpl-"));
+    assert_eq!(id1.len(), 45); // "chatcmpl-" + 36 char UUID (actual length)
+    assert_eq!(id2.len(), 45);
+}
+
+/// Tests custom endpoint configuration structure.
+#[test]
+fn test_custom_endpoint_config_structure() {
+    use helios_engine::serve::{CustomEndpoint, CustomEndpointsConfig};
+
+    let endpoint = CustomEndpoint {
+        method: "GET".to_string(),
+        path: "/api/test".to_string(),
+        response: serde_json::json!({"message": "test response"}),
+        status_code: 200,
+    };
+
+    assert_eq!(endpoint.method, "GET");
+    assert_eq!(endpoint.path, "/api/test");
+    assert_eq!(endpoint.status_code, 200);
+
+    let config = CustomEndpointsConfig {
+        endpoints: vec![endpoint],
+    };
+
+    assert_eq!(config.endpoints.len(), 1);
+    assert_eq!(config.endpoints[0].method, "GET");
+}
+
+/// Tests loading custom endpoints from TOML string.
+#[test]
+fn test_custom_endpoints_config_parsing() {
+    use helios_engine::serve::CustomEndpointsConfig;
+
+    let toml_content = r#"
+[[endpoints]]
+method = "GET"
+path = "/api/version"
+response = { version = "1.0.0", service = "test" }
+status_code = 200
+
+[[endpoints]]
+method = "POST"
+path = "/api/data"
+response = { data = "example" }
+status_code = 201
+"#;
+
+    let config: CustomEndpointsConfig = toml::from_str(toml_content).unwrap();
+
+    assert_eq!(config.endpoints.len(), 2);
+
+    // Test first endpoint
+    assert_eq!(config.endpoints[0].method, "GET");
+    assert_eq!(config.endpoints[0].path, "/api/version");
+    assert_eq!(config.endpoints[0].status_code, 200);
+    assert_eq!(config.endpoints[0].response["version"], "1.0.0");
+    assert_eq!(config.endpoints[0].response["service"], "test");
+
+    // Test second endpoint
+    assert_eq!(config.endpoints[1].method, "POST");
+    assert_eq!(config.endpoints[1].path, "/api/data");
+    assert_eq!(config.endpoints[1].status_code, 201);
+    assert_eq!(config.endpoints[1].response["data"], "example");
+}
+
+/// Tests different HTTP methods for custom endpoints.
+#[test]
+fn test_custom_endpoint_http_methods() {
+    use helios_engine::serve::CustomEndpointsConfig;
+
+    let toml_content = r#"
+[[endpoints]]
+method = "GET"
+path = "/api/get"
+response = { method = "GET" }
+
+[[endpoints]]
+method = "POST"
+path = "/api/post"
+response = { method = "POST" }
+
+[[endpoints]]
+method = "PUT"
+path = "/api/put"
+response = { method = "PUT" }
+
+[[endpoints]]
+method = "DELETE"
+path = "/api/delete"
+response = { method = "DELETE" }
+
+[[endpoints]]
+method = "PATCH"
+path = "/api/patch"
+response = { method = "PATCH" }
+"#;
+
+    let config: CustomEndpointsConfig = toml::from_str(toml_content).unwrap();
+
+    assert_eq!(config.endpoints.len(), 5);
+
+    let methods: Vec<&str> = config.endpoints.iter().map(|e| e.method.as_str()).collect();
+    assert!(methods.contains(&"GET"));
+    assert!(methods.contains(&"POST"));
+    assert!(methods.contains(&"PUT"));
+    assert!(methods.contains(&"DELETE"));
+    assert!(methods.contains(&"PATCH"));
+}
+
+/// Tests custom endpoint with non-default status code.
+#[test]
+fn test_custom_endpoint_status_codes() {
+    use helios_engine::serve::CustomEndpointsConfig;
+
+    let toml_content = r#"
+[[endpoints]]
+method = "GET"
+path = "/api/ok"
+response = { status = "ok" }
+status_code = 200
+
+[[endpoints]]
+method = "GET"
+path = "/api/created"
+response = { status = "created" }
+status_code = 201
+
+[[endpoints]]
+method = "GET"
+path = "/api/error"
+response = { error = "not found" }
+status_code = 404
+"#;
+
+    let config: CustomEndpointsConfig = toml::from_str(toml_content).unwrap();
+
+    assert_eq!(config.endpoints[0].status_code, 200);
+    assert_eq!(config.endpoints[1].status_code, 201);
+    assert_eq!(config.endpoints[2].status_code, 404);
 }

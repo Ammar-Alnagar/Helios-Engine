@@ -45,7 +45,7 @@ async fn main() -> helios_engine::Result<()> {
 
     // Stream the response from the model, printing each chunk as it arrives.
     let _response = client
-        .chat_stream(messages, None, |chunk| {
+        .chat_stream(messages, None, None, None, None, |chunk| {
             print!("{}", chunk);
             io::stdout().flush().unwrap();
         })
@@ -74,7 +74,7 @@ async fn main() -> helios_engine::Result<()> {
 
         // Stream the response, maintaining the conversation context.
         let response = client
-            .chat_stream(session.get_messages(), None, |chunk| {
+            .chat_stream(session.get_messages(), None, None, None, None, |chunk| {
                 print!("{}", chunk);
                 io::stdout().flush().unwrap();
             })

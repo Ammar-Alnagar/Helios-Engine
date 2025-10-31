@@ -28,7 +28,7 @@
 //!         ChatMessage::user("What is the capital of France?"),
 //!     ];
 //!
-//!     let response = client.chat(messages, None).await?;
+//!     let response = client.chat(messages, None, None, None, None).await?;
 //!     println!("Response: {}", response.content);
 //!     Ok(())
 //! }
@@ -85,6 +85,9 @@ pub mod llm;
 /// Contains the tool system, including the `Tool` trait and various tool implementations.
 pub mod tools;
 
+/// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
+pub mod serve;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -107,4 +110,11 @@ pub use llm::{
 pub use tools::{
     CalculatorTool, EchoTool, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool,
     MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult,
+};
+
+/// Re-export of serve functionality.
+pub use serve::{
+    load_custom_endpoints_config, start_server, start_server_with_agent,
+    start_server_with_agent_and_custom_endpoints, start_server_with_custom_endpoints,
+    CustomEndpoint, CustomEndpointsConfig, ServerState,
 };

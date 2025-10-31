@@ -1,0 +1,23 @@
+[[endpoints]]
+method = "GET"
+path = "/api/version"
+response = { version = "0.2.8", service = "Helios Engine" }
+status_code = 200
+
+[[endpoints]]
+method = "GET"
+path = "/api/status"
+response = { status = "operational", uptime = "unknown" }
+status_code = 200
+
+[[endpoints]]
+method = "POST"
+path = "/api/echo"
+response = { message = "Echo endpoint", note = "This returns static data" }
+status_code = 200
+
+[[endpoints]]
+method = "GET"
+path = "/api/config"
+response = { model = "configurable", features = ["chat", "tools", "streaming"] }
+status_code = 200
