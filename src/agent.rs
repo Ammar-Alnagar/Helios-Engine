@@ -18,7 +18,7 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
+    async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
         let provider_type = if let Some(local_config) = config.local {
             LLMProviderType::Local(local_config)
         } else {
@@ -200,16 +200,23 @@ mod tests {
     use std::collections::HashMap;
 
     #[tokio::test]
-    async fn test_agent_new() {
+    async fn test_agent_creation_via_builder() {
         let config = Config::new_default();
-        let agent = Agent::new("test_agent", config).await;
+        let agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await;
         assert!(agent.is_ok());
     }
 
     #[tokio::test]
     async fn test_agent_memory_namespacing_set_get_remove() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
 
         // Set and get namespaced memory
         agent.set_memory("working_directory", "/tmp");
@@ -237,7 +244,11 @@ mod tests {
     #[tokio::test]
     async fn test_agent_clear_memory_scoped() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
 
         // Set an agent memory and a general (non-agent) session metadata key
         agent.set_memory("tasks_completed", "3");
@@ -260,7 +271,11 @@ mod tests {
     #[tokio::test]
     async fn test_agent_increment_helpers() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
 
         // tasks_completed increments from 0
         let n1 = agent.increment_tasks_completed();
@@ -302,7 +317,11 @@ mod tests {
     #[tokio::test]
     async fn test_agent_system_prompt() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
         agent.set_system_prompt("You are a test agent");
 
         // Check that the system prompt is set in chat session
@@ -316,7 +335,11 @@ mod tests {
     #[tokio::test]
     async fn test_agent_tool_registry() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
 
         // Initially no tools
         assert!(agent.tool_registry().list_tools().is_empty());
@@ -332,7 +355,11 @@ mod tests {
     #[tokio::test]
     async fn test_agent_clear_history() {
         let config = Config::new_default();
-        let mut agent = Agent::new("test_agent", config).await.unwrap();
+        let mut agent = Agent::builder("test_agent")
+            .config(config)
+            .build()
+            .await
+            .unwrap();
 
         // Add a message to the chat session
         agent.chat_session_mut().add_user_message("Hello");

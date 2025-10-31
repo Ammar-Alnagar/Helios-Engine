@@ -20,12 +20,6 @@ pub struct Agent {
 
 **Methods:**
 
-##### `Agent::new`
-```rust
-pub fn new(name: impl Into<String>, config: Config) -> Self
-```
-Create a new agent with the given name and configuration.
-
 ##### `Agent::builder`
 ```rust
 pub fn builder(name: impl Into<String>) -> AgentBuilder

@@ -29,7 +29,9 @@
 -  **Agent System**: Create multiple agents with different personalities and capabilities
 -   **Tool Registry**: Extensible tool system for adding custom functionality
 -  **Chat Management**: Built-in conversation history and session management
--  **Streaming Support**: Real-time response streaming with thinking tag detection
+-  **Session Memory**: Track agent state and metadata across conversations
+-  **File Management Tools**: Built-in tools for searching, reading, writing, and editing files
+-  **Streaming Support**: Real-time response streaming for both remote and local models
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
 -  **Async/Await**: Built on Tokio for high-performance async operations
@@ -113,7 +115,7 @@ Add Helios-Engine to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios-engine = "0.1.9"
+helios-engine = "0.2.5"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -472,7 +474,7 @@ Helios Engine supports running large language models locally using llama.cpp thr
 
 ### Streaming Support with Local Models
 
-While streaming is available for remote models, local models currently provide full responses. The LLMClient automatically handles both streaming (remote) and non-streaming (local) modes consistently through the same API.
+Local models now support real-time token-by-token streaming just like remote models! The LLMClient automatically handles streaming for both remote and local models through the same unified API, providing a consistent experience.
 
 ##  Architecture
 
@@ -617,7 +619,8 @@ async fn main() -> helios_engine::Result<()> {
     let mut agent = Agent::builder("Assistant")
         .config(config)
         .system_prompt("You are a helpful assistant.")
-        .build()?;
+        .build()
+        .await?;
 
     let response = agent.chat("Hello!").await?;
     println!("{}", response);
@@ -641,7 +644,8 @@ async fn main() -> helios_engine::Result<()> {
         .tool(Box::new(CalculatorTool))
         .tool(Box::new(EchoTool))
         .max_iterations(5)
-        .build()?;
+        .build()
+        .await?;
 
     // The agent will automatically use the calculator
     let response = agent.chat("What is 123 * 456?").await?;
@@ -663,18 +667,59 @@ async fn main() -> helios_engine::Result<()> {
     let mut poet = Agent::builder("Poet")
         .config(config.clone())
         .system_prompt("You are a creative poet.")
-        .build()?;
+        .build()
+        .await?;
 
     let mut scientist = Agent::builder("Scientist")
         .config(config)
         .system_prompt("You are a knowledgeable scientist.")
-        .build()?;
+        .build()
+        .await?;
 
     let poem = poet.chat("Write a haiku about code").await?;
     let fact = scientist.chat("Explain quantum physics").await?;
 
     println!("Poet: {}\n", poem);
     println!("Scientist: {}", fact);
+
+    Ok(())
+}
+```
+
+### Agent with File Tools and Session Memory
+
+Agents can use file management tools and track session state:
+
+```rust
+use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileWriteTool, FileEditTool};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("FileAssistant")
+        .config(config)
+        .system_prompt("You are a helpful file management assistant.")
+        .tool(Box::new(FileSearchTool))
+        .tool(Box::new(FileReadTool))
+        .tool(Box::new(FileWriteTool))
+        .tool(Box::new(FileEditTool))
+        .build()
+        .await?;
+
+    // Set session memory
+    agent.set_memory("session_start", chrono::Utc::now().to_rfc3339());
+    agent.set_memory("working_directory", std::env::current_dir()?.display().to_string());
+
+    // Use file tools
+    let response = agent.chat("Find all Rust files in the src directory").await?;
+    println!("Agent: {}\n", response);
+
+    // Track tasks
+    agent.increment_tasks_completed();
+
+    // Get session summary
+    println!("{}", agent.get_session_summary());
 
     Ok(())
 }
@@ -772,7 +817,8 @@ async fn main() -> helios_engine::Result<()> {
     let mut agent = Agent::builder("WeatherAgent")
         .config(config)
         .tool(Box::new(WeatherTool))
-        .build()?;
+        .build()
+        .await?;
 
     let response = agent.chat("What's the weather in Tokyo?").await?;
     println!("{}", response);
@@ -796,6 +842,13 @@ The main agent struct that manages conversation and tool execution.
 - `clear_history()` - Clear conversation history
 - `set_system_prompt(prompt)` - Set the system prompt
 - `set_max_iterations(max)` - Set maximum tool call iterations
+- `set_memory(key, value)` - Set a memory value for the agent
+- `get_memory(key)` - Get a memory value
+- `remove_memory(key)` - Remove a memory value
+- `clear_memory()` - Clear all agent memory (preserves session metadata)
+- `get_session_summary()` - Get a summary of the current session
+- `increment_counter(key)` - Increment a counter in memory
+- `increment_tasks_completed()` - Increment the tasks_completed counter
 
 #### `Config`
 
@@ -837,13 +890,20 @@ Manages and executes tools.
 
 #### `ChatSession`
 
-Manages conversation history.
+Manages conversation history and session metadata.
 
 **Methods:**
 - `new()` - Create new session
 - `with_system_prompt(prompt)` - Set system prompt
 - `add_message(message)` - Add message to history
+- `add_user_message(content)` - Add a user message
+- `add_assistant_message(content)` - Add an assistant message
+- `get_messages()` - Get all messages
 - `clear()` - Clear all messages
+- `set_metadata(key, value)` - Set session metadata
+- `get_metadata(key)` - Get session metadata
+- `remove_metadata(key)` - Remove session metadata
+- `get_summary()` - Get a summary of the session
 
 ### Built-in Tools
 
@@ -852,7 +912,7 @@ Manages conversation history.
 Performs basic arithmetic operations.
 
 **Parameters:**
-- `expression` (string, required): Mathematical expression
+- `expression` (string, required): Mathematical expression to evaluate
 
 **Example:**
 ```rust
@@ -869,6 +929,62 @@ Echoes back a message.
 **Example:**
 ```rust
 agent.tool(Box::new(EchoTool));
+```
+
+#### `FileSearchTool`
+
+Search for files by name pattern or search for content within files.
+
+**Parameters:**
+- `path` (string, optional): Directory path to search in (default: current directory)
+- `pattern` (string, optional): File name pattern with wildcards (e.g., `*.rs`)
+- `content` (string, optional): Text content to search for within files
+- `max_results` (number, optional): Maximum number of results (default: 50)
+
+**Example:**
+```rust
+agent.tool(Box::new(FileSearchTool));
+```
+
+#### `FileReadTool`
+
+Read the contents of a file with optional line range selection.
+
+**Parameters:**
+- `path` (string, required): File path to read
+- `start_line` (number, optional): Starting line number (1-indexed)
+- `end_line` (number, optional): Ending line number (1-indexed)
+
+**Example:**
+```rust
+agent.tool(Box::new(FileReadTool));
+```
+
+#### `FileWriteTool`
+
+Write content to a file (creates new or overwrites existing).
+
+**Parameters:**
+- `path` (string, required): File path to write to
+- `content` (string, required): Content to write
+
+**Example:**
+```rust
+agent.tool(Box::new(FileWriteTool));
+```
+
+#### `FileEditTool`
+
+Edit a file by replacing specific text (find and replace).
+
+**Parameters:**
+- `path` (string, required): File path to edit
+- `find` (string, required): Text to find
+- `replace` (string, required): Replacement text
+
+**Example:**
+```rust
+agent.tool(Box::new(FileEditTool));
 ```
 
 ##  Project Structure
@@ -899,9 +1015,13 @@ helios/
 └── examples/
     ├── basic_chat.rs             # Simple chat example
     ├── agent_with_tools.rs       # Tool usage example
+    ├── agent_with_file_tools.rs  # File management tools example
     ├── custom_tool.rs            # Custom tool implementation
     ├── multiple_agents.rs        # Multiple agents example
-    └── direct_llm_usage.rs       # Direct LLM client usage
+    ├── direct_llm_usage.rs       # Direct LLM client usage
+    ├── streaming_chat.rs         # Streaming responses example
+    ├── local_streaming.rs        # Local model streaming example
+    └── complete_demo.rs          # Complete feature demonstration
 ```
 
 ### Module Overview
@@ -922,17 +1042,32 @@ helios-engine/
 Run the included examples:
 
 ```bash
-# Basic chat
+# Basic chat example
 cargo run --example basic_chat
 
-# Agent with tools
+# Agent with built-in tools (Calculator, Echo)
 cargo run --example agent_with_tools
 
-# Custom tool
+# Agent with file management tools
+cargo run --example agent_with_file_tools
+
+# Custom tool implementation
 cargo run --example custom_tool
 
-# Multiple agents
+# Multiple agents with different personalities
 cargo run --example multiple_agents
+
+# Direct LLM usage without agents
+cargo run --example direct_llm_usage
+
+# Streaming chat with remote models
+cargo run --example streaming_chat
+
+# Local model streaming example
+cargo run --example local_streaming
+
+# Complete demo with all features
+cargo run --example complete_demo
 ```
 
 ##  Testing
@@ -995,7 +1130,11 @@ Helios Engine automatically detects and displays thinking tags from LLM response
 Maintain conversation history:
 
 ```rust
-let mut agent = Agent::new("Assistant", config);
+let mut agent = Agent::builder("Assistant")
+    .config(config)
+    .system_prompt("You are a helpful assistant.")
+    .build()
+    .await?;
 
 agent.chat("My name is Alice").await?;
 agent.chat("What is my name?").await?; // Agent remembers: "Alice"
@@ -1009,6 +1148,69 @@ In offline mode, Helios Engine suppresses all verbose debugging output from llam
 - No layer information display
 - No verbose internal operations
 - Clean, user-focused experience during local inference
+
+### Session Memory & Metadata
+
+Track agent state and conversation metadata across interactions:
+
+```rust
+// Set agent memory (namespaced under "agent:" prefix)
+agent.set_memory("user_preference", "concise");
+agent.set_memory("tasks_completed", "0");
+
+// Get memory values
+if let Some(pref) = agent.get_memory("user_preference") {
+    println!("User prefers: {}", pref);
+}
+
+// Increment counters
+agent.increment_tasks_completed();
+agent.increment_counter("files_processed");
+
+// Get session summary
+println!("{}", agent.get_session_summary());
+
+// Clear only agent memory (preserves general session metadata)
+agent.clear_memory();
+```
+
+Session metadata in `ChatSession`:
+
+```rust
+let mut session = ChatSession::new();
+
+// Set general session metadata
+session.set_metadata("session_id", "abc123");
+session.set_metadata("start_time", chrono::Utc::now().to_rfc3339());
+
+// Retrieve metadata
+if let Some(id) = session.get_metadata("session_id") {
+    println!("Session ID: {}", id);
+}
+
+// Get session summary
+println!("{}", session.get_summary());
+```
+
+### File Management Tools
+
+Built-in tools for file operations:
+
+```rust
+use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileWriteTool, FileEditTool};
+
+let mut agent = Agent::builder("FileAgent")
+    .config(config)
+    .tool(Box::new(FileSearchTool))    // Search files by name or content
+    .tool(Box::new(FileReadTool))      // Read file contents
+    .tool(Box::new(FileWriteTool))     // Write/create files
+    .tool(Box::new(FileEditTool))      // Find and replace in files
+    .build()
+    .await?;
+
+// Agent can now search, read, write, and edit files
+let response = agent.chat("Find all .rs files and show me main.rs").await?;
+```
 
 ##  Contributing
 
