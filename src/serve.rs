@@ -500,12 +500,15 @@ async fn chat_completions(
         .messages
         .into_iter()
         .map(|msg| {
+            // Convert OpenAI message format to internal ChatMessage format
+            // Maps standard OpenAI roles to our Role enum
             let role = match msg.role.as_str() {
-                "system" => Role::System,
-                "user" => Role::User,
-                "assistant" => Role::Assistant,
-                "tool" => Role::Tool,
+                "system" => Role::System,        // System instructions/prompts
+                "user" => Role::User,           // User input messages
+                "assistant" => Role::Assistant,  // AI assistant responses
+                "tool" => Role::Tool,           // Tool/function call results
                 _ => {
+                    // Reject invalid roles to maintain API compatibility
                     return Err(HeliosError::ConfigError(format!(
                         "Invalid role: {}",
                         msg.role
@@ -514,10 +517,10 @@ async fn chat_completions(
             };
             Ok(ChatMessage {
                 role,
-                content: msg.content,
-                name: msg.name,
-                tool_calls: None,
-                tool_call_id: None,
+                content: msg.content,           // The actual message text
+                name: msg.name,                 // Optional name for tool messages
+                tool_calls: None,               // Not used in conversion (OpenAI format differs)
+                tool_call_id: None,             // Not used in conversion (OpenAI format differs)
             })
         })
         .collect();
@@ -542,15 +545,10 @@ async fn chat_completions(
     let messages_clone = messages.clone();
 
     let response_content = if let Some(agent) = &state.agent {
-        // Use agent for response
+        // Use agent for response with full conversation history
         let mut agent = agent.write().await;
-        let user_message = messages
-            .iter()
-            .find(|m| matches!(m.role, Role::User))
-            .map(|m| m.content.clone())
-            .unwrap_or_default();
 
-        match agent.chat(user_message).await {
+        match agent.chat_with_history(messages.clone()).await {
             Ok(content) => content,
             Err(e) => {
                 error!("Agent error: {}", e);
@@ -634,25 +632,16 @@ fn stream_chat_completion(
         };
 
         if let Some(agent) = &state.agent {
-            // Use agent for streaming response
+            // Use agent for true streaming response with full conversation history
             let mut agent = agent.write().await;
-            let user_message = messages
-                .iter()
-                .find(|m| matches!(m.role, Role::User))
-                .map(|m| m.content.clone())
-                .unwrap_or_default();
 
-            // For now, use non-streaming agent chat and stream manually
-            // In the future, we could add streaming support to agents
-            match agent.chat(user_message).await {
-                Ok(content) => {
-                    // Stream the content character by character (simplified)
-                    for chunk in content.chars().collect::<Vec<_>>().chunks(5) {
-                        on_chunk(&chunk.iter().collect::<String>());
-                    }
+            match agent.chat_stream_with_history(messages, on_chunk).await {
+                Ok(_) => {
+                    // Streaming completed successfully
+                    // The on_chunk callback has already been called for each token
                 }
                 Err(e) => {
-                    error!("Agent error: {}", e);
+                    error!("Agent streaming error: {}", e);
                 }
             }
         } else if let Some(llm_client) = &state.llm_client {
