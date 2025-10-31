@@ -154,7 +154,7 @@ async fn main() -> helios_engine::Result<()> {
     let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
-        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(), // export api key not .env file
         temperature: 0.7,
         max_tokens: 2048,
     };
@@ -193,6 +193,7 @@ async fn main() -> helios_engine::Result<()> {
         model_file: "Qwen3-0.6B-Q4_K_M.gguf".to_string(),
         temperature: 0.7,
         max_tokens: 2048,
+        context_size: 8192
     };
 
     // Create client with local provider
@@ -732,6 +733,7 @@ Use streaming to receive responses in real-time:
 ```rust
 use helios_engine::{LLMClient, ChatMessage, llm::LLMProviderType};
 use helios_engine::config::LLMConfig;
+use std::io::Write;
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -1202,8 +1204,12 @@ let mut agent = Agent::builder("Assistant")
     .build()
     .await?;
 
-agent.chat("My name is Alice").await?;
-agent.chat("What is my name?").await?; // Agent remembers: "Alice"
+let response1 = agent.chat("My name is Alice").await?;
+let response2 = agent.chat("What is my name?").await?; // Agent remembers: "Alice"
+
+println!("{response1}");
+
+println!("{response2");
 ```
 
 ### Clean Output Mode
@@ -1276,6 +1282,7 @@ let mut agent = Agent::builder("FileAgent")
 
 // Agent can now search, read, write, and edit files
 let response = agent.chat("Find all .rs files and show me main.rs").await?;
+println!("{response}");
 ```
 
 ### In-Memory Database Tool
@@ -1304,7 +1311,8 @@ agent.chat("Calculate 12345 * 67890 and save it as 'result'").await?;
 agent.chat("What was the result I asked you to calculate?").await?;
 
 // List all cached data
-agent.chat("Show me everything you've stored").await?;
+let response = agent.chat("Show me everything you've stored").await?;
+println!("{response}");
 ```
 
 **Shared Database Between Agents:**
@@ -1405,13 +1413,13 @@ A labyrinth of logic so twisted, so arcane, that it defies comprehension itself.
 ### 📜 The Legend
 
 > *Once, two beings understood this code:*
-> 
+>
 > **⚡ God and Me ⚡**
-> 
+>
 > *Now... I have forgotten.*
-> 
+>
 > *Only God remains.*
-> 
+>
 > *And I'm not sure He's still watching.*
 
 ---
