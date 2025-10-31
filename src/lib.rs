@@ -113,4 +113,8 @@ pub use tools::{
 };
 
 /// Re-export of serve functionality.
-pub use serve::{start_server, start_server_with_agent, ServerState};
+pub use serve::{
+    start_server, start_server_with_agent, start_server_with_custom_endpoints,
+    start_server_with_agent_and_custom_endpoints, load_custom_endpoints_config,
+    ServerState, CustomEndpoint, CustomEndpointsConfig,
+};

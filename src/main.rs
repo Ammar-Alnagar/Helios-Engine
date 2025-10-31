@@ -197,6 +197,10 @@ enum Commands {
         /// The host to bind to.
         #[arg(long, default_value = "127.0.0.1")]
         host: String,
+
+        /// Path to custom endpoints configuration file (TOML format).
+        #[arg(long)]
+        custom_endpoints: Option<String>,
     },
 }
 
@@ -232,8 +236,8 @@ async fn main() -> helios_engine::Result<()> {
             );
             interactive_chat(&cli.config, sys_prompt, *max_iterations, &cli.mode).await?;
         }
-        Some(Commands::Serve { port, host }) => {
-            serve_server(&cli.config, host, *port, &cli.mode).await?;
+        Some(Commands::Serve { port, host, custom_endpoints }) => {
+            serve_server(&cli.config, host, *port, &cli.mode, custom_endpoints.clone()).await?;
         }
         None => {
             // Default to chat command
@@ -489,12 +493,20 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
 }
 
 /// Starts the HTTP server.
-async fn serve_server(config_path: &str, host: &str, port: u16, mode: &str) -> helios_engine::Result<()> {
+async fn serve_server(config_path: &str, host: &str, port: u16, mode: &str, custom_endpoints_path: Option<String>) -> helios_engine::Result<()> {
     let mut config = load_config(config_path)?;
     apply_mode_override(&mut config, mode);
 
     let address = format!("{}:{}", host, port);
-    helios_engine::serve::start_server(config, &address).await?;
+
+    // Load custom endpoints if provided
+    let custom_endpoints = if let Some(path) = custom_endpoints_path {
+        Some(helios_engine::serve::load_custom_endpoints_config(&path)?)
+    } else {
+        None
+    };
+
+    helios_engine::serve::start_server_with_custom_endpoints(config, &address, custom_endpoints).await?;
 
     Ok(())
 }

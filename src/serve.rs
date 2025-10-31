@@ -31,7 +31,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{sse::{Event, Sse}, IntoResponse},
-    routing::{get, post},
+    routing::{get, post, delete, patch, put},
     Json, Router,
 };
 use futures::stream::Stream;
@@ -149,6 +149,31 @@ pub struct ModelsResponse {
     pub data: Vec<ModelInfo>,
 }
 
+/// Custom endpoint configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CustomEndpoint {
+    /// The HTTP method (GET, POST, PUT, DELETE, PATCH).
+    pub method: String,
+    /// The endpoint path.
+    pub path: String,
+    /// The response body as JSON.
+    pub response: serde_json::Value,
+    /// Optional status code (defaults to 200).
+    #[serde(default = "default_status_code")]
+    pub status_code: u16,
+}
+
+fn default_status_code() -> u16 {
+    200
+}
+
+/// Custom endpoints configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CustomEndpointsConfig {
+    /// List of custom endpoints.
+    pub endpoints: Vec<CustomEndpoint>,
+}
+
 /// Server state containing the LLM client and agent (if any).
 #[derive(Clone)]
 pub struct ServerState {
@@ -249,12 +274,164 @@ pub async fn start_server_with_agent(agent: Agent, model_name: String, address: 
     Ok(())
 }
 
+/// Starts the HTTP server with custom endpoints.
+///
+/// # Arguments
+///
+/// * `config` - The configuration to use for the LLM client.
+/// * `address` - The address to bind to (e.g., "127.0.0.1:8000").
+/// * `custom_endpoints` - Optional custom endpoints configuration.
+///
+/// # Returns
+///
+/// A `Result` that resolves when the server shuts down.
+pub async fn start_server_with_custom_endpoints(
+    config: Config,
+    address: &str,
+    custom_endpoints: Option<CustomEndpointsConfig>,
+) -> Result<()> {
+    let provider_type = if let Some(local_config) = config.local.clone() {
+        LLMProviderType::Local(local_config)
+    } else {
+        LLMProviderType::Remote(config.llm.clone())
+    };
+
+    let llm_client = LLMClient::new(provider_type).await?;
+    let model_name = config.local.as_ref().map(|_| "local-model".to_string())
+        .unwrap_or_else(|| config.llm.model_name.clone());
+
+    let state = ServerState::with_llm_client(llm_client, model_name);
+
+    let app = create_router_with_custom_endpoints(state, custom_endpoints.clone());
+
+    info!("🚀 Starting Helios Engine server on http://{}", address);
+    info!("📡 OpenAI-compatible API endpoints:");
+    info!("   POST /v1/chat/completions");
+    info!("   GET  /v1/models");
+
+    if let Some(config) = &custom_endpoints {
+        info!("📡 Custom endpoints:");
+        for endpoint in &config.endpoints {
+            info!("   {} {}", endpoint.method.to_uppercase(), endpoint.path);
+        }
+    }
+
+    let listener = tokio::net::TcpListener::bind(address).await
+        .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
+
+    axum::serve(listener, app).await
+        .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
+
+    Ok(())
+}
+
+/// Starts the HTTP server with an agent and custom endpoints.
+///
+/// # Arguments
+///
+/// * `agent` - The agent to serve.
+/// * `model_name` - The model name to expose in the API.
+/// * `address` - The address to bind to (e.g., "127.0.0.1:8000").
+/// * `custom_endpoints` - Optional custom endpoints configuration.
+///
+/// # Returns
+///
+/// A `Result` that resolves when the server shuts down.
+pub async fn start_server_with_agent_and_custom_endpoints(
+    agent: Agent,
+    model_name: String,
+    address: &str,
+    custom_endpoints: Option<CustomEndpointsConfig>,
+) -> Result<()> {
+    let state = ServerState::with_agent(agent, model_name);
+
+    let app = create_router_with_custom_endpoints(state, custom_endpoints.clone());
+
+    info!("🚀 Starting Helios Engine server with agent on http://{}", address);
+    info!("📡 OpenAI-compatible API endpoints:");
+    info!("   POST /v1/chat/completions");
+    info!("   GET  /v1/models");
+
+    if let Some(config) = &custom_endpoints {
+        info!("📡 Custom endpoints:");
+        for endpoint in &config.endpoints {
+            info!("   {} {}", endpoint.method.to_uppercase(), endpoint.path);
+        }
+    }
+
+    let listener = tokio::net::TcpListener::bind(address).await
+        .map_err(|e| HeliosError::ConfigError(format!("Failed to bind to {}: {}", address, e)))?;
+
+    axum::serve(listener, app).await
+        .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
+
+    Ok(())
+}
+
+/// Loads custom endpoints configuration from a TOML file.
+///
+/// # Arguments
+///
+/// * `path` - Path to the custom endpoints configuration file.
+///
+/// # Returns
+///
+/// A `Result` containing the custom endpoints configuration.
+pub fn load_custom_endpoints_config(path: &str) -> Result<CustomEndpointsConfig> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| HeliosError::ConfigError(format!("Failed to read custom endpoints config file '{}': {}", path, e)))?;
+
+    toml::from_str(&content)
+        .map_err(|e| HeliosError::ConfigError(format!("Failed to parse custom endpoints config file '{}': {}", path, e)))
+}
+
 /// Creates the router with all endpoints.
 fn create_router(state: ServerState) -> Router {
     Router::new()
         .route("/v1/chat/completions", post(chat_completions))
         .route("/v1/models", get(list_models))
         .route("/health", get(health_check))
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http())
+        .with_state(state)
+}
+
+/// Creates the router with custom endpoints.
+fn create_router_with_custom_endpoints(
+    state: ServerState,
+    custom_endpoints: Option<CustomEndpointsConfig>,
+) -> Router {
+    let mut router = Router::new()
+        .route("/v1/chat/completions", post(chat_completions))
+        .route("/v1/models", get(list_models))
+        .route("/health", get(health_check));
+
+    // Add custom endpoints if provided
+    if let Some(config) = custom_endpoints {
+        for endpoint in config.endpoints {
+            let response = endpoint.response.clone();
+            let status_code = StatusCode::from_u16(endpoint.status_code)
+                .unwrap_or(StatusCode::OK);
+
+            let handler = move || async move {
+                (status_code, Json(response))
+            };
+
+            match endpoint.method.to_uppercase().as_str() {
+                "GET" => router = router.route(&endpoint.path, get(handler)),
+                "POST" => router = router.route(&endpoint.path, post(handler)),
+                "PUT" => router = router.route(&endpoint.path, put(handler)),
+                "DELETE" => router = router.route(&endpoint.path, delete(handler)),
+                "PATCH" => router = router.route(&endpoint.path, patch(handler)),
+                _ => {
+                    // Default to GET for unsupported methods
+                    router = router.route(&endpoint.path, get(handler));
+                }
+            }
+        }
+    }
+
+    router
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state)
@@ -468,7 +645,7 @@ fn stream_chat_completion(
 
 /// Estimates the number of tokens in a text (simplified approximation).
 /// In production, use an actual tokenizer.
-fn estimate_tokens(text: &str) -> u32 {
+pub fn estimate_tokens(text: &str) -> u32 {
     // Rough approximation: ~4 characters per token
     (text.len() as f32 / 4.0).ceil() as u32
 }
