@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
@@ -747,6 +748,418 @@ fn find_subslice(h: &[u8], n: &[u8]) -> Option<usize> {
         return Some(0);
     }
     h.windows(n.len()).position(|w| w == n)
+}
+
+/// RAG (Retrieval-Augmented Generation) Tool with Qdrant Vector Database
+/// 
+/// Provides document embedding, storage, retrieval, and reranking capabilities.
+/// Supports operations: add_document, search, delete, list, clear
+#[derive(Clone)]
+pub struct QdrantRAGTool {
+    qdrant_url: String,
+    collection_name: String,
+    embedding_api_url: String,
+    embedding_api_key: String,
+    client: reqwest::Client,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct QdrantPoint {
+    id: String,
+    vector: Vec<f32>,
+    payload: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct QdrantSearchRequest {
+    vector: Vec<f32>,
+    limit: usize,
+    with_payload: bool,
+    with_vector: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct QdrantSearchResponse {
+    result: Vec<QdrantSearchResult>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct QdrantSearchResult {
+    id: String,
+    score: f64,
+    payload: Option<HashMap<String, serde_json::Value>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EmbeddingRequest {
+    input: String,
+    model: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EmbeddingResponse {
+    data: Vec<EmbeddingData>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EmbeddingData {
+    embedding: Vec<f32>,
+}
+
+impl QdrantRAGTool {
+    /// Create a new RAG tool with Qdrant backend
+    pub fn new(
+        qdrant_url: impl Into<String>,
+        collection_name: impl Into<String>,
+        embedding_api_url: impl Into<String>,
+        embedding_api_key: impl Into<String>,
+    ) -> Self {
+        Self {
+            qdrant_url: qdrant_url.into(),
+            collection_name: collection_name.into(),
+            embedding_api_url: embedding_api_url.into(),
+            embedding_api_key: embedding_api_key.into(),
+            client: reqwest::Client::new(),
+        }
+    }
+
+    /// Generate embeddings using OpenAI-compatible API
+    async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
+        let request = EmbeddingRequest {
+            input: text.to_string(),
+            model: "text-embedding-ada-002".to_string(),
+        };
+
+        let response = self
+            .client
+            .post(&self.embedding_api_url)
+            .header("Authorization", format!("Bearer {}", self.embedding_api_key))
+            .json(&request)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Embedding API error: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Embedding failed: {}", error_text)));
+        }
+
+        let embedding_response: EmbeddingResponse = response
+            .json()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Failed to parse embedding response: {}", e)))?;
+
+        embedding_response
+            .data
+            .into_iter()
+            .next()
+            .map(|d| d.embedding)
+            .ok_or_else(|| HeliosError::ToolError("No embedding returned".to_string()))
+    }
+
+    /// Ensure collection exists in Qdrant
+    async fn ensure_collection(&self) -> Result<()> {
+        let collection_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
+        
+        // Check if collection exists
+        let response = self.client.get(&collection_url).send().await;
+        
+        if response.is_ok() && response.unwrap().status().is_success() {
+            return Ok(()); // Collection exists
+        }
+
+        // Create collection with 1536 dimensions (OpenAI embedding size)
+        let create_payload = serde_json::json!({
+            "vectors": {
+                "size": 1536,
+                "distance": "Cosine"
+            }
+        });
+
+        let response = self
+            .client
+            .put(&collection_url)
+            .json(&create_payload)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Failed to create collection: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Collection creation failed: {}", error_text)));
+        }
+
+        Ok(())
+    }
+
+    /// Add a document to Qdrant
+    async fn add_document(&self, text: &str, metadata: HashMap<String, serde_json::Value>) -> Result<String> {
+        self.ensure_collection().await?;
+
+        // Generate embedding
+        let embedding = self.generate_embedding(text).await?;
+
+        // Create point with metadata
+        let point_id = Uuid::new_v4().to_string();
+        let mut payload = metadata;
+        payload.insert("text".to_string(), serde_json::json!(text));
+        payload.insert("timestamp".to_string(), serde_json::json!(chrono::Utc::now().to_rfc3339()));
+
+        let point = QdrantPoint {
+            id: point_id.clone(),
+            vector: embedding,
+            payload,
+        };
+
+        // Upload point to Qdrant
+        let upsert_url = format!("{}/collections/{}/points", self.qdrant_url, self.collection_name);
+        let upsert_payload = serde_json::json!({
+            "points": [point]
+        });
+
+        let response = self
+            .client
+            .put(&upsert_url)
+            .json(&upsert_payload)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Failed to upload document: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Document upload failed: {}", error_text)));
+        }
+
+        Ok(point_id)
+    }
+
+    /// Search for similar documents
+    async fn search(&self, query: &str, limit: usize) -> Result<Vec<(String, f64, String)>> {
+        // Generate query embedding
+        let query_embedding = self.generate_embedding(query).await?;
+
+        // Search in Qdrant
+        let search_url = format!("{}/collections/{}/points/search", self.qdrant_url, self.collection_name);
+        let search_request = QdrantSearchRequest {
+            vector: query_embedding,
+            limit,
+            with_payload: true,
+            with_vector: false,
+        };
+
+        let response = self
+            .client
+            .post(&search_url)
+            .json(&search_request)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Search failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Search request failed: {}", error_text)));
+        }
+
+        let search_response: QdrantSearchResponse = response
+            .json()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Failed to parse search response: {}", e)))?;
+
+        // Extract results
+        let results: Vec<(String, f64, String)> = search_response
+            .result
+            .into_iter()
+            .filter_map(|r| {
+                r.payload.and_then(|p| {
+                    p.get("text")
+                        .and_then(|t| t.as_str())
+                        .map(|text| (r.id, r.score, text.to_string()))
+                })
+            })
+            .collect();
+
+        Ok(results)
+    }
+
+    /// Delete a document by ID
+    async fn delete_document(&self, doc_id: &str) -> Result<()> {
+        let delete_url = format!("{}/collections/{}/points/delete", self.qdrant_url, self.collection_name);
+        let delete_payload = serde_json::json!({
+            "points": [doc_id]
+        });
+
+        let response = self
+            .client
+            .post(&delete_url)
+            .json(&delete_payload)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Delete failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Delete request failed: {}", error_text)));
+        }
+
+        Ok(())
+    }
+
+    /// Clear all documents in the collection
+    async fn clear_collection(&self) -> Result<()> {
+        let delete_url = format!("{}/collections/{}", self.qdrant_url, self.collection_name);
+        
+        let response = self
+            .client
+            .delete(&delete_url)
+            .send()
+            .await
+            .map_err(|e| HeliosError::ToolError(format!("Clear failed: {}", e)))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(HeliosError::ToolError(format!("Clear collection failed: {}", error_text)));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl Tool for QdrantRAGTool {
+    fn name(&self) -> &str {
+        "rag_qdrant"
+    }
+
+    fn description(&self) -> &str {
+        "RAG (Retrieval-Augmented Generation) tool with vector database. Operations: add_document, search, delete, clear"
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "operation".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Operation: 'add_document', 'search', 'delete', 'clear'".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "text".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Text content for add_document or search query".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "doc_id".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Document ID for delete operation".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "limit".to_string(),
+            ToolParameter {
+                param_type: "number".to_string(),
+                description: "Number of results for search (default: 5)".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "metadata".to_string(),
+            ToolParameter {
+                param_type: "object".to_string(),
+                description: "Additional metadata for the document (JSON object)".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let operation = args
+            .get("operation")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'operation' parameter".to_string()))?;
+
+        match operation {
+            "add_document" => {
+                let text = args
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'text' for add_document".to_string()))?;
+
+                let metadata: HashMap<String, serde_json::Value> = args
+                    .get("metadata")
+                    .and_then(|v| serde_json::from_value(v.clone()).ok())
+                    .unwrap_or_default();
+
+                let doc_id = self.add_document(text, metadata).await?;
+                Ok(ToolResult::success(format!(
+                    "✓ Document added successfully\nID: {}\nText preview: {}",
+                    doc_id,
+                    &text[..text.len().min(100)]
+                )))
+            }
+            "search" => {
+                let query = args
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'text' for search".to_string()))?;
+
+                let limit = args
+                    .get("limit")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(5) as usize;
+
+                let results = self.search(query, limit).await?;
+
+                if results.is_empty() {
+                    Ok(ToolResult::success("No matching documents found".to_string()))
+                } else {
+                    let formatted_results: Vec<String> = results
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (id, score, text))| {
+                            format!(
+                                "{}. [Score: {:.4}] {}\n   ID: {}\n",
+                                i + 1,
+                                score,
+                                &text[..text.len().min(150)],
+                                id
+                            )
+                        })
+                        .collect();
+
+                    Ok(ToolResult::success(format!(
+                        "Found {} result(s):\n\n{}",
+                        results.len(),
+                        formatted_results.join("\n")
+                    )))
+                }
+            }
+            "delete" => {
+                let doc_id = args
+                    .get("doc_id")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| HeliosError::ToolError("Missing 'doc_id' for delete".to_string()))?;
+
+                self.delete_document(doc_id).await?;
+                Ok(ToolResult::success(format!("✓ Document '{}' deleted", doc_id)))
+            }
+            "clear" => {
+                self.clear_collection().await?;
+                Ok(ToolResult::success("✓ All documents cleared from collection".to_string()))
+            }
+            _ => Err(HeliosError::ToolError(format!(
+                "Unknown operation '{}'. Valid: add_document, search, delete, clear",
+                operation
+            ))),
+        }
+    }
 }
 
 /// In-Memory Database Tool

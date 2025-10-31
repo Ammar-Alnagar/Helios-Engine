@@ -1016,6 +1016,39 @@ agent.chat("Store my name as 'Alice' in the database").await?;
 agent.chat("What's my name?").await?; // Agent retrieves from DB
 ```
 
+#### `QdrantRAGTool`
+
+RAG (Retrieval-Augmented Generation) tool with Qdrant vector database for semantic search and document retrieval.
+
+**Parameters:**
+- `operation` (string, required): Operation: `add_document`, `search`, `delete`, `clear`
+- `text` (string, optional): Document text or search query
+- `doc_id` (string, optional): Document ID for delete operation
+- `limit` (number, optional): Number of search results (default: 5)
+- `metadata` (object, optional): Additional metadata for documents
+
+**Supported Operations:**
+- `add_document` - Embed and store a document
+- `search` - Semantic search with vector similarity
+- `delete` - Remove a document by ID
+- `clear` - Clear all documents from collection
+
+**Example:**
+```rust
+let rag_tool = QdrantRAGTool::new(
+    "http://localhost:6333",                    // Qdrant URL
+    "my_collection",                             // Collection name
+    "https://api.openai.com/v1/embeddings",     // Embedding API
+    std::env::var("OPENAI_API_KEY").unwrap(),   // API key
+);
+
+agent.tool(Box::new(rag_tool));
+```
+
+**Prerequisites:**
+- Qdrant running: `docker run -p 6333:6333 qdrant/qdrant`
+- OpenAI API key for embeddings
+
 ##  Project Structure
 
 ```
