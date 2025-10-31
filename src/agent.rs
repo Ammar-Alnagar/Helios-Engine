@@ -138,6 +138,16 @@ impl Agent {
 
     /// Executes the agent's main loop, including tool calls.
     async fn execute_with_tools(&mut self) -> Result<String> {
+        self.execute_with_tools_with_params(None, None, None).await
+    }
+
+    /// Executes the agent's main loop with parameters, including tool calls.
+    async fn execute_with_tools_with_params(
+        &mut self,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
+    ) -> Result<String> {
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
 
@@ -155,7 +165,16 @@ impl Agent {
                 Some(tool_definitions.clone())
             };
 
-            let response = self.llm_client.chat(messages, tools_option).await?;
+            let response = self
+                .llm_client
+                .chat(
+                    messages,
+                    tools_option,
+                    temperature,
+                    max_tokens,
+                    stop.clone(),
+                )
+                .await?;
 
             // Check if the response includes tool calls
             if let Some(ref tool_calls) = response.tool_calls {
@@ -269,11 +288,20 @@ impl Agent {
     /// # Arguments
     ///
     /// * `messages` - The complete conversation history for this request
+    /// * `temperature` - Optional temperature parameter for generation
+    /// * `max_tokens` - Optional maximum tokens parameter for generation
+    /// * `stop` - Optional stop sequences for generation
     ///
     /// # Returns
     ///
     /// A `Result` containing the assistant's response content.
-    pub async fn chat_with_history(&mut self, messages: Vec<ChatMessage>) -> Result<String> {
+    pub async fn chat_with_history(
+        &mut self,
+        messages: Vec<ChatMessage>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
+    ) -> Result<String> {
         // Create a temporary session with the provided messages
         let mut temp_session = ChatSession::new();
 
@@ -283,11 +311,18 @@ impl Agent {
         }
 
         // Execute agent loop with tool calling using the temporary session
-        self.execute_with_tools_temp_session(temp_session).await
+        self.execute_with_tools_temp_session(temp_session, temperature, max_tokens, stop)
+            .await
     }
 
     /// Executes the agent's main loop with a temporary session, including tool calls.
-    async fn execute_with_tools_temp_session(&mut self, mut temp_session: ChatSession) -> Result<String> {
+    async fn execute_with_tools_temp_session(
+        &mut self,
+        mut temp_session: ChatSession,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
+    ) -> Result<String> {
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
 
@@ -305,7 +340,16 @@ impl Agent {
                 Some(tool_definitions.clone())
             };
 
-            let response = self.llm_client.chat(messages, tools_option).await?;
+            let response = self
+                .llm_client
+                .chat(
+                    messages,
+                    tools_option,
+                    temperature,
+                    max_tokens,
+                    stop.clone(),
+                )
+                .await?;
 
             // Check if the response includes tool calls
             if let Some(ref tool_calls) = response.tool_calls {
@@ -350,6 +394,9 @@ impl Agent {
     /// # Arguments
     ///
     /// * `messages` - The complete conversation history for this request
+    /// * `temperature` - Optional temperature parameter for generation
+    /// * `max_tokens` - Optional maximum tokens parameter for generation
+    /// * `stop` - Optional stop sequences for generation
     /// * `on_chunk` - Callback function called for each chunk of generated text
     ///
     /// # Returns
@@ -358,6 +405,9 @@ impl Agent {
     pub async fn chat_stream_with_history<F>(
         &mut self,
         messages: Vec<ChatMessage>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
         on_chunk: F,
     ) -> Result<ChatMessage>
     where
@@ -373,13 +423,23 @@ impl Agent {
 
         // For now, use streaming for the initial response only
         // Tool calls will be handled after the stream completes
-        self.execute_streaming_with_tools_temp_session(temp_session, on_chunk).await
+        self.execute_streaming_with_tools_temp_session(
+            temp_session,
+            temperature,
+            max_tokens,
+            stop,
+            on_chunk,
+        )
+        .await
     }
 
     /// Executes the agent's main loop with streaming and a temporary session.
     async fn execute_streaming_with_tools_temp_session<F>(
         &mut self,
         mut temp_session: ChatSession,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
         mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
@@ -406,14 +466,20 @@ impl Agent {
             if iterations == 0 {
                 let mut streamed_content = String::new();
 
-                let stream_result = self.llm_client.chat_stream(
-                    messages,
-                    tools_option,
-                    |chunk| {
-                        on_chunk(chunk);
-                        streamed_content.push_str(chunk);
-                    }
-                ).await;
+                let stream_result = self
+                    .llm_client
+                    .chat_stream(
+                        messages,
+                        tools_option,
+                        temperature,
+                        max_tokens,
+                        stop.clone(),
+                        |chunk| {
+                            on_chunk(chunk);
+                            streamed_content.push_str(chunk);
+                        },
+                    )
+                    .await;
 
                 match stream_result {
                     Ok(response) => {
@@ -425,8 +491,9 @@ impl Agent {
                             // Execute each tool call
                             for tool_call in tool_calls {
                                 let tool_name = &tool_call.function.name;
-                                let tool_args: Value = serde_json::from_str(&tool_call.function.arguments)
-                                    .unwrap_or(Value::Object(serde_json::Map::new()));
+                                let tool_args: Value =
+                                    serde_json::from_str(&tool_call.function.arguments)
+                                        .unwrap_or(Value::Object(serde_json::Map::new()));
 
                                 let tool_result = self
                                     .tool_registry
@@ -437,7 +504,8 @@ impl Agent {
                                     });
 
                                 // Add tool result message to temp session
-                                let tool_message = ChatMessage::tool(tool_result.output, tool_call.id.clone());
+                                let tool_message =
+                                    ChatMessage::tool(tool_result.output, tool_call.id.clone());
                                 temp_session.add_message(tool_message);
                             }
 
@@ -455,7 +523,16 @@ impl Agent {
             } else {
                 // For subsequent iterations (after tool calls), use non-streaming
                 // since we're just getting tool results processed
-                let response = self.llm_client.chat(messages, tools_option).await?;
+                let response = self
+                    .llm_client
+                    .chat(
+                        messages,
+                        tools_option,
+                        temperature,
+                        max_tokens,
+                        stop.clone(),
+                    )
+                    .await?;
 
                 if let Some(ref tool_calls) = response.tool_calls {
                     // Add assistant message with tool calls to temp session
@@ -476,7 +553,8 @@ impl Agent {
                             });
 
                         // Add tool result message to temp session
-                        let tool_message = ChatMessage::tool(tool_result.output, tool_call.id.clone());
+                        let tool_message =
+                            ChatMessage::tool(tool_result.output, tool_call.id.clone());
                         temp_session.add_message(tool_message);
                     }
 

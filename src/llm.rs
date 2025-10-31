@@ -61,6 +61,9 @@ pub struct LLMRequest {
     /// Whether to stream the response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
+    /// Stop sequences for the request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop: Option<Vec<String>>,
 }
 
 /// A chunk of a streamed response.
@@ -460,15 +463,19 @@ impl RemoteLLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
     ) -> Result<ChatMessage> {
         let request = LLMRequest {
             model: self.config.model_name.clone(),
             messages,
-            temperature: Some(self.config.temperature),
-            max_tokens: Some(self.config.max_tokens),
+            temperature: temperature.or(Some(self.config.temperature)),
+            max_tokens: max_tokens.or(Some(self.config.max_tokens)),
             tools,
             tool_choice: None,
             stream: None,
+            stop,
         };
 
         let response = self.generate(request).await?;
@@ -486,6 +493,9 @@ impl RemoteLLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
         mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
@@ -494,11 +504,12 @@ impl RemoteLLMClient {
         let request = LLMRequest {
             model: self.config.model_name.clone(),
             messages,
-            temperature: Some(self.config.temperature),
-            max_tokens: Some(self.config.max_tokens),
+            temperature: temperature.or(Some(self.config.temperature)),
+            max_tokens: max_tokens.or(Some(self.config.max_tokens)),
             tools,
             tool_choice: None,
             stream: Some(true),
+            stop,
         };
 
         let url = format!("{}/chat/completions", self.config.base_url);
@@ -717,6 +728,9 @@ impl LocalLLMProvider {
     async fn chat_stream_local<F>(
         &self,
         messages: Vec<ChatMessage>,
+        _temperature: Option<f32>,
+        _max_tokens: Option<u32>,
+        _stop: Option<Vec<String>>,
         mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
@@ -872,8 +886,11 @@ impl LLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
     ) -> Result<ChatMessage> {
-        let (model_name, temperature, max_tokens) = match &self.provider_type {
+        let (model_name, default_temperature, default_max_tokens) = match &self.provider_type {
             LLMProviderType::Remote(config) => (
                 config.model_name.clone(),
                 config.temperature,
@@ -889,11 +906,12 @@ impl LLMClient {
         let request = LLMRequest {
             model: model_name,
             messages,
-            temperature: Some(temperature),
-            max_tokens: Some(max_tokens),
+            temperature: temperature.or(Some(default_temperature)),
+            max_tokens: max_tokens.or(Some(default_max_tokens)),
             tools,
             tool_choice: None,
             stream: None,
+            stop,
         };
 
         let response = self.generate(request).await?;
@@ -911,6 +929,9 @@ impl LLMClient {
         &self,
         messages: Vec<ChatMessage>,
         tools: Option<Vec<ToolDefinition>>,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
         on_chunk: F,
     ) -> Result<ChatMessage>
     where
@@ -919,14 +940,18 @@ impl LLMClient {
         match &self.provider_type {
             LLMProviderType::Remote(_) => {
                 if let Some(provider) = self.provider.as_any().downcast_ref::<RemoteLLMClient>() {
-                    provider.chat_stream(messages, tools, on_chunk).await
+                    provider
+                        .chat_stream(messages, tools, temperature, max_tokens, stop, on_chunk)
+                        .await
                 } else {
                     Err(HeliosError::AgentError("Provider type mismatch".into()))
                 }
             }
             LLMProviderType::Local(_) => {
                 if let Some(provider) = self.provider.as_any().downcast_ref::<LocalLLMProvider>() {
-                    provider.chat_stream_local(messages, on_chunk).await
+                    provider
+                        .chat_stream_local(messages, temperature, max_tokens, stop, on_chunk)
+                        .await
                 } else {
                     Err(HeliosError::AgentError("Provider type mismatch".into()))
                 }

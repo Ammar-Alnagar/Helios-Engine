@@ -503,24 +503,24 @@ async fn chat_completions(
             // Convert OpenAI message format to internal ChatMessage format
             // Maps standard OpenAI roles to our Role enum
             let role = match msg.role.as_str() {
-                "system" => Role::System,        // System instructions/prompts
+                "system" => Role::System,       // System instructions/prompts
                 "user" => Role::User,           // User input messages
-                "assistant" => Role::Assistant,  // AI assistant responses
+                "assistant" => Role::Assistant, // AI assistant responses
                 "tool" => Role::Tool,           // Tool/function call results
                 _ => {
                     // Reject invalid roles to maintain API compatibility
                     return Err(HeliosError::ConfigError(format!(
                         "Invalid role: {}",
                         msg.role
-                    )))
+                    )));
                 }
             };
             Ok(ChatMessage {
                 role,
-                content: msg.content,           // The actual message text
-                name: msg.name,                 // Optional name for tool messages
-                tool_calls: None,               // Not used in conversion (OpenAI format differs)
-                tool_call_id: None,             // Not used in conversion (OpenAI format differs)
+                content: msg.content, // The actual message text
+                name: msg.name,       // Optional name for tool messages
+                tool_calls: None,     // Not used in conversion (OpenAI format differs)
+                tool_call_id: None,   // Not used in conversion (OpenAI format differs)
             })
         })
         .collect();
@@ -534,7 +534,15 @@ async fn chat_completions(
 
     if stream {
         // Handle streaming response
-        return Ok(stream_chat_completion(state, messages, request.model).into_response());
+        return Ok(stream_chat_completion(
+            state,
+            messages,
+            request.model,
+            request.temperature,
+            request.max_tokens,
+            request.stop.clone(),
+        )
+        .into_response());
     }
 
     // Handle non-streaming response
@@ -548,7 +556,15 @@ async fn chat_completions(
         // Use agent for response with full conversation history
         let mut agent = agent.write().await;
 
-        match agent.chat_with_history(messages.clone()).await {
+        match agent
+            .chat_with_history(
+                messages.clone(),
+                request.temperature,
+                request.max_tokens,
+                request.stop.clone(),
+            )
+            .await
+        {
             Ok(content) => content,
             Err(e) => {
                 error!("Agent error: {}", e);
@@ -557,7 +573,16 @@ async fn chat_completions(
         }
     } else if let Some(llm_client) = &state.llm_client {
         // Use LLM client directly
-        match llm_client.chat(messages_clone, None).await {
+        match llm_client
+            .chat(
+                messages_clone,
+                None,
+                request.temperature,
+                request.max_tokens,
+                request.stop.clone(),
+            )
+            .await
+        {
             Ok(msg) => msg.content,
             Err(e) => {
                 error!("LLM error: {}", e);
@@ -606,6 +631,9 @@ fn stream_chat_completion(
     state: ServerState,
     messages: Vec<ChatMessage>,
     model: String,
+    temperature: Option<f32>,
+    max_tokens: Option<u32>,
+    stop: Option<Vec<String>>,
 ) -> Sse<impl Stream<Item = std::result::Result<Event, Infallible>>> {
     let (tx, rx) = tokio::sync::mpsc::channel(100);
     let completion_id = format!("chatcmpl-{}", Uuid::new_v4());
@@ -635,7 +663,10 @@ fn stream_chat_completion(
             // Use agent for true streaming response with full conversation history
             let mut agent = agent.write().await;
 
-            match agent.chat_stream_with_history(messages, on_chunk).await {
+            match agent
+                .chat_stream_with_history(messages, temperature, max_tokens, stop.clone(), on_chunk)
+                .await
+            {
                 Ok(_) => {
                     // Streaming completed successfully
                     // The on_chunk callback has already been called for each token
@@ -646,7 +677,17 @@ fn stream_chat_completion(
             }
         } else if let Some(llm_client) = &state.llm_client {
             // Use LLM client streaming
-            match llm_client.chat_stream(messages, None, on_chunk).await {
+            match llm_client
+                .chat_stream(
+                    messages,
+                    None,
+                    temperature,
+                    max_tokens,
+                    stop.clone(),
+                    on_chunk,
+                )
+                .await
+            {
                 Ok(_) => {}
                 Err(e) => {
                     error!("LLM streaming error: {}", e);

@@ -28,7 +28,7 @@
 //!         ChatMessage::user("What is the capital of France?"),
 //!     ];
 //!
-//!     let response = client.chat(messages, None).await?;
+//!     let response = client.chat(messages, None, None, None, None).await?;
 //!     println!("Response: {}", response.content);
 //!     Ok(())
 //! }

@@ -319,7 +319,7 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
 
     // Use streaming for both local and remote models
     let response = client
-        .chat_stream(messages, None, |chunk| {
+        .chat_stream(messages, None, None, None, None, |chunk| {
             if let Some(output) = tracker.process_chunk(chunk) {
                 print!("{}", output);
                 io::stdout().flush().unwrap();
@@ -411,7 +411,7 @@ async fn interactive_chat(
         io::stdout().flush()?;
 
         match client
-            .chat_stream(session.get_messages(), None, |chunk| {
+            .chat_stream(session.get_messages(), None, None, None, None, |chunk| {
                 if let Some(output) = tracker.process_chunk(chunk) {
                     print!("{}", output);
                     io::stdout().flush().unwrap();

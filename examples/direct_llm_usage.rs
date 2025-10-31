@@ -71,7 +71,7 @@ async fn simple_call() -> helios_engine::Result<()> {
 
     // Make the call to the LLM.
     println!("Sending request...");
-    match client.chat(messages, None).await {
+    match client.chat(messages, None, None, None, None).await {
         Ok(response) => {
             println!("✓ Response: {}", response.content);
         }
@@ -108,7 +108,10 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
     session.add_user_message("What is 15 * 23?");
     print!("  User: What is 15 * 23?\n  ");
 
-    match client.chat(session.get_messages(), None).await {
+    match client
+        .chat(session.get_messages(), None, None, None, None)
+        .await
+    {
         Ok(response) => {
             session.add_assistant_message(&response.content);
             println!("Assistant: {}", response.content);
@@ -124,7 +127,10 @@ async fn conversation_with_context() -> helios_engine::Result<()> {
     session.add_user_message("Now divide that by 5.");
     print!("  User: Now divide that by 5.\n  ");
 
-    match client.chat(session.get_messages(), None).await {
+    match client
+        .chat(session.get_messages(), None, None, None, None)
+        .await
+    {
         Ok(response) => {
             session.add_assistant_message(&response.content);
             println!("Assistant: {}", response.content);
@@ -237,7 +243,10 @@ async fn interactive_chat() -> helios_engine::Result<()> {
         print!("Assistant: ");
         io::stdout().flush()?;
 
-        match client.chat(session.get_messages(), None).await {
+        match client
+            .chat(session.get_messages(), None, None, None, None)
+            .await
+        {
             Ok(response) => {
                 session.add_assistant_message(&response.content);
                 println!("{}\n", response.content);
