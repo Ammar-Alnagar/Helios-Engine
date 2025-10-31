@@ -34,6 +34,7 @@
 -  **Streaming Support**: Real-time response streaming for both remote and local models
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
+-  **HTTP Server & API**: Expose OpenAI-compatible API endpoints for agents and LLM clients
 -  **Async/Await**: Built on Tokio for high-performance async operations
 -  **Type-Safe**: Leverages Rust's type system for safe and reliable code
 -  **Extensible**: Easy to add custom tools and extend functionality

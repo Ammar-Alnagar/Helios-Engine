@@ -324,8 +324,8 @@ async fn chat_completions(
     let completion_id = format!("chatcmpl-{}", Uuid::new_v4());
     let created = chrono::Utc::now().timestamp() as u64;
 
-    // Collect message contents for token estimation before moving messages
-    let message_contents: Vec<&str> = messages.iter().map(|m| m.content.as_str()).collect();
+    // Clone messages for token estimation and LLM client usage
+    let messages_clone = messages.clone();
 
     let response_content = if let Some(agent) = &state.agent {
         // Use agent for response
@@ -345,7 +345,7 @@ async fn chat_completions(
         }
     } else if let Some(llm_client) = &state.llm_client {
         // Use LLM client directly
-        match llm_client.chat(messages, None).await {
+        match llm_client.chat(messages_clone, None).await {
             Ok(msg) => msg.content,
             Err(e) => {
                 error!("LLM error: {}", e);
@@ -413,7 +413,7 @@ fn stream_chat_completion(
             let _ = tx.try_send(Ok(event));
         };
 
-        let result = if let Some(agent) = &state.agent {
+        if let Some(agent) = &state.agent {
             // Use agent for streaming response
             let mut agent = agent.write().await;
             let user_message = messages
