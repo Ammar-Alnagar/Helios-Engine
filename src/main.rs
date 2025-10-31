@@ -1,5 +1,5 @@
-"//! # Helios Engine CLI
-//! 
+//! # Helios Engine CLI
+//!
 //! This is the command-line interface for the Helios Engine.
 //! It provides commands for interactive chat, asking single questions,
 //! and initializing the configuration.
