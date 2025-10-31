@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 rust-version = "1.70"
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support Both locally and online"
@@ -23,7 +23,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-axum = { version = "0.8.5", features = ["macros", "json"] }
+axum = { version = "0.8.5", features = ["json", "macros"] }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"

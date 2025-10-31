@@ -1,7 +1,8 @@
 //! # Serve Module
 //!
-//! This module provides functionality to serve OpenAI-compatible API endpoints,
-//! allowing users to expose their agents or LLM clients via HTTP.
+//! This module provides functionality to serve fully OpenAI-compatible API endpoints
+//! with real-time streaming and parameter control, allowing users to expose their
+//! agents or LLM clients via HTTP with full generation parameter support.
 //!
 //! ## Usage
 //!

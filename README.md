@@ -31,10 +31,10 @@
 -  **Chat Management**: Built-in conversation history and session management
 -  **Session Memory**: Track agent state and metadata across conversations
 -  **File Management Tools**: Built-in tools for searching, reading, writing, and editing files
--  **Streaming Support**: Real-time response streaming for both remote and local models
+-  **Streaming Support**: True real-time response streaming for both remote and local models with immediate token delivery
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
--  **HTTP Server & API**: Expose OpenAI-compatible API endpoints for agents and LLM clients
+-  **HTTP Server & API**: Expose OpenAI-compatible API endpoints with full parameter support (temperature, max_tokens, stop) for agents and LLM clients
 -  **Async/Await**: Built on Tokio for high-performance async operations
 -  **Type-Safe**: Leverages Rust's type system for safe and reliable code
 -  **Extensible**: Easy to add custom tools and extend functionality
@@ -279,7 +279,7 @@ cargo run
 
 ### Serve API
 
-Expose your agents and LLM configurations as OpenAI-compatible HTTP API endpoints:
+Expose your agents and LLM configurations as fully OpenAI-compatible HTTP API endpoints with real-time streaming and parameter control:
 
 #### Serve an LLM Client (Direct API Access)
 
@@ -396,8 +396,10 @@ serve::start_server_with_agent_and_custom_endpoints(
 
 #### Example API Usage
 
+The API supports full OpenAI-compatible parameters for fine-grained control over generation:
+
 ```bash
-# Non-streaming request
+# Basic non-streaming request
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -406,15 +408,40 @@ curl -X POST http://localhost:8000/v1/chat/completions \
     "stream": false
   }'
 
-# Streaming request
+# Advanced request with generation parameters
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "your-model",
-    "messages": [{"role": "user", "content": "Tell me a story"}],
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "Write a short poem about Rust programming"}
+    ],
+    "temperature": 0.8,
+    "max_tokens": 150,
+    "stop": ["\n\n"],
+    "stream": false
+  }'
+
+# Real-time streaming request with parameters
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "your-model",
+    "messages": [{"role": "user", "content": "Tell me a creative story"}],
+    "temperature": 0.9,
+    "max_tokens": 500,
     "stream": true
   }'
 ```
+
+**Supported Parameters:**
+- `temperature` (0.0-2.0): Controls randomness (lower = more deterministic)
+- `max_tokens`: Maximum tokens to generate
+- `stop`: Array of strings that stop generation when encountered
+- `stream`: Enable real-time token streaming for immediate responses
+
+**Note:** When parameters are not specified, the server uses configuration defaults. Agents maintain conversation context across requests for natural multi-turn conversations.
 
 ##  CLI Usage
 
@@ -476,7 +503,7 @@ helios-engine --verbose serve
 ```
 
 The serve command exposes the following endpoints:
-- `POST /v1/chat/completions` - Chat completions with optional streaming
+- `POST /v1/chat/completions` - Chat completions with real-time streaming and full parameter support (temperature, max_tokens, stop)
 - `GET /v1/models` - List available models
 - `GET /health` - Health check endpoint
 - Custom endpoints (when `--custom-endpoints` is specified)
