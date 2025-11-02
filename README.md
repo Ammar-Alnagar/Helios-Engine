@@ -412,7 +412,7 @@ Create a custom endpoints configuration file (`custom_endpoints.toml`):
 [[endpoints]]
 method = "GET"
 path = "/api/version"
-response = { version = "0.2.8", service = "Helios Engine" }
+response = { version = "0.3.0", service = "Helios Engine" }
 status_code = 200
 
 [[endpoints]]
