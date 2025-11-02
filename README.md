@@ -32,7 +32,7 @@
 -  **Session Memory**: Track agent state and metadata across conversations
 -  **File Management Tools**: Built-in tools for searching, reading, writing, and editing files
 -  **Streaming Support**: True real-time response streaming for both remote and local models with immediate token delivery
--  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration
+-  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration (optional `local` feature)
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
 -  **HTTP Server & API**: Expose OpenAI-compatible API endpoints with full parameter support (temperature, max_tokens, stop) for agents and LLM clients
 -  **Async/Await**: Built on Tokio for high-performance async operations
@@ -42,10 +42,12 @@
 -  **Dual Mode Support**: Auto, online (remote API), and offline (local) modes
 -  **Clean Output**: Suppresses verbose debugging in offline mode for clean user experience
 -  **CLI & Library**: Use as both a command-line tool and a Rust library crate
+-  **🆕 Feature Flags**: Optional `local` feature for offline model support - build only what you need!
 
 ##  Table of Contents
 
 - [Installation](#installation)
+- [Feature Flags](#-feature-flags)
 - [Quick Start](#quick-start)
   - [Using as a Library Crate](#using-as-a-library-crate)
   - [Using Offline Mode with Local Models](#using-offline-mode-with-local-models)
@@ -72,7 +74,11 @@ Helios Engine can be used both as a **command-line tool** and as a **library cra
 Install globally using Cargo (once published):
 
 ```bash
+# Install without local model support (lighter, faster install)
 cargo install helios-engine
+
+# Install with local model support (enables offline mode with llama-cpp-2)
+cargo install helios-engine --features local
 ```
 
 Then use anywhere:
@@ -123,7 +129,12 @@ Add Helios-Engine to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios-engine = "0.2.5"
+# Without local model support (lighter dependency)
+helios-engine = "0.3.0"
+tokio = { version = "1.35", features = ["full"] }
+
+# OR with local model support for offline inference
+helios-engine = { version = "0.3.0", features = ["local"] }
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -140,10 +151,66 @@ tokio = { version = "1.35", features = ["full"] }
 ```bash
 git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
 cd Helios-Engine
+
+# Build without local model support
 cargo build --release
 
-# Install locally
+# OR build with local model support
+cargo build --release --features local
+
+# Install locally (without local support)
 cargo install --path .
+
+# OR install with local model support
+cargo install --path . --features local
+```
+
+## 🚩 Feature Flags
+
+Helios Engine supports optional feature flags to control which dependencies are included in your build. This allows you to create lighter builds when you don't need certain functionality.
+
+### Available Features
+
+#### `local` - Local Model Support
+
+Enables offline inference using local models via llama-cpp-2. When disabled, the engine only supports remote API calls, resulting in:
+
+- **Faster compilation times** - No need to build llama-cpp-2 and its dependencies
+- **Smaller binary size** - Excludes large native libraries
+- **Simpler dependencies** - Reduces the dependency tree significantly
+
+**Enables:**
+- `LocalLLMProvider` - Run models locally using llama.cpp
+- `LocalConfig` - Configuration for local model setup
+- Offline mode (`--mode offline`) in the CLI
+- HuggingFace model downloading and caching
+
+**When to use:**
+- ✅ Use `--features local` if you need offline inference or want to run models locally
+- ❌ Skip it if you only use remote APIs (OpenAI, Azure, etc.) for faster builds
+
+**Example:**
+
+```bash
+# Without local support (lightweight, remote API only)
+cargo install helios-engine
+cargo build --release
+
+# With local support (includes llama-cpp-2 for offline inference)
+cargo install helios-engine --features local
+cargo build --release --features local
+```
+
+**In Cargo.toml:**
+
+```toml
+# Remote API only
+[dependencies]
+helios-engine = "0.3.0"
+
+# With local model support
+[dependencies]
+helios-engine = { version = "0.3.0", features = ["local"] }
 ```
 
 ##  Quick Start

@@ -5,25 +5,39 @@
 //! The `LLMClient` provides a unified interface for both types of providers.
 
 use crate::chat::ChatMessage;
-use crate::config::{LLMConfig, LocalConfig};
+use crate::config::LLMConfig;
 use crate::error::{HeliosError, Result};
 use crate::tools::ToolDefinition;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
-use llama_cpp_2::context::params::LlamaContextParams;
-use llama_cpp_2::llama_backend::LlamaBackend;
-use llama_cpp_2::llama_batch::LlamaBatch;
-use llama_cpp_2::model::params::LlamaModelParams;
-use llama_cpp_2::model::{AddBos, LlamaModel, Special};
-use llama_cpp_2::token::LlamaToken;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::os::fd::AsRawFd;
+
+#[cfg(feature = "local")]
+use crate::config::LocalConfig;
+#[cfg(feature = "local")]
 use std::sync::Arc;
+#[cfg(feature = "local")]
+use llama_cpp_2::context::params::LlamaContextParams;
+#[cfg(feature = "local")]
+use llama_cpp_2::llama_backend::LlamaBackend;
+#[cfg(feature = "local")]
+use llama_cpp_2::llama_batch::LlamaBatch;
+#[cfg(feature = "local")]
+use llama_cpp_2::model::params::LlamaModelParams;
+#[cfg(feature = "local")]
+use llama_cpp_2::model::{AddBos, LlamaModel, Special};
+#[cfg(feature = "local")]
+use llama_cpp_2::token::LlamaToken;
+#[cfg(feature = "local")]
+use std::fs::File;
+#[cfg(feature = "local")]
+use std::os::fd::AsRawFd;
+#[cfg(feature = "local")]
 use tokio::task;
 
 // Add From trait for LLamaCppError to convert to HeliosError
+#[cfg(feature = "local")]
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
     fn from(err: llama_cpp_2::LLamaCppError) -> Self {
         HeliosError::LlamaCppError(format!("{:?}", err))
@@ -36,6 +50,7 @@ pub enum LLMProviderType {
     /// A remote LLM provider, such as OpenAI.
     Remote(LLMConfig),
     /// A local LLM provider, using `llama.cpp`.
+    #[cfg(feature = "local")]
     Local(LocalConfig),
 }
 
@@ -162,6 +177,7 @@ impl LLMClient {
     pub async fn new(provider_type: LLMProviderType) -> Result<Self> {
         let provider: Box<dyn LLMProvider + Send + Sync> = match &provider_type {
             LLMProviderType::Remote(config) => Box::new(RemoteLLMClient::new(config.clone())),
+            #[cfg(feature = "local")]
             LLMProviderType::Local(config) => {
                 Box::new(LocalLLMProvider::new(config.clone()).await?)
             }
@@ -201,6 +217,7 @@ impl RemoteLLMClient {
 }
 
 /// Suppresses stdout and stderr.
+#[cfg(feature = "local")]
 fn suppress_output() -> (i32, i32) {
     // Open /dev/null for writing
     let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
@@ -219,6 +236,7 @@ fn suppress_output() -> (i32, i32) {
 }
 
 /// Restores stdout and stderr.
+#[cfg(feature = "local")]
 fn restore_output(stdout_backup: i32, stderr_backup: i32) {
     unsafe {
         libc::dup2(stdout_backup, 1); // restore stdout
@@ -229,6 +247,7 @@ fn restore_output(stdout_backup: i32, stderr_backup: i32) {
 }
 
 /// Suppresses stderr.
+#[cfg(feature = "local")]
 fn suppress_stderr() -> i32 {
     let dev_null = File::open("/dev/null").expect("Failed to open /dev/null");
     let stderr_backup = unsafe { libc::dup(2) };
@@ -239,6 +258,7 @@ fn suppress_stderr() -> i32 {
 }
 
 /// Restores stderr.
+#[cfg(feature = "local")]
 fn restore_stderr(stderr_backup: i32) {
     unsafe {
         libc::dup2(stderr_backup, 2);
@@ -247,11 +267,13 @@ fn restore_stderr(stderr_backup: i32) {
 }
 
 /// A provider for a local LLM.
+#[cfg(feature = "local")]
 pub struct LocalLLMProvider {
     model: Arc<LlamaModel>,
     backend: Arc<LlamaBackend>,
 }
 
+#[cfg(feature = "local")]
 impl LocalLLMProvider {
     /// Creates a new `LocalLLMProvider`.
     pub async fn new(config: LocalConfig) -> Result<Self> {
@@ -585,6 +607,7 @@ impl RemoteLLMClient {
     }
 }
 
+#[cfg(feature = "local")]
 #[async_trait]
 impl LLMProvider for LocalLLMProvider {
     fn as_any(&self) -> &dyn std::any::Any {
@@ -723,6 +746,7 @@ impl LLMProvider for LocalLLMProvider {
     }
 }
 
+#[cfg(feature = "local")]
 impl LocalLLMProvider {
     /// Sends a streaming chat request to the local LLM.
     async fn chat_stream_local<F>(
@@ -896,6 +920,7 @@ impl LLMClient {
                 config.temperature,
                 config.max_tokens,
             ),
+            #[cfg(feature = "local")]
             LLMProviderType::Local(config) => (
                 "local-model".to_string(),
                 config.temperature,
@@ -947,6 +972,7 @@ impl LLMClient {
                     Err(HeliosError::AgentError("Provider type mismatch".into()))
                 }
             }
+            #[cfg(feature = "local")]
             LLMProviderType::Local(_) => {
                 if let Some(provider) = self.provider.as_any().downcast_ref::<LocalLLMProvider>() {
                     provider

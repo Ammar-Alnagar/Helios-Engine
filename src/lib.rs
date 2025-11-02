@@ -97,14 +97,23 @@ pub use agent::{Agent, AgentBuilder};
 pub use chat::{ChatMessage, ChatSession, Role};
 
 /// Re-export of configuration types.
+#[cfg(feature = "local")]
 pub use config::{Config, LLMConfig, LocalConfig};
+#[cfg(not(feature = "local"))]
+pub use config::{Config, LLMConfig};
 
 /// Re-export of the custom error and result types.
 pub use error::{HeliosError, Result};
 
 /// Re-export of LLM-related types.
+#[cfg(feature = "local")]
 pub use llm::{
     Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, LocalLLMProvider, StreamChoice,
+    StreamChunk,
+};
+#[cfg(not(feature = "local"))]
+pub use llm::{
+    Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, StreamChoice,
     StreamChunk,
 };
 pub use tools::{

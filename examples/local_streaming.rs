@@ -3,11 +3,25 @@
 //! This example demonstrates how to use the streaming capabilities of the Helios Engine
 //! with a local model. The response from the model is streamed token by token,
 //! providing a real-time experience.
+//!
+//! Note: This example requires the `local` feature to be enabled.
+//! Run with: cargo run --example local_streaming --features local
 
+#[cfg(not(feature = "local"))]
+fn main() {
+    eprintln!("❌ This example requires the 'local' feature to be enabled.");
+    eprintln!("Run with: cargo run --example local_streaming --features local");
+    std::process::exit(1);
+}
+
+#[cfg(feature = "local")]
 use helios_engine::config::LocalConfig;
+#[cfg(feature = "local")]
 use helios_engine::{ChatMessage, LLMClient};
+#[cfg(feature = "local")]
 use std::io::{self, Write};
 
+#[cfg(feature = "local")]
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Local Model Streaming Example");

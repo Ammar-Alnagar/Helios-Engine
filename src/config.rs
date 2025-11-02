@@ -15,6 +15,7 @@ pub struct Config {
     /// The configuration for the remote LLM.
     pub llm: LLMConfig,
     /// The configuration for the local LLM (optional).
+    #[cfg(feature = "local")]
     #[serde(default)]
     pub local: Option<LocalConfig>,
 }
@@ -37,6 +38,7 @@ pub struct LLMConfig {
 }
 
 /// Configuration for a local Language Model (LLM).
+#[cfg(feature = "local")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalConfig {
     /// The Hugging Face repository of the model.
@@ -65,6 +67,7 @@ fn default_max_tokens() -> u32 {
 }
 
 /// Returns the default context size.
+#[cfg(feature = "local")]
 fn default_context_size() -> usize {
     2048
 }
@@ -97,6 +100,7 @@ impl Config {
                 temperature: 0.7,
                 max_tokens: 2048,
             },
+            #[cfg(feature = "local")]
             local: None,
         }
     }
@@ -129,6 +133,7 @@ mod tests {
 
     /// Tests loading a configuration from a file.
     #[test]
+    #[cfg(feature = "local")]
     fn test_config_from_file() {
         let config_content = r#"
 [llm]
@@ -153,6 +158,26 @@ max_tokens = 1024
         assert_eq!(config.llm.model_name, "gpt-4");
         assert_eq!(config.local.as_ref().unwrap().huggingface_repo, "test/repo");
     }
+    
+    /// Tests loading a configuration from a file without local config.
+    #[test]
+    #[cfg(not(feature = "local"))]
+    fn test_config_from_file() {
+        let config_content = r#"
+[llm]
+model_name = "gpt-4"
+base_url = "https://api.openai.com/v1"
+api_key = "test-key"
+temperature = 0.7
+max_tokens = 2048
+"#;
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("config.toml");
+        fs::write(&config_path, config_content).unwrap();
+
+        let config = Config::from_file(&config_path).unwrap();
+        assert_eq!(config.llm.model_name, "gpt-4");
+    }
 
     /// Tests creating a new default configuration.
     #[test]
@@ -163,6 +188,7 @@ max_tokens = 1024
         assert_eq!(config.llm.api_key, "your-api-key-here");
         assert_eq!(config.llm.temperature, 0.7);
         assert_eq!(config.llm.max_tokens, 2048);
+        #[cfg(feature = "local")]
         assert!(config.local.is_none());
     }
 
@@ -185,6 +211,7 @@ max_tokens = 1024
     fn test_default_functions() {
         assert_eq!(default_temperature(), 0.7);
         assert_eq!(default_max_tokens(), 2048);
+        #[cfg(feature = "local")]
         assert_eq!(default_context_size(), 2048);
     }
 }

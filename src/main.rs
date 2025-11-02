@@ -298,14 +298,21 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     apply_mode_override(&mut config, mode);
 
     // Determine if we're using local or remote
+    #[cfg(feature = "local")]
     let is_local = config.local.is_some();
+    #[cfg(not(feature = "local"))]
+    let is_local = false;
 
     // Use streaming for direct LLM call
+    #[cfg(feature = "local")]
     let provider_type = if is_local {
         helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
+    
+    #[cfg(not(feature = "local"))]
+    let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
     let client = LLMClient::new(provider_type).await?;
     let messages = vec![
         ChatMessage::system("You are a helpful AI assistant. Provide direct, concise answers without internal reasoning or thinking tags."),
@@ -346,11 +353,15 @@ async fn interactive_chat(
     apply_mode_override(&mut config, mode);
 
     // Create LLM client for streaming
+    #[cfg(feature = "local")]
     let provider_type = if config.local.is_some() {
         helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
+    
+    #[cfg(not(feature = "local"))]
+    let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
     let client = LLMClient::new(provider_type).await?;
     let mut session = helios_engine::ChatSession::new().with_system_prompt(system_prompt);
 
@@ -460,7 +471,10 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
     match mode {
         "online" => {
             // Force online mode by removing local config
-            config.local = None;
+            #[cfg(feature = "local")]
+            {
+                config.local = None;
+            }
             println!("🌐 Online mode: Using remote API");
 
             // Check if API key is set for online mode
@@ -472,20 +486,41 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
         }
         "offline" => {
             // Force offline mode - require local config to be present
-            if config.local.is_none() {
-                eprintln!("❌ Offline mode requested but no [local] section found in config");
-                eprintln!("💡 Add a [local] section to your config.toml for offline mode");
+            #[cfg(feature = "local")]
+            {
+                if config.local.is_none() {
+                    eprintln!("❌ Offline mode requested but no [local] section found in config");
+                    eprintln!("💡 Add a [local] section to your config.toml for offline mode");
+                    std::process::exit(1);
+                }
+                println!("🏠 Offline mode: Using local models");
+            }
+            #[cfg(not(feature = "local"))]
+            {
+                eprintln!("❌ Offline mode requested but 'local' feature is not enabled");
+                eprintln!("💡 Rebuild with --features local to enable offline mode");
                 std::process::exit(1);
             }
-            println!("🏠 Offline mode: Using local models");
         }
         "auto" => {
             // Use existing logic (local if present, otherwise remote)
-            if config.local.is_some() {
-                println!("🔄 Auto mode: Using local models (configured)");
-            } else {
-                println!("🔄 Auto mode: Using remote API (no local config)");
-                // Check if API key is set for remote mode in auto mode
+            #[cfg(feature = "local")]
+            {
+                if config.local.is_some() {
+                    println!("🔄 Auto mode: Using local models (configured)");
+                } else {
+                    println!("🔄 Auto mode: Using remote API (no local config)");
+                    // Check if API key is set for remote mode in auto mode
+                    if config.llm.api_key == "your-api-key-here" {
+                        eprintln!("⚠ Warning: API key not configured!");
+                        eprintln!("Please edit your config file and set your API key.\n");
+                        std::process::exit(1);
+                    }
+                }
+            }
+            #[cfg(not(feature = "local"))]
+            {
+                println!("🔄 Auto mode: Using remote API");
                 if config.llm.api_key == "your-api-key-here" {
                     eprintln!("⚠ Warning: API key not configured!");
                     eprintln!("Please edit your config file and set your API key.\n");
