@@ -188,7 +188,7 @@ impl EmbeddingProvider for OpenAIEmbeddings {
         // text-embedding-ada-002 produces 1536-dimensional embeddings
         // text-embedding-3-small produces 1536 by default
         // text-embedding-3-large produces 3072 by default
-        if self.model.contains("3-large") {
+        if self.model == "text-embedding-3-large" {
             3072
         } else {
             1536
