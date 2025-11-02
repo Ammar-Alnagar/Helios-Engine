@@ -202,7 +202,7 @@ impl EmbeddingProvider for OpenAIEmbeddings {
 
 /// In-memory vector store using cosine similarity
 pub struct InMemoryVectorStore {
-    documents: std::sync::Arc<tokio::sync::RwLock<Vec<StoredDocument>>>,
+    documents: std::sync::Arc<tokio::sync::RwLock<std::collections::HashMap<String, StoredDocument>>>,
 }
 
 #[derive(Debug, Clone)]
