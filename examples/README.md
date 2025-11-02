@@ -22,6 +22,46 @@ cargo run --example basic_chat
 cargo run --example --list
 ```
 
+### Individual Example Commands
+
+```bash
+# Basic chat example
+cargo run --example basic_chat
+
+# Agent with built-in tools (Calculator, Echo)
+cargo run --example agent_with_tools
+
+# Agent with file management tools
+cargo run --example agent_with_file_tools
+
+# Agent with in-memory database tool
+cargo run --example agent_with_memory_db
+
+# Custom tool implementation
+cargo run --example custom_tool
+
+# Multiple agents with different personalities
+cargo run --example multiple_agents
+
+# Direct LLM usage without agents
+cargo run --example direct_llm_usage
+
+# Streaming chat with remote models
+cargo run --example streaming_chat
+
+# Local model streaming example
+cargo run --example local_streaming
+
+# Serve an agent via HTTP API
+cargo run --example serve_agent
+
+# Serve with custom endpoints
+cargo run --example serve_with_custom_endpoints
+
+# Complete demo with all features
+cargo run --example complete_demo
+```
+
 ## Basic Examples
 
 ### Basic Chat (`basic_chat.rs`)

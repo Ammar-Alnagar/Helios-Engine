@@ -749,132 +749,17 @@ Local models now support real-time token-by-token streaming just like remote mod
 
 ##  Architecture
 
-### System Overview
+For detailed architecture documentation including system design, component interactions, and execution flows, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
-```mermaid
-graph TB
-    User[User] -->|Input| Agent[Agent]
-    Agent -->|Messages| LLM[LLM Client]
-    Agent -->|Tool Calls| Registry[Tool Registry]
-    Registry -->|Execute| Tools[Tools]
-    Tools -->|Results| Agent
-    LLM -->|Response| Agent
-    Agent -->|Output| User
-    Config[Config TOML] -->|Load| Agent
+### Quick System Overview
 
-    style Agent fill:#4CAF50
-    style LLM fill:#2196F3
-    style Registry fill:#FF9800
-    style Tools fill:#9C27B0
-```
+Helios Engine follows a modular architecture with clear separation of concerns:
 
-### Component Architecture
-
-```mermaid
-classDiagram
-    class Agent {
-        +name: String
-        +llm_client: LLMClient
-        +tool_registry: ToolRegistry
-        +chat_session: ChatSession
-        +chat(message) ChatMessage
-        +register_tool(tool) void
-        +clear_history() void
-    }
-
-    class LLMClient {
-        +provider: LLMProvider
-        +provider_type: LLMProviderType
-        +chat(messages, tools) ChatMessage
-        +chat_stream(messages, tools, callback) ChatMessage
-        +generate(request) LLMResponse
-    }
-
-    class ToolRegistry {
-        +tools: HashMap
-        +register(tool) void
-        +execute(name, args) ToolResult
-        +get_definitions() Vec
-    }
-
-    class Tool {
-        <<interface>>
-        +name() String
-        +description() String
-        +parameters() HashMap
-        +execute(args) ToolResult
-    }
-
-    class ChatSession {
-        +messages: Vec
-        +system_prompt: Option
-        +add_message(msg) void
-        +clear() void
-    }
-
-    class Config {
-        +llm: LLMConfig
-        +from_file(path) Config
-        +save(path) void
-    }
-
-    Agent --> LLMClient
-    Agent --> ToolRegistry
-    Agent --> ChatSession
-    Agent --> Config
-    ToolRegistry --> Tool
-    Tool <|-- CalculatorTool
-    Tool <|-- EchoTool
-    Tool <|-- CustomTool
-```
-
-### Agent Execution Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Agent
-    participant LLM
-    participant ToolRegistry
-    participant Tool
-
-    User->>Agent: Send Message
-    Agent->>Agent: Add to Chat History
-
-    loop Until No Tool Calls
-        Agent->>LLM: Send Messages + Tool Definitions
-        LLM->>Agent: Response (with/without tool calls)
-
-        alt Has Tool Calls
-            Agent->>ToolRegistry: Execute Tool
-            ToolRegistry->>Tool: Call with Arguments
-            Tool->>ToolRegistry: Return Result
-            ToolRegistry->>Agent: Tool Result
-            Agent->>Agent: Add Tool Result to History
-        else No Tool Calls
-            Agent->>User: Return Final Response
-        end
-    end
-```
-
-### Tool Execution Pipeline
-
-```mermaid
-flowchart LR
-    A[User Request] --> B{LLM Decision}
-    B -->|Need Tool| C[Get Tool Definition]
-    C --> D[Parse Arguments]
-    D --> E[Execute Tool]
-    E --> F[Format Result]
-    F --> G[Add to Context]
-    G --> B
-    B -->|No Tool Needed| H[Return Response]
-    H --> I[User]
-
-    style B fill:#FFD700
-    style E fill:#4CAF50
-    style H fill:#2196F3
-```
+- **Agent**: Orchestrates conversations and tool execution
+- **LLM Client**: Handles communication with language models
+- **Tool Registry**: Manages and executes tools
+- **Chat Session**: Maintains conversation history
+- **Configuration**: Manages settings and preferences
 
 ##  Built-in Tools
 
@@ -1391,45 +1276,16 @@ helios-engine/
 
 ##  Examples
 
-Run the included examples:
+For comprehensive examples demonstrating various Helios Engine features, see the **[examples/](examples/)** directory.
 
-```bash
-# Basic chat example
-cargo run --example basic_chat
+The examples include:
+- Basic chat and agent usage
+- Tool integration examples
+- File management demonstrations
+- API serving examples
+- Streaming and advanced features
 
-# Agent with built-in tools (Calculator, Echo)
-cargo run --example agent_with_tools
-
-# Agent with file management tools
-cargo run --example agent_with_file_tools
-
-# Agent with in-memory database tool
-cargo run --example agent_with_memory_db
-
-# Custom tool implementation
-cargo run --example custom_tool
-
-# Multiple agents with different personalities
-cargo run --example multiple_agents
-
-# Direct LLM usage without agents
-cargo run --example direct_llm_usage
-
-# Streaming chat with remote models
-cargo run --example streaming_chat
-
-# Local model streaming example
-cargo run --example local_streaming
-
-# NEW: Serve an agent via HTTP API
-cargo run --example serve_agent
-
-# NEW: Serve with custom endpoints
-cargo run --example serve_with_custom_endpoints
-
-# Complete demo with all features
-cargo run --example complete_demo
-```
+See **[examples/README.md](examples/README.md)** for detailed documentation and usage instructions.
 
 ##  Testing
 
