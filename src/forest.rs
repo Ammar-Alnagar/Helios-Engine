@@ -101,7 +101,7 @@ impl SharedContext {
     /// Gets recent messages (last N messages).
     pub fn get_recent_messages(&self, limit: usize) -> &[ForestMessage] {
         let len = self.message_history.len();
-        let start = if len > limit { len - limit } else { 0 };
+        let start = len.saturating_sub(limit);
         &self.message_history[start..]
     }
 }
