@@ -158,7 +158,7 @@ max_tokens = 1024
         assert_eq!(config.llm.model_name, "gpt-4");
         assert_eq!(config.local.as_ref().unwrap().huggingface_repo, "test/repo");
     }
-    
+
     /// Tests loading a configuration from a file without local config.
     #[test]
     #[cfg(not(feature = "local"))]

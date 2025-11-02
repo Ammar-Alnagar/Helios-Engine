@@ -16,8 +16,6 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "local")]
 use crate::config::LocalConfig;
 #[cfg(feature = "local")]
-use std::sync::Arc;
-#[cfg(feature = "local")]
 use llama_cpp_2::context::params::LlamaContextParams;
 #[cfg(feature = "local")]
 use llama_cpp_2::llama_backend::LlamaBackend;
@@ -33,6 +31,8 @@ use llama_cpp_2::token::LlamaToken;
 use std::fs::File;
 #[cfg(feature = "local")]
 use std::os::fd::AsRawFd;
+#[cfg(feature = "local")]
+use std::sync::Arc;
 #[cfg(feature = "local")]
 use tokio::task;
 

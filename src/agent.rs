@@ -49,7 +49,7 @@ impl Agent {
         } else {
             LLMProviderType::Remote(config.llm)
         };
-        
+
         #[cfg(not(feature = "local"))]
         let provider_type = LLMProviderType::Remote(config.llm);
 

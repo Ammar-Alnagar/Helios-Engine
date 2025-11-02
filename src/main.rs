@@ -310,7 +310,7 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
-    
+
     #[cfg(not(feature = "local"))]
     let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
     let client = LLMClient::new(provider_type).await?;
@@ -359,7 +359,7 @@ async fn interactive_chat(
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
-    
+
     #[cfg(not(feature = "local"))]
     let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
     let client = LLMClient::new(provider_type).await?;

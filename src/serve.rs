@@ -226,19 +226,19 @@ pub async fn start_server(config: Config, address: &str) -> Result<()> {
     } else {
         LLMProviderType::Remote(config.llm.clone())
     };
-    
+
     #[cfg(not(feature = "local"))]
     let provider_type = LLMProviderType::Remote(config.llm.clone());
 
     let llm_client = LLMClient::new(provider_type).await?;
-    
+
     #[cfg(feature = "local")]
     let model_name = config
         .local
         .as_ref()
         .map(|_| "local-model".to_string())
         .unwrap_or_else(|| config.llm.model_name.clone());
-    
+
     #[cfg(not(feature = "local"))]
     let model_name = config.llm.model_name.clone();
 
@@ -323,19 +323,19 @@ pub async fn start_server_with_custom_endpoints(
     } else {
         LLMProviderType::Remote(config.llm.clone())
     };
-    
+
     #[cfg(not(feature = "local"))]
     let provider_type = LLMProviderType::Remote(config.llm.clone());
 
     let llm_client = LLMClient::new(provider_type).await?;
-    
+
     #[cfg(feature = "local")]
     let model_name = config
         .local
         .as_ref()
         .map(|_| "local-model".to_string())
         .unwrap_or_else(|| config.llm.model_name.clone());
-    
+
     #[cfg(not(feature = "local"))]
     let model_name = config.llm.model_name.clone();
 
