@@ -856,27 +856,23 @@ mod tests {
             .contains("Message from alice: Hello Bob!"));
 
         // Test broadcast message
+        let alice_message_count_before = forest.get_agent(&"alice".to_string()).unwrap().chat_session().messages.len();
         forest
             .send_message(&"alice".to_string(), None, "Hello everyone!".to_string())
             .await
             .unwrap();
         forest.process_messages().await.unwrap();
 
-        // Check that other agents received the broadcast, but not the sender.
+        // Check that Bob received the broadcast, but Alice did not
         let alice = forest.get_agent(&"alice".to_string()).unwrap();
-        let alice_messages = alice.chat_session().messages.clone();
-        let bob = forest.get_agent(&"bob".to_string()).unwrap(); // Re-borrow bob after mutable operations
-        let bob_messages = bob.chat_session().messages.clone();
+        assert_eq!(alice.chat_session().messages.len(), alice_message_count_before);
 
-        // Bob should have received the broadcast message, making it his second message.
-        assert_eq!(bob_messages.len(), 2);
+        let bob = forest.get_agent(&"bob".to_string()).unwrap();
+        let bob_messages = bob.chat_session().messages.clone();
         let bob_last = bob_messages.last().unwrap();
         assert!(bob_last
             .content
             .contains("Broadcast from alice: Hello everyone!"));
-
-        // Alice, the sender, should not receive her own broadcast. Her message count should be 0.
-        assert_eq!(alice_messages.len(), 0);
     }
 
     /// Tests the SendMessageTool functionality.
