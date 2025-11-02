@@ -43,6 +43,9 @@ cargo run --example custom_tool
 # Multiple agents with different personalities
 cargo run --example multiple_agents
 
+# Forest of Agents - collaborative multi-agent system
+cargo run --example forest_of_agents
+
 # Direct LLM usage without agents
 cargo run --example direct_llm_usage
 
@@ -57,6 +60,9 @@ cargo run --example serve_agent
 
 # Serve with custom endpoints
 cargo run --example serve_with_custom_endpoints
+
+# SendMessageTool demo - test messaging functionality
+cargo run --example send_message_tool_demo
 
 # Complete demo with all features
 cargo run --example complete_demo
@@ -183,6 +189,64 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
+### Forest of Agents (`forest_of_agents.rs`)
+
+Create a collaborative multi-agent system where agents can communicate, delegate tasks, and share context:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with specialized agents
+    let mut forest = ForestBuilder::new()
+        .config(config)
+        .agent(
+            "coordinator".to_string(),
+            Agent::builder("coordinator")
+                .system_prompt("You coordinate team projects and delegate tasks.")
+        )
+        .agent(
+            "researcher".to_string(),
+            Agent::builder("researcher")
+                .system_prompt("You research and analyze information.")
+        )
+        .build()
+        .await?;
+
+    // Execute collaborative tasks
+    let result = forest
+        .execute_collaborative_task(
+            &"coordinator".to_string(),
+            "Create a guide on sustainable practices".to_string(),
+            vec!["researcher".to_string()],
+        )
+        .await?;
+
+    println!("Collaborative result: {}", result);
+
+    // Direct inter-agent communication
+    forest
+        .send_message(
+            &"coordinator".to_string(),
+            Some(&"researcher".to_string()),
+            "Please research the latest findings.".to_string(),
+        )
+        .await?;
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Multi-agent collaboration** on complex tasks
+- **Inter-agent communication** (direct messages and broadcasts)
+- **Task delegation** between agents
+- **Shared context** and memory
+- **Specialized agent roles** working together
+
 ### File Management Agent (`agent_with_file_tools.rs`)
 
 Agent with comprehensive file management capabilities:
@@ -221,6 +285,64 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 ```
+
+### SendMessageTool Demo (`send_message_tool_demo.rs`)
+
+Test the SendMessageTool functionality for agent communication:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder, SendMessageTool, Tool};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with two agents
+    let forest = ForestBuilder::new()
+        .config(config)
+        .agent("alice".to_string(), Agent::builder("alice").build().await?)
+        .agent("bob".to_string(), Agent::builder("bob").build().await?)
+        .build()
+        .await?;
+
+    // Create SendMessageTool for direct testing
+    let message_queue = Arc::new(RwLock::new(Vec::new()));
+    let shared_context = Arc::new(RwLock::new(helios_engine::SharedContext::new()));
+
+    let send_tool = SendMessageTool::new(
+        "alice".to_string(),
+        Arc::clone(&message_queue),
+        Arc::clone(&shared_context),
+    );
+
+    // Test direct message
+    let args = serde_json::json!({
+        "to": "bob",
+        "message": "Hello Bob!"
+    });
+
+    let result = send_tool.execute(args).await?;
+    println!("Direct message result: {}", result.output);
+
+    // Test broadcast message
+    let args = serde_json::json!({
+        "message": "Hello everyone!"
+    });
+
+    let result = send_tool.execute(args).await?;
+    println!("Broadcast message result: {}", result.output);
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Direct messaging** between specific agents
+- **Broadcast messaging** to all agents in the forest
+- **Message queue management** and shared context integration
+- **Forest messaging system integration**
 
 ### Memory Database Agent (`agent_with_memory_db.rs`)
 

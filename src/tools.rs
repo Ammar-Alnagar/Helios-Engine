@@ -2956,7 +2956,7 @@ fn get_cpu_info(system: &sysinfo::System) -> String {
 
     info.push_str(&format!(
         "Physical cores: {}\n",
-        system.physical_core_count().unwrap_or(0)
+        sysinfo::System::physical_core_count().unwrap_or(0)
     ));
     info.push_str(&format!("Logical cores: {}\n", system.cpus().len()));
 
