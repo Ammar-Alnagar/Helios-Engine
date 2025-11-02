@@ -8,6 +8,7 @@ This directory contains comprehensive examples demonstrating various features of
 - [Basic Examples](#basic-examples)
 - [Agent Examples](#agent-examples)
 - [Advanced Examples](#advanced-examples)
+- [RAG Examples](#rag-examples)
 - [API Examples](#api-examples)
 
 ## Running Examples
@@ -63,6 +64,15 @@ cargo run --example serve_with_custom_endpoints
 
 # SendMessageTool demo - test messaging functionality
 cargo run --example send_message_tool_demo
+
+# Agent with RAG capabilities
+cargo run --example agent_with_rag
+
+# RAG with in-memory vector store
+cargo run --example rag_in_memory
+
+# Compare RAG implementations (Qdrant vs InMemory)
+cargo run --example rag_qdrant_comparison
 
 # Complete demo with all features
 cargo run --example complete_demo
@@ -446,6 +456,219 @@ async fn main() -> helios_engine::Result<()> {
 
 ## Advanced Examples
 
+### Forest of Agents (`forest_of_agents.rs`)
+
+Create a collaborative multi-agent system where agents can communicate, delegate tasks, and share context:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with specialized agents
+    let mut forest = ForestBuilder::new()
+        .config(config)
+        .agent(
+            "coordinator".to_string(),
+            Agent::builder("coordinator")
+                .system_prompt("You coordinate team projects and delegate tasks.")
+        )
+        .agent(
+            "researcher".to_string(),
+            Agent::builder("researcher")
+                .system_prompt("You research and analyze information.")
+        )
+        .build()
+        .await?;
+
+    // Execute collaborative tasks
+    let result = forest
+        .execute_collaborative_task(
+            &"coordinator".to_string(),
+            "Create a guide on sustainable practices".to_string(),
+            vec!["researcher".to_string()],
+        )
+        .await?;
+
+    println!("Collaborative result: {}", result);
+
+    // Direct inter-agent communication
+    forest
+        .send_message(
+            &"coordinator".to_string(),
+            Some(&"researcher".to_string()),
+            "Please research the latest findings.".to_string(),
+        )
+        .await?;
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Multi-agent collaboration** on complex tasks
+- **Inter-agent communication** (direct messages and broadcasts)
+- **Task delegation** between agents
+- **Shared context** and memory
+- **Specialized agent roles** working together
+
+### Complete Demo (`complete_demo.rs`)
+
+Showcase of all major features in one example.
+
+## RAG Examples
+
+### Agent with RAG (`agent_with_rag.rs`)
+
+Create an agent with built-in RAG capabilities using the RAGTool:
+
+```rust
+use helios_engine::{Agent, Config, RAGTool, InMemoryVectorStore, OpenAIEmbeddings};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create embeddings provider
+    let embeddings = OpenAIEmbeddings::new(
+        "https://api.openai.com/v1/embeddings".to_string(),
+        std::env::var("OPENAI_API_KEY").unwrap(),
+    );
+
+    // Create vector store and RAG tool
+    let vector_store = InMemoryVectorStore::new(embeddings);
+    let rag_tool = RAGTool::new(vector_store);
+
+    // Create agent with RAG capabilities
+    let mut agent = Agent::builder("RAGAgent")
+        .config(config)
+        .system_prompt("You have access to a knowledge base. Use the rag_tool to retrieve relevant information.")
+        .tool(Box::new(rag_tool))
+        .build()
+        .await?;
+
+    // Add documents to the knowledge base
+    agent.chat("Add this document about Rust: 'Rust is a systems programming language...'")
+        .await?;
+
+    // Query with semantic search
+    let response = agent.chat("What is Rust programming?").await?;
+    println!("Agent: {}", response);
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Integrated RAG agent** with semantic search capabilities
+- **Document storage and retrieval** from conversation
+- **Context-aware responses** using relevant knowledge
+- **Easy-to-use interface** for RAG-powered agents
+
+### RAG In-Memory (`rag_in_memory.rs`)
+
+Simple RAG implementation using in-memory vector storage:
+
+```rust
+use helios_engine::{RAGSystem, InMemoryVectorStore, OpenAIEmbeddings, Document};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    // Create embeddings provider
+    let embeddings = OpenAIEmbeddings::new(
+        "https://api.openai.com/v1/embeddings".to_string(),
+        std::env::var("OPENAI_API_KEY").unwrap(),
+    );
+
+    // Create RAG system with in-memory storage
+    let vector_store = InMemoryVectorStore::new(embeddings);
+    let mut rag_system = RAGSystem::new(vector_store);
+
+    // Add documents
+    let documents = vec![
+        Document {
+            id: "rust_doc".to_string(),
+            content: "Rust is a systems programming language focused on safety and performance.".to_string(),
+            metadata: std::collections::HashMap::new(),
+        }
+    ];
+
+    rag_system.add_documents(documents).await?;
+
+    // Search for relevant documents
+    let results = rag_system.search("What is Rust?", 5).await?;
+    for result in results {
+        println!("Found: {} (score: {})", result.document.content, result.score);
+    }
+
+    Ok(())
+}
+```
+
+**Features:**
+- **In-memory vector storage** - no external dependencies
+- **Simple document management** with metadata support
+- **Semantic search** with relevance scoring
+- **Fast retrieval** for small to medium document collections
+
+### RAG Comparison (`rag_qdrant_comparison.rs`)
+
+Compare performance between Qdrant and InMemory vector stores:
+
+```rust
+use helios_engine::{
+    RAGSystem, InMemoryVectorStore, QdrantVectorStore,
+    OpenAIEmbeddings, Document
+};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let embeddings = OpenAIEmbeddings::new(
+        "https://api.openai.com/v1/embeddings".to_string(),
+        std::env::var("OPENAI_API_KEY").unwrap(),
+    );
+
+    // Test InMemory store
+    println!("Testing InMemory Vector Store:");
+    let in_memory_store = InMemoryVectorStore::new(embeddings.clone());
+    let mut rag_memory = RAGSystem::new(in_memory_store);
+
+    // Add test documents
+    let documents = create_test_documents();
+    rag_memory.add_documents(documents.clone()).await?;
+
+    // Test Qdrant store (requires Qdrant running)
+    println!("\nTesting Qdrant Vector Store:");
+    let qdrant_store = QdrantVectorStore::new(
+        "http://localhost:6333".to_string(),
+        "test_collection".to_string(),
+        embeddings,
+    );
+    let mut rag_qdrant = RAGSystem::new(qdrant_store);
+    rag_qdrant.add_documents(documents).await?;
+
+    // Compare search performance
+    let query = "What are programming languages?";
+    println!("\nComparing search results for: '{}'", query);
+
+    let results_memory = rag_memory.search(query, 3).await?;
+    let results_qdrant = rag_qdrant.search(query, 3).await?;
+
+    println!("InMemory results: {}", results_memory.len());
+    println!("Qdrant results: {}", results_qdrant.len());
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Performance comparison** between vector store implementations
+- **Scalability testing** with different document sizes
+- **Search quality analysis** across different backends
+- **Benchmarking utilities** for RAG system evaluation
+
 ### RAG with Qdrant (`rag_advanced.rs`)
 
 Advanced RAG implementation with vector search:
@@ -482,10 +705,6 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 ```
-
-### Complete Demo (`complete_demo.rs`)
-
-Showcase of all major features in one example.
 
 ## API Examples
 

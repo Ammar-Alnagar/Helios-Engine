@@ -26,8 +26,9 @@
 
 ##  Features
 
+-  **🆕 Forest of Agents**: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context
 -  **Agent System**: Create multiple agents with different personalities and capabilities
--   **Tool Registry**: Extensible tool system for adding custom functionality
+-  **Tool Registry**: Extensible tool system for adding custom functionality
 -  **Chat Management**: Built-in conversation history and session management
 -  **Session Memory**: Track agent state and metadata across conversations
 -  **Extensive Tool Suite**: 16+ built-in tools including web scraping, JSON parsing, timestamp operations, file I/O, shell commands, HTTP requests, system info, and text processing
@@ -35,6 +36,7 @@
 -  **Web & API Tools**: Web scraping, HTTP requests, and JSON manipulation capabilities
 -  **System Integration**: Shell command execution, system information retrieval, and timestamp operations
 -  **Text Processing**: Advanced text search, replace, formatting, and analysis tools
+-  **🆕 RAG System**: Retrieval-Augmented Generation with vector stores (InMemory and Qdrant)
 -  **Streaming Support**: True real-time response streaming for both remote and local models with immediate token delivery
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration (optional `local` feature)
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
@@ -56,6 +58,8 @@
   - [Using as a Library Crate](#using-as-a-library-crate)
   - [Using Offline Mode with Local Models](#using-offline-mode-with-local-models)
   - [Using with Agent System](#using-with-agent-system)
+  - [🆕 Forest of Agents](#-forest-of-agents)
+  - [🆕 RAG System](#-rag-system)
   - [Serve API](#serve-api)
 - [CLI Usage](#cli-usage)
 - [Configuration](#configuration)
@@ -134,11 +138,11 @@ Add Helios-Engine to your `Cargo.toml`:
 ```toml
 [dependencies]
 # Without local model support (lighter dependency)
-helios-engine = "0.3.1"
+helios-engine = "0.3.3"
 tokio = { version = "1.35", features = ["full"] }
 
 # OR with local model support for offline inference
-helios-engine = { version = "0.3.0", features = ["local"] }
+helios-engine = { version = "0.3.3", features = ["local"] }
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -210,11 +214,11 @@ cargo build --release --features local
 ```toml
 # Remote API only
 [dependencies]
-helios-engine = "0.3.0"
+helios-engine = "0.3.3"
 
 # With local model support
 [dependencies]
-helios-engine = { version = "0.3.0", features = ["local"] }
+helios-engine = { version = "0.3.3", features = ["local"] }
 ```
 
 ##  Quick Start
@@ -348,6 +352,116 @@ async fn main() -> helios_engine::Result<()> {
 cargo run
 ```
 
+### 🆕 Forest of Agents
+
+Create a collaborative multi-agent system where agents can communicate, delegate tasks, and share context:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with specialized agents
+    let mut forest = ForestBuilder::new()
+        .config(config)
+        .agent(
+            "coordinator".to_string(),
+            Agent::builder("coordinator")
+                .system_prompt("You coordinate team projects and delegate tasks.")
+        )
+        .agent(
+            "researcher".to_string(),
+            Agent::builder("researcher")
+                .system_prompt("You research and analyze information.")
+        )
+        .agent(
+            "writer".to_string(),
+            Agent::builder("writer")
+                .system_prompt("You create content and documentation.")
+        )
+        .build()
+        .await?;
+
+    // Execute collaborative tasks
+    let result = forest
+        .execute_collaborative_task(
+            &"coordinator".to_string(),
+            "Create a guide on sustainable practices".to_string(),
+            vec!["researcher".to_string(), "writer".to_string()],
+        )
+        .await?;
+
+    println!("Collaborative result: {}", result);
+
+    // Direct inter-agent communication
+    forest
+        .send_message(
+            &"coordinator".to_string(),
+            Some(&"researcher".to_string()),
+            "Please research the latest findings.".to_string(),
+        )
+        .await?;
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Multi-agent collaboration** on complex tasks
+- **Inter-agent communication** (direct messages and broadcasts)
+- **Task delegation** between agents
+- **Shared context** and memory
+- **Specialized agent roles** working together
+
+### 🆕 RAG System
+
+Use Retrieval-Augmented Generation to provide context-aware responses:
+
+```rust
+use helios_engine::{Agent, Config, RAGTool, InMemoryVectorStore, OpenAIEmbeddings};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a RAG system
+    let embeddings = OpenAIEmbeddings::new(
+        "https://api.openai.com/v1/embeddings".to_string(),
+        std::env::var("OPENAI_API_KEY").unwrap(),
+    );
+
+    let vector_store = InMemoryVectorStore::new(embeddings);
+    let rag_tool = RAGTool::new(vector_store);
+
+    // Create an agent with RAG capabilities
+    let mut agent = Agent::builder("RAGAgent")
+        .config(config)
+        .system_prompt("You have access to a knowledge base. Use the rag_tool to retrieve relevant information.")
+        .tool(Box::new(rag_tool))
+        .build()
+        .await?;
+
+    // Add documents to the knowledge base
+    agent.chat("Add this document about Rust: 'Rust is a systems programming language...'")
+        .await?;
+
+    // Query with semantic search
+    let response = agent.chat("What is Rust programming?").await?;
+    println!("Response: {}", response);
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Vector-based semantic search** for document retrieval
+- **Multiple vector store backends** (InMemory, Qdrant)
+- **Automatic document chunking** and embedding
+- **Context-aware responses** with relevant information
+- **Easy integration** with existing agents
+
 ### Serve API
 
 Expose your agents and LLM configurations as fully OpenAI-compatible HTTP API endpoints with real-time streaming and parameter control:
@@ -416,7 +530,7 @@ Create a custom endpoints configuration file (`custom_endpoints.toml`):
 [[endpoints]]
 method = "GET"
 path = "/api/version"
-response = { version = "0.3.0", service = "Helios Engine" }
+response = { version = "0.3.3", service = "Helios Engine" }
 status_code = 200
 
 [[endpoints]]
@@ -1221,6 +1335,162 @@ agent.tool(Box::new(rag_tool));
 - Qdrant running: `docker run -p 6333:6333 qdrant/qdrant`
 - OpenAI API key for embeddings
 
+#### `WebScraperTool`
+
+Scrape web content from URLs with automatic text extraction and cleaning.
+
+**Parameters:**
+- `url` (string, required): URL to scrape
+- `max_length` (number, optional): Maximum content length (default: 10000)
+
+**Example:**
+```rust
+agent.tool(Box::new(WebScraperTool));
+```
+
+#### `JsonParserTool`
+
+Parse, validate, stringify, and extract values from JSON data.
+
+**Parameters:**
+- `operation` (string, required): Operation: `parse`, `stringify`, `get_value`, `validate`
+- `json` (string, optional): JSON string for parse/stringify operations
+- `path` (string, optional): JSON path for get_value operation (e.g., "$.key" or "$.array[0]")
+
+**Supported Operations:**
+- `parse` - Parse and validate JSON string
+- `stringify` - Convert JSON to formatted string
+- `get_value` - Extract value using JSON path
+- `validate` - Validate JSON structure
+
+**Example:**
+```rust
+agent.tool(Box::new(JsonParserTool));
+```
+
+#### `TimestampTool`
+
+Work with timestamps, perform date/time operations and formatting.
+
+**Parameters:**
+- `operation` (string, required): Operation: `now`, `format`, `add`, `diff`
+- `timestamp` (number, optional): Unix timestamp for format/add operations
+- `format` (string, optional): Date format string (default: "%Y-%m-%d %H:%M:%S")
+- `amount` (number, optional): Time amount to add/subtract
+- `unit` (string, optional): Time unit: `seconds`, `minutes`, `hours`, `days`, `weeks`
+
+**Supported Operations:**
+- `now` - Get current timestamp
+- `format` - Format timestamp to string
+- `add` - Add time to timestamp
+- `diff` - Calculate difference between timestamps
+
+**Example:**
+```rust
+agent.tool(Box::new(TimestampTool));
+```
+
+#### `ShellCommandTool`
+
+Execute shell commands safely with timeout and output capture.
+
+**Parameters:**
+- `command` (string, required): Shell command to execute
+- `timeout` (number, optional): Timeout in seconds (default: 30)
+
+**Example:**
+```rust
+agent.tool(Box::new(ShellCommandTool));
+```
+
+#### `HttpRequestTool`
+
+Make HTTP requests with full support for methods, headers, and body.
+
+**Parameters:**
+- `method` (string, required): HTTP method: `GET`, `POST`, `PUT`, `DELETE`, etc.
+- `url` (string, required): Request URL
+- `headers` (object, optional): HTTP headers as key-value pairs
+- `body` (string, optional): Request body for POST/PUT requests
+
+**Example:**
+```rust
+agent.tool(Box::new(HttpRequestTool));
+```
+
+#### `FileListTool`
+
+List directory contents with filtering and detailed information.
+
+**Parameters:**
+- `path` (string, optional): Directory path (default: current directory)
+- `pattern` (string, optional): File name pattern with wildcards
+- `recursive` (boolean, optional): Include subdirectories (default: false)
+- `max_results` (number, optional): Maximum number of results (default: 100)
+
+**Example:**
+```rust
+agent.tool(Box::new(FileListTool));
+```
+
+#### `SystemInfoTool`
+
+Retrieve system information including CPU, memory, disk, and OS details.
+
+**Parameters:**
+- None required
+
+**Example:**
+```rust
+agent.tool(Box::new(SystemInfoTool));
+```
+
+#### `TextProcessorTool`
+
+Process and analyze text with various operations like counting, trimming, and searching.
+
+**Parameters:**
+- `operation` (string, required): Operation: `count`, `trim`, `uppercase`, `lowercase`, `replace`, `search`
+- `text` (string, required): Input text
+- `find` (string, optional): Text to find (for replace/search operations)
+- `replace` (string, optional): Replacement text (for replace operation)
+- `case_sensitive` (boolean, optional): Case sensitivity for search (default: true)
+
+**Supported Operations:**
+- `count` - Count characters, words, lines
+- `trim` - Remove whitespace
+- `uppercase`/`lowercase` - Change case
+- `replace` - Find and replace text
+- `search` - Search for text patterns
+
+**Example:**
+```rust
+agent.tool(Box::new(TextProcessorTool));
+```
+
+#### `FileIOTool`
+
+Perform file I/O operations including reading, writing, copying, and moving files.
+
+**Parameters:**
+- `operation` (string, required): Operation: `read`, `write`, `copy`, `move`, `delete`, `exists`
+- `path` (string, required): File path
+- `content` (string, optional): Content for write operation
+- `destination` (string, optional): Destination path for copy/move operations
+
+**Supported Operations:**
+- `read` - Read file content
+- `write` - Write content to file
+- `copy` - Copy file to new location
+- `move` - Move file to new location
+- `delete` - Delete file
+- `exists` - Check if file exists
+
+**Example:**
+```rust
+agent.tool(Box::new(FileIOTool));
+```
+
 ##  Project Structure
 
 ```
@@ -1252,13 +1522,19 @@ helios/
     ├── agent_with_tools.rs       # Tool usage example
     ├── agent_with_file_tools.rs  # File management tools example
     ├── agent_with_memory_db.rs   # Memory database tool example
+    ├── agent_with_rag.rs         # Agent with RAG capabilities
     ├── custom_tool.rs            # Custom tool implementation
     ├── multiple_agents.rs        # Multiple agents example
+    ├── forest_of_agents.rs       # Multi-agent collaboration system
+    ├── send_message_tool_demo.rs # SendMessageTool functionality demo
     ├── direct_llm_usage.rs       # Direct LLM client usage
-    ├── serve_agent.rs            # Serve agent via HTTP API
-    ├── serve_with_custom_endpoints.rs # Serve with custom endpoints
     ├── streaming_chat.rs         # Streaming responses example
     ├── local_streaming.rs        # Local model streaming example
+    ├── rag_in_memory.rs          # RAG with in-memory vector store
+    ├── rag_advanced.rs           # RAG with Qdrant vector store
+    ├── rag_qdrant_comparison.rs  # Compare RAG implementations
+    ├── serve_agent.rs            # Serve agent via HTTP API
+    ├── serve_with_custom_endpoints.rs # Serve with custom endpoints
     └── complete_demo.rs          # Complete feature demonstration
 ```
 
@@ -1268,11 +1544,15 @@ helios/
 helios-engine/
 │
 ├──  agent           - Agent system and builder pattern
-├──  llm             - LLM client and API communication
-├── ️ tools           - Tool registry and implementations
 ├──  chat            - Chat messages and session management
 ├──  config          - TOML configuration loading/saving
-└──  error           - Error types and Result alias
+├──  error           - Error types and Result alias
+├──  forest          - Forest of Agents - multi-agent collaboration system
+├──  llm             - LLM client and API communication
+├──  rag             - RAG (Retrieval-Augmented Generation) system
+├──  rag_tool        - RAG tool implementation for agents
+├──  serve           - HTTP server for OpenAI-compatible API
+└──  tools           - Tool registry and implementations
 ```
 
 ##  Examples
@@ -1500,8 +1780,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/helios.git
-cd helios
+git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
+cd Helios-Engine
 ```
 
 2. Build the project:
