@@ -202,7 +202,8 @@ impl EmbeddingProvider for OpenAIEmbeddings {
 
 /// In-memory vector store using cosine similarity
 pub struct InMemoryVectorStore {
-    documents: std::sync::Arc<tokio::sync::RwLock<std::collections::HashMap<String, StoredDocument>>>,
+    documents:
+        std::sync::Arc<tokio::sync::RwLock<std::collections::HashMap<String, StoredDocument>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -217,7 +218,7 @@ impl InMemoryVectorStore {
     /// Create a new in-memory vector store
     pub fn new() -> Self {
         Self {
-            documents: std::sync::Arc::new(tokio::sync::RwLock::new(Vec::new())),
+            documents: std::sync::Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
     }
 }
@@ -261,15 +262,16 @@ impl VectorStore for InMemoryVectorStore {
     ) -> Result<()> {
         let mut docs = self.documents.write().await;
 
-        // Remove existing document with same ID if present
-        docs.retain(|doc| doc.id != id);
-
-        docs.push(StoredDocument {
-            id: id.to_string(),
-            embedding,
-            text: text.to_string(),
-            metadata,
-        });
+        // Insert or update document with same ID
+        docs.insert(
+            id.to_string(),
+            StoredDocument {
+                id: id.to_string(),
+                embedding,
+                text: text.to_string(),
+                metadata,
+            },
+        );
 
         Ok(())
     }
@@ -282,12 +284,11 @@ impl VectorStore for InMemoryVectorStore {
         }
 
         // Calculate similarities for all documents
-        let mut results: Vec<(usize, f64)> = docs
+        let mut results: Vec<(String, f64)> = docs
             .iter()
-            .enumerate()
-            .map(|(idx, doc)| {
+            .map(|(id, doc)| {
                 let similarity = cosine_similarity(&query_embedding, &doc.embedding);
-                (idx, similarity)
+                (id.clone(), similarity)
             })
             .collect();
 
@@ -298,14 +299,13 @@ impl VectorStore for InMemoryVectorStore {
         let top_results: Vec<SearchResult> = results
             .into_iter()
             .take(limit)
-            .map(|(idx, score)| {
-                let doc = &docs[idx];
-                SearchResult {
+            .filter_map(|(id, score)| {
+                docs.get(&id).map(|doc| SearchResult {
                     id: doc.id.clone(),
                     score,
                     text: doc.text.clone(),
                     metadata: Some(doc.metadata.clone()),
-                }
+                })
             })
             .collect();
 
@@ -314,7 +314,7 @@ impl VectorStore for InMemoryVectorStore {
 
     async fn delete(&self, id: &str) -> Result<()> {
         let mut docs = self.documents.write().await;
-        docs.retain(|doc| doc.id != id);
+        docs.remove(id);
         Ok(())
     }
 
