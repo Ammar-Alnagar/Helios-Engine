@@ -679,17 +679,19 @@ impl Tool for ShareContextTool {
 
         let mut context = self.shared_context.write().await;
 
-        // Store the value
-        context.set(key.to_string(), Value::String(value.to_string()));
-
-        // Add metadata about who shared it and when
-        let metadata_key = format!("{}_metadata", key);
+        // Store the value with its metadata in a nested object
         let metadata = serde_json::json!({
             "shared_by": self.agent_id,
             "timestamp": chrono::Utc::now().to_rfc3339(),
             "description": description
         });
-        context.set(metadata_key, metadata);
+
+        let value_with_meta = serde_json::json!({
+            "value": value,
+            "metadata": metadata
+        });
+
+        context.set(key.to_string(), value_with_meta);
 
         Ok(ToolResult::success(format!(
             "Information shared with key '{}'",
