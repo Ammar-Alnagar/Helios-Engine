@@ -123,9 +123,10 @@ pub use llm::{
 #[cfg(not(feature = "local"))]
 pub use llm::{Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, StreamChoice, StreamChunk};
 pub use tools::{
-    CalculatorTool, EchoTool, FileEditTool, FileIOTool, FileListTool, FileReadTool, FileSearchTool, FileWriteTool,
-    HttpRequestTool, JsonParserTool, MemoryDBTool, QdrantRAGTool, ShellCommandTool, SystemInfoTool,
-    TextProcessorTool, TimestampTool, Tool, ToolParameter, ToolRegistry, ToolResult, WebScraperTool,
+    CalculatorTool, EchoTool, FileEditTool, FileIOTool, FileListTool, FileReadTool, FileSearchTool,
+    FileWriteTool, HttpRequestTool, JsonParserTool, MemoryDBTool, QdrantRAGTool, ShellCommandTool,
+    SystemInfoTool, TextProcessorTool, TimestampTool, Tool, ToolParameter, ToolRegistry,
+    ToolResult, WebScraperTool,
 };
 
 /// Re-export of RAG system components.
