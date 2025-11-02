@@ -61,6 +61,9 @@ cargo run --example serve_agent
 # Serve with custom endpoints
 cargo run --example serve_with_custom_endpoints
 
+# SendMessageTool demo - test messaging functionality
+cargo run --example send_message_tool_demo
+
 # Complete demo with all features
 cargo run --example complete_demo
 ```
@@ -282,6 +285,64 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 ```
+
+### SendMessageTool Demo (`send_message_tool_demo.rs`)
+
+Test the SendMessageTool functionality for agent communication:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder, SendMessageTool, Tool};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with two agents
+    let forest = ForestBuilder::new()
+        .config(config)
+        .agent("alice".to_string(), Agent::builder("alice").build().await?)
+        .agent("bob".to_string(), Agent::builder("bob").build().await?)
+        .build()
+        .await?;
+
+    // Create SendMessageTool for direct testing
+    let message_queue = Arc::new(RwLock::new(Vec::new()));
+    let shared_context = Arc::new(RwLock::new(helios_engine::SharedContext::new()));
+
+    let send_tool = SendMessageTool::new(
+        "alice".to_string(),
+        Arc::clone(&message_queue),
+        Arc::clone(&shared_context),
+    );
+
+    // Test direct message
+    let args = serde_json::json!({
+        "to": "bob",
+        "message": "Hello Bob!"
+    });
+
+    let result = send_tool.execute(args).await?;
+    println!("Direct message result: {}", result.output);
+
+    // Test broadcast message
+    let args = serde_json::json!({
+        "message": "Hello everyone!"
+    });
+
+    let result = send_tool.execute(args).await?;
+    println!("Broadcast message result: {}", result.output);
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Direct messaging** between specific agents
+- **Broadcast messaging** to all agents in the forest
+- **Message queue management** and shared context integration
+- **Forest messaging system integration**
 
 ### Memory Database Agent (`agent_with_memory_db.rs`)
 
