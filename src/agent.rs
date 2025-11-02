@@ -43,11 +43,15 @@ impl Agent {
     ///
     /// A `Result` containing the new `Agent` instance.
     async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
+        #[cfg(feature = "local")]
         let provider_type = if let Some(local_config) = config.local {
             LLMProviderType::Local(local_config)
         } else {
             LLMProviderType::Remote(config.llm)
         };
+
+        #[cfg(not(feature = "local"))]
+        let provider_type = LLMProviderType::Remote(config.llm);
 
         let llm_client = LLMClient::new(provider_type).await?;
 

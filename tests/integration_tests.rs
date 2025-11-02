@@ -26,6 +26,7 @@ async fn test_agent_with_calculator_tool() {
             temperature: 0.7,
             max_tokens: 2048,
         },
+        #[cfg(feature = "local")]
         local: None,
     };
 
@@ -60,6 +61,7 @@ async fn test_agent_with_echo_tool() {
             temperature: 0.7,
             max_tokens: 2048,
         },
+        #[cfg(feature = "local")]
         local: None,
     };
 
@@ -108,6 +110,7 @@ async fn test_tool_registry_functionality() {
 
 /// Tests the serialization and deserialization of the `Config` struct.
 #[test]
+#[cfg(feature = "local")]
 fn test_config_serialization() {
     use helios_engine::LocalConfig;
 
@@ -160,6 +163,42 @@ max_tokens = 1024
         parsed.local.as_ref().unwrap().huggingface_repo,
         "microsoft/Phi-3-mini-4k-instruct-gguf"
     );
+}
+
+/// Tests the serialization and deserialization of the `Config` struct without local.
+#[test]
+#[cfg(not(feature = "local"))]
+fn test_config_serialization() {
+    let config = Config {
+        llm: LLMConfig {
+            model_name: "gpt-3.5-turbo".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: "test-key".to_string(),
+            temperature: 0.7,
+            max_tokens: 2048,
+        },
+    };
+
+    // Test serialization to a TOML string.
+    let serialized = toml::to_string_pretty(&config);
+    assert!(serialized.is_ok());
+
+    // Test deserialization from a TOML string.
+    let config_str = r#"
+[llm]
+model_name = "gpt-4"
+base_url = "https://api.openai.com/v1"
+api_key = "test-key-2"
+temperature = 0.5
+max_tokens = 1024
+"#;
+
+    let parsed_config: Result<Config, _> = toml::from_str(config_str);
+    assert!(parsed_config.is_ok());
+
+    let parsed = parsed_config.unwrap();
+    assert_eq!(parsed.llm.model_name, "gpt-4");
+    assert_eq!(parsed.llm.temperature, 0.5);
 }
 
 /// Tests the creation of `ChatMessage` instances.
@@ -332,6 +371,7 @@ async fn test_agent_builder_pattern() {
             temperature: 0.7,
             max_tokens: 2048,
         },
+        #[cfg(feature = "local")]
         local: None,
     };
 
@@ -415,6 +455,7 @@ async fn test_server_state_with_llm_client() {
             temperature: 0.7,
             max_tokens: 2048,
         },
+        #[cfg(feature = "local")]
         local: None,
     };
 
@@ -446,6 +487,7 @@ async fn test_server_state_with_agent() {
             temperature: 0.7,
             max_tokens: 2048,
         },
+        #[cfg(feature = "local")]
         local: None,
     };
 

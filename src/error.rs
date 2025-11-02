@@ -41,6 +41,7 @@ pub enum HeliosError {
     TomlError(#[from] toml::de::Error),
 
     /// An error from the Llama C++ backend.
+    #[cfg(feature = "local")]
     #[error("Llama C++ error: {0}")]
     LlamaCppError(String),
 }

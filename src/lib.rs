@@ -96,17 +96,23 @@ pub use agent::{Agent, AgentBuilder};
 /// Re-export of chat-related types.
 pub use chat::{ChatMessage, ChatSession, Role};
 
+#[cfg(not(feature = "local"))]
+pub use config::{Config, LLMConfig};
 /// Re-export of configuration types.
+#[cfg(feature = "local")]
 pub use config::{Config, LLMConfig, LocalConfig};
 
 /// Re-export of the custom error and result types.
 pub use error::{HeliosError, Result};
 
 /// Re-export of LLM-related types.
+#[cfg(feature = "local")]
 pub use llm::{
     Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, LocalLLMProvider, StreamChoice,
     StreamChunk,
 };
+#[cfg(not(feature = "local"))]
+pub use llm::{Delta, LLMClient, LLMProvider, LLMRequest, LLMResponse, StreamChoice, StreamChunk};
 pub use tools::{
     CalculatorTool, EchoTool, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool,
     MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult,
