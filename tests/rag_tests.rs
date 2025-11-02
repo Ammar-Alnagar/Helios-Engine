@@ -350,7 +350,7 @@ async fn test_unicode_documents() {
 
     // Search should work with Unicode
     let results = rag_system.search("世界", 2).await.unwrap();
-    assert!(results.len() > 0);
+    assert!(!results.is_empty());
 }
 
 #[tokio::test]
@@ -425,7 +425,7 @@ async fn test_metadata_with_complex_types() {
     let mut metadata = HashMap::new();
     metadata.insert("string".to_string(), serde_json::json!("value"));
     metadata.insert("number".to_string(), serde_json::json!(42));
-    metadata.insert("float".to_string(), serde_json::json!(3.14));
+    metadata.insert("float".to_string(), serde_json::json!(3.15));
     metadata.insert("boolean".to_string(), serde_json::json!(true));
     metadata.insert("array".to_string(), serde_json::json!([1, 2, 3]));
     metadata.insert("object".to_string(), serde_json::json!({"key": "value"}));

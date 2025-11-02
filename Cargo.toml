@@ -29,10 +29,14 @@ clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"
 libc = { version = "0.2", optional = true }
 llama-cpp-2 = { version = "0.1.122", optional = true }
+md5 = "0.7"
 regex = "1.10"
 reqwest = { version = "0.12.23", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10"
+base64 = "0.22"
+sysinfo = "0.30"
 tempfile = "3.0"
 thiserror = "2.0.16"
 tokio = { version = "1.35", features = ["full"] }

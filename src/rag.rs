@@ -638,12 +638,15 @@ impl RAGSystem {
 
     /// Ensure the system is initialized
     async fn ensure_initialized(&self) -> Result<()> {
-        self.initialized
-            .get_or_try_init(|| async {
+        let is_initialized = *self.initialized.read().await;
+        if !is_initialized {
+            let mut init_guard = self.initialized.write().await;
+            if !*init_guard {
                 let dimension = self.embedding_provider.dimension();
-                self.vector_store.initialize(dimension).await
-            })
-            .await?;
+                self.vector_store.initialize(dimension).await?;
+                *init_guard = true;
+            }
+        }
         Ok(())
     }
 
