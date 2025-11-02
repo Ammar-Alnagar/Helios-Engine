@@ -30,7 +30,11 @@
 -   **Tool Registry**: Extensible tool system for adding custom functionality
 -  **Chat Management**: Built-in conversation history and session management
 -  **Session Memory**: Track agent state and metadata across conversations
--  **File Management Tools**: Built-in tools for searching, reading, writing, and editing files
+-  **Extensive Tool Suite**: 16+ built-in tools including web scraping, JSON parsing, timestamp operations, file I/O, shell commands, HTTP requests, system info, and text processing
+-  **File Management Tools**: Built-in tools for searching, reading, writing, editing, and listing files
+-  **Web & API Tools**: Web scraping, HTTP requests, and JSON manipulation capabilities
+-  **System Integration**: Shell command execution, system information retrieval, and timestamp operations
+-  **Text Processing**: Advanced text search, replace, formatting, and analysis tools
 -  **Streaming Support**: True real-time response streaming for both remote and local models with immediate token delivery
 -  **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration (optional `local` feature)
 -  **LLM Support**: Compatible with OpenAI API, any OpenAI-compatible API, and local models
@@ -57,7 +61,7 @@
 - [Configuration](#configuration)
 - [Local Inference Setup](#local-inference-setup)
 - [Architecture](#architecture)
-- [Usage Examples](#usage-examples)
+- [Built-in Tools](#built-in-tools)
 - [Creating Custom Tools](#creating-custom-tools)
 - [API Documentation](#api-documentation)
 - [Project Structure](#project-structure)
@@ -872,165 +876,175 @@ flowchart LR
     style H fill:#2196F3
 ```
 
-##  Usage Examples
+##  Built-in Tools
 
-### Basic Chat
+Helios Engine includes 16+ built-in tools for common tasks. All tools follow the same pattern and can be easily added to agents.
 
+### Core Tools
+
+#### `CalculatorTool`
+Performs basic arithmetic operations.
+
+**Parameters:**
+- `expression` (string, required): Mathematical expression to evaluate
+
+**Example:**
 ```rust
-use helios_engine::{Agent, Config};
-
-#[tokio::main]
-async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
-
-    let mut agent = Agent::builder("Assistant")
-        .config(config)
-        .system_prompt("You are a helpful assistant.")
-        .build()
-        .await?;
-
-    let response = agent.chat("Hello!").await?;
-    println!("{}", response);
-
-    Ok(())
-}
+agent.tool(Box::new(CalculatorTool));
 ```
 
-### Agent with Built-in Tools
+#### `EchoTool`
+Echoes back a message.
 
+**Parameters:**
+- `message` (string, required): Message to echo
+
+**Example:**
 ```rust
-use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
-
-#[tokio::main]
-async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
-
-    let mut agent = Agent::builder("ToolAgent")
-        .config(config)
-        .system_prompt("You have access to tools. Use them wisely.")
-        .tool(Box::new(CalculatorTool))
-        .tool(Box::new(EchoTool))
-        .max_iterations(5)
-        .build()
-        .await?;
-
-    // The agent will automatically use the calculator
-    let response = agent.chat("What is 123 * 456?").await?;
-    println!("{}", response);
-
-    Ok(())
-}
+agent.tool(Box::new(EchoTool));
 ```
 
-### Multiple Agents
+### File Management Tools
 
-```rust
-use helios_engine::{Agent, Config};
+#### `FileSearchTool`
+Search for files by name pattern or content within files.
 
-#[tokio::main]
-async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
+**Parameters:**
+- `path` (string, optional): Directory path to search in (default: current directory)
+- `pattern` (string, optional): File name pattern with wildcards (e.g., `*.rs`)
+- `content` (string, optional): Text content to search for within files
+- `max_results` (number, optional): Maximum number of results (default: 50)
 
-    let mut poet = Agent::builder("Poet")
-        .config(config.clone())
-        .system_prompt("You are a creative poet.")
-        .build()
-        .await?;
+#### `FileReadTool`
+Read the contents of a file with optional line range selection.
 
-    let mut scientist = Agent::builder("Scientist")
-        .config(config)
-        .system_prompt("You are a knowledgeable scientist.")
-        .build()
-        .await?;
+**Parameters:**
+- `path` (string, required): File path to read
+- `start_line` (number, optional): Starting line number (1-indexed)
+- `end_line` (number, optional): Ending line number (1-indexed)
 
-    let poem = poet.chat("Write a haiku about code").await?;
-    let fact = scientist.chat("Explain quantum physics").await?;
+#### `FileWriteTool`
+Write content to a file (creates new or overwrites existing).
 
-    println!("Poet: {}\n", poem);
-    println!("Scientist: {}", fact);
+**Parameters:**
+- `path` (string, required): File path to write to
+- `content` (string, required): Content to write
 
-    Ok(())
-}
-```
+#### `FileEditTool`
+Edit a file by replacing specific text (find and replace).
 
-### Agent with File Tools and Session Memory
+**Parameters:**
+- `path` (string, required): File path to edit
+- `find` (string, required): Text to find
+- `replace` (string, required): Replacement text
 
-Agents can use file management tools and track session state:
+#### `FileIOTool`
+Unified file operations: read, write, append, delete, copy, move, exists, size.
 
-```rust
-use helios_engine::{Agent, Config, FileSearchTool, FileReadTool, FileWriteTool, FileEditTool};
+**Parameters:**
+- `operation` (string, required): Operation type
+- `path` (string, optional): File path for operations
+- `src_path` (string, optional): Source path for copy/move
+- `dst_path` (string, optional): Destination path for copy/move
+- `content` (string, optional): Content for write/append
 
-#[tokio::main]
-async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
+#### `FileListTool`
+List directory contents with detailed metadata.
 
-    let mut agent = Agent::builder("FileAssistant")
-        .config(config)
-        .system_prompt("You are a helpful file management assistant.")
-        .tool(Box::new(FileSearchTool))
-        .tool(Box::new(FileReadTool))
-        .tool(Box::new(FileWriteTool))
-        .tool(Box::new(FileEditTool))
-        .build()
-        .await?;
+**Parameters:**
+- `path` (string, optional): Directory path to list
+- `show_hidden` (boolean, optional): Show hidden files
+- `recursive` (boolean, optional): List recursively
+- `max_depth` (number, optional): Maximum recursion depth
 
-    // Set session memory
-    agent.set_memory("session_start", chrono::Utc::now().to_rfc3339());
-    agent.set_memory("working_directory", std::env::current_dir()?.display().to_string());
+### Web & API Tools
 
-    // Use file tools
-    let response = agent.chat("Find all Rust files in the src directory").await?;
-    println!("Agent: {}\n", response);
+#### `WebScraperTool`
+Fetch and extract content from web URLs.
 
-    // Track tasks
-    agent.increment_tasks_completed();
+**Parameters:**
+- `url` (string, required): URL to scrape
+- `extract_text` (boolean, optional): Extract readable text from HTML
+- `timeout_seconds` (number, optional): Request timeout
 
-    // Get session summary
-    println!("{}", agent.get_session_summary());
+#### `HttpRequestTool`
+Make HTTP requests with various methods.
 
-    Ok(())
-}
-```
+**Parameters:**
+- `method` (string, required): HTTP method (GET, POST, PUT, DELETE, etc.)
+- `url` (string, required): Request URL
+- `headers` (object, optional): Request headers
+- `body` (string, optional): Request body
+- `timeout_seconds` (number, optional): Request timeout
 
-### Streaming Chat (Direct LLM Usage)
+#### `JsonParserTool`
+Parse, validate, format, and manipulate JSON data.
 
-Use streaming to receive responses in real-time:
+**Operations:**
+- `parse` - Parse and validate JSON
+- `stringify` - Format JSON with optional indentation
+- `get_value` - Extract values by JSON path
+- `set_value` - Modify JSON values
+- `validate` - Check JSON validity
 
-```rust
-use helios_engine::{LLMClient, ChatMessage, llm::LLMProviderType};
-use helios_engine::config::LLMConfig;
-use std::io::Write;
+### System & Utility Tools
 
-#[tokio::main]
-async fn main() -> helios_engine::Result<()> {
-    let llm_config = LLMConfig {
-        model_name: "gpt-3.5-turbo".to_string(),
-        base_url: "https://api.openai.com/v1".to_string(),
-        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
-        temperature: 0.7,
-        max_tokens: 2048,
-    };
+#### `ShellCommandTool`
+Execute shell commands safely with security restrictions.
 
-    // Create client with remote provider type (streaming enabled)
-    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+**Parameters:**
+- `command` (string, required): Shell command to execute
+- `timeout_seconds` (number, optional): Command timeout
 
-    let messages = vec![
-        ChatMessage::system("You are a helpful assistant that responds concisely."),
-        ChatMessage::user("Write a short poem about programming."),
-    ];
+#### `SystemInfoTool`
+Retrieve system information (OS, CPU, memory, disk, network).
 
-    println!("🤖: ");
-    let response = client
-        .chat_stream(messages, None, |chunk| {
-            print!("{}", chunk);
-            std::io::stdout().flush().unwrap(); // For immediate output
-        })
-        .await?;
-    println!(); // New line after streaming completes
+**Parameters:**
+- `category` (string, optional): Info category (all, os, cpu, memory, disk, network)
 
-    Ok(())
-}
-```
+#### `TimestampTool`
+Work with timestamps and date/time operations.
+
+**Operations:**
+- `now` - Current time
+- `format` - Format timestamps
+- `parse` - Parse timestamp strings
+- `add`/`subtract` - Time arithmetic
+- `diff` - Time difference calculation
+
+#### `TextProcessorTool`
+Process and manipulate text with various operations.
+
+**Operations:**
+- `search` - Regex-based text search
+- `replace` - Find and replace with regex
+- `split`/`join` - Text splitting and joining
+- `count` - Character, word, and line counts
+- `uppercase`/`lowercase` - Case conversion
+- `trim` - Whitespace removal
+- `lines`/`words` - Text formatting
+
+### Data Storage Tools
+
+#### `MemoryDBTool`
+In-memory key-value database for caching data during conversations.
+
+**Operations:**
+- `set` - Store key-value pairs
+- `get` - Retrieve values
+- `delete` - Remove entries
+- `list` - Show all stored data
+- `clear` - Remove all data
+- `exists` - Check key existence
+
+#### `QdrantRAGTool`
+RAG (Retrieval-Augmented Generation) tool with Qdrant vector database.
+
+**Operations:**
+- `add_document` - Store and embed documents
+- `search` - Semantic search
+- `delete` - Remove documents
+- `clear` - Clear collection
 
 ##  Creating Custom Tools
 
@@ -1174,6 +1188,10 @@ Manages conversation history and session metadata.
 - `get_summary()` - Get a summary of the session
 
 ### Built-in Tools
+
+For detailed documentation of all 16+ built-in tools including usage examples, see the [Built-in Tools](#built-in-tools) section above.
+
+#### Legacy Tool Documentation
 
 #### `CalculatorTool`
 
