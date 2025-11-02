@@ -29,16 +29,16 @@
 
 ## 📚 Documentation
 
-| Guide | Description |
-|-------|-------------|
-| **[📖 Getting Started](docs/QUICKSTART.md)** | 5-minute setup guide to get Helios running |
-| **[🛠️ Installation](docs/INSTALLATION.md)** | Complete installation instructions and feature flags |
-| **[💻 CLI Usage](docs/USAGE.md)** | Command-line interface and common usage patterns |
-| **[⚙️ Configuration](docs/USAGE.md#configuration)** | Configuration options and local inference setup |
-| **[🔧 Tools](docs/USAGE.md#tools)** | Built-in tools and creating custom tools |
-| **[🆕 Advanced Features](docs/RAG.md)** | RAG, Forest of Agents, and advanced capabilities |
-| **[📋 API Reference](docs/API.md)** | Complete API documentation |
-| **[🏗️ Architecture](docs/ARCHITECTURE.md)** | System architecture and design principles |
+- **[📖 Getting Started](docs/QUICKSTART.md)** - 5-minute setup guide to get Helios running
+- **[🛠️ Installation](docs/INSTALLATION.md)** - Complete installation instructions and feature flags
+- **[💻 CLI Usage](docs/USAGE.md)** - Command-line interface and common usage patterns
+- **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
+- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools
+- **[🆕 Advanced Features](docs/ADVANCED.md)** - RAG, Forest of Agents, and advanced capabilities
+- **[📋 API Reference](docs/API.md)** - Complete API documentation
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design principles
+
+📚 **[Full Documentation Index](docs/README.md)** - Complete guide to all available documentation
 
 ## 🏃‍♂️ Quick Start
 
