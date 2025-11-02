@@ -94,6 +94,9 @@ pub mod rag;
 /// RAG tool implementation for agent use.
 pub mod rag_tool;
 
+/// Forest of Agents - Multi-agent collaboration system.
+pub mod forest;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -138,4 +141,10 @@ pub use serve::{
     load_custom_endpoints_config, start_server, start_server_with_agent,
     start_server_with_agent_and_custom_endpoints, start_server_with_custom_endpoints,
     CustomEndpoint, CustomEndpointsConfig, ServerState,
+};
+
+/// Re-export of Forest of Agents functionality.
+pub use forest::{
+    AgentId, DelegateTaskTool, ForestBuilder, ForestMessage, ForestOfAgents, SendMessageTool,
+    ShareContextTool, SharedContext,
 };

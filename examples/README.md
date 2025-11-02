@@ -43,6 +43,9 @@ cargo run --example custom_tool
 # Multiple agents with different personalities
 cargo run --example multiple_agents
 
+# Forest of Agents - collaborative multi-agent system
+cargo run --example forest_of_agents
+
 # Direct LLM usage without agents
 cargo run --example direct_llm_usage
 
@@ -182,6 +185,64 @@ async fn main() -> helios_engine::Result<()> {
     Ok(())
 }
 ```
+
+### Forest of Agents (`forest_of_agents.rs`)
+
+Create a collaborative multi-agent system where agents can communicate, delegate tasks, and share context:
+
+```rust
+use helios_engine::{Agent, Config, ForestBuilder};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create a forest with specialized agents
+    let forest = ForestBuilder::new()
+        .config(config)
+        .agent(
+            "coordinator".to_string(),
+            Agent::builder("coordinator")
+                .system_prompt("You coordinate team projects and delegate tasks.")
+        )
+        .agent(
+            "researcher".to_string(),
+            Agent::builder("researcher")
+                .system_prompt("You research and analyze information.")
+        )
+        .build()
+        .await?;
+
+    // Execute collaborative tasks
+    let result = forest
+        .execute_collaborative_task(
+            &"coordinator".to_string(),
+            "Create a guide on sustainable practices".to_string(),
+            vec!["researcher".to_string()],
+        )
+        .await?;
+
+    println!("Collaborative result: {}", result);
+
+    // Direct inter-agent communication
+    forest
+        .send_message(
+            &"coordinator".to_string(),
+            Some(&"researcher".to_string()),
+            "Please research the latest findings.".to_string(),
+        )
+        .await?;
+
+    Ok(())
+}
+```
+
+**Features:**
+- **Multi-agent collaboration** on complex tasks
+- **Inter-agent communication** (direct messages and broadcasts)
+- **Task delegation** between agents
+- **Shared context** and memory
+- **Specialized agent roles** working together
 
 ### File Management Agent (`agent_with_file_tools.rs`)
 
