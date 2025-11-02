@@ -88,6 +88,12 @@ pub mod tools;
 /// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
 pub mod serve;
 
+/// RAG (Retrieval-Augmented Generation) system with vector stores and embeddings.
+pub mod rag;
+
+/// RAG tool implementation for agent use.
+pub mod rag_tool;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -117,6 +123,15 @@ pub use tools::{
     CalculatorTool, EchoTool, FileEditTool, FileReadTool, FileSearchTool, FileWriteTool,
     MemoryDBTool, QdrantRAGTool, Tool, ToolParameter, ToolRegistry, ToolResult,
 };
+
+/// Re-export of RAG system components.
+pub use rag::{
+    Document, EmbeddingProvider, InMemoryVectorStore, OpenAIEmbeddings, QdrantVectorStore,
+    RAGSystem, SearchResult, VectorStore,
+};
+
+/// Re-export of RAG tool.
+pub use rag_tool::RAGTool;
 
 /// Re-export of serve functionality.
 pub use serve::{

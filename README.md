@@ -130,7 +130,7 @@ Add Helios-Engine to your `Cargo.toml`:
 ```toml
 [dependencies]
 # Without local model support (lighter dependency)
-helios-engine = "0.3.0"
+helios-engine = "0.3.1"
 tokio = { version = "1.35", features = ["full"] }
 
 # OR with local model support for offline inference
