@@ -1,0 +1,561 @@
+# Tools Guide
+
+Helios Engine includes 16+ built-in tools for common tasks, and provides a flexible system for creating custom tools. Tools allow agents to perform actions beyond just text generation, enabling them to interact with files, execute commands, access web resources, and manipulate data.
+
+## Overview
+
+Tools in Helios Engine follow a simple pattern:
+1. **Definition**: Each tool defines its name, description, and parameters
+2. **Execution**: Tools receive JSON parameters and return structured results
+3. **Registration**: Tools are registered with agents during creation
+
+## Built-in Tools
+
+### Core Tools
+
+#### CalculatorTool
+Performs mathematical calculations and evaluations.
+
+```rust
+use helios_engine::CalculatorTool;
+
+let mut agent = Agent::builder("MathAgent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .build()
+    .await?;
+```
+
+**Parameters:**
+- `expression` (string, required): Mathematical expression to evaluate
+
+**Example Usage:**
+```rust
+let result = agent.chat("Calculate 15 * 7 + 3").await?;
+```
+
+#### EchoTool
+Simply echoes back the input message (useful for testing).
+
+```rust
+use helios_engine::EchoTool;
+
+agent.tool(Box::new(EchoTool));
+```
+
+**Parameters:**
+- `message` (string, required): Message to echo back
+
+### File Management Tools
+
+#### FileSearchTool
+Search for files by name pattern or content within files.
+
+```rust
+use helios_engine::FileSearchTool;
+
+agent.tool(Box::new(FileSearchTool));
+```
+
+**Parameters:**
+- `path` (string, optional): Directory path to search (default: current directory)
+- `pattern` (string, optional): File name pattern with wildcards (e.g., `*.rs`)
+- `content` (string, optional): Text content to search for within files
+- `max_results` (number, optional): Maximum number of results (default: 50)
+
+**Examples:**
+```rust
+// Find all Rust files
+agent.chat("Find all .rs files").await?;
+
+// Search for specific content
+agent.chat("Find files containing 'TODO'").await?;
+```
+
+#### FileReadTool
+Read the contents of a file with optional line range selection.
+
+```rust
+use helios_engine::FileReadTool;
+
+agent.tool(Box::new(FileReadTool));
+```
+
+**Parameters:**
+- `path` (string, required): File path to read
+- `start_line` (number, optional): Starting line number (1-indexed)
+- `end_line` (number, optional): Ending line number (1-indexed)
+
+**Examples:**
+```rust
+// Read entire file
+agent.chat("Read the file config.toml").await?;
+
+// Read specific lines
+agent.chat("Read lines 10-20 of main.rs").await?;
+```
+
+#### FileWriteTool
+Write content to a file (creates new or overwrites existing).
+
+```rust
+use helios_engine::FileWriteTool;
+
+agent.tool(Box::new(FileWriteTool));
+```
+
+**Parameters:**
+- `path` (string, required): File path to write to
+- `content` (string, required): Content to write
+
+**Example:**
+```rust
+agent.chat("Create a new file called notes.txt with content 'Hello World'").await?;
+```
+
+#### FileEditTool
+Edit a file by replacing specific text (find and replace).
+
+```rust
+use helios_engine::FileEditTool;
+
+agent.tool(Box::new(FileEditTool));
+```
+
+**Parameters:**
+- `path` (string, required): File path to edit
+- `find` (string, required): Text to find
+- `replace` (string, required): Replacement text
+
+**Example:**
+```rust
+agent.chat("In main.rs, replace 'old_function' with 'new_function'").await?;
+```
+
+#### FileIOTool
+Unified file operations: read, write, append, delete, copy, move, exists, size.
+
+```rust
+use helios_engine::FileIOTool;
+
+agent.tool(Box::new(FileIOTool));
+```
+
+**Parameters:**
+- `operation` (string, required): Operation type (read, write, append, delete, copy, move, exists)
+- `path` (string, required): File path
+- Additional parameters depending on operation
+
+#### FileListTool
+List directory contents with detailed metadata.
+
+```rust
+use helios_engine::FileListTool;
+
+agent.tool(Box::new(FileListTool));
+```
+
+**Parameters:**
+- `path` (string, optional): Directory path to list
+- `show_hidden` (boolean, optional): Show hidden files
+- `recursive` (boolean, optional): List recursively
+- `max_depth` (number, optional): Maximum recursion depth
+
+### Web & API Tools
+
+#### WebScraperTool
+Fetch and extract content from web URLs.
+
+```rust
+use helios_engine::WebScraperTool;
+
+agent.tool(Box::new(WebScraperTool));
+```
+
+**Parameters:**
+- `url` (string, required): URL to scrape
+- `extract_text` (boolean, optional): Extract readable text from HTML
+- `timeout_seconds` (number, optional): Request timeout
+
+#### HttpRequestTool
+Make HTTP requests with various methods.
+
+```rust
+use helios_engine::HttpRequestTool;
+
+agent.tool(Box::new(HttpRequestTool));
+```
+
+**Parameters:**
+- `method` (string, required): HTTP method (GET, POST, PUT, DELETE, etc.)
+- `url` (string, required): Request URL
+- `headers` (object, optional): Request headers
+- `body` (string, optional): Request body
+- `timeout_seconds` (number, optional): Request timeout
+
+#### JsonParserTool
+Parse, validate, format, and manipulate JSON data.
+
+```rust
+use helios_engine::JsonParserTool;
+
+agent.tool(Box::new(JsonParserTool));
+```
+
+**Operations:**
+- `parse` - Parse and validate JSON
+- `stringify` - Format JSON with optional indentation
+- `get_value` - Extract values by JSON path
+- `set_value` - Modify JSON values
+- `validate` - Check JSON validity
+
+### System & Utility Tools
+
+#### ShellCommandTool
+Execute shell commands safely with security restrictions.
+
+```rust
+use helios_engine::ShellCommandTool;
+
+agent.tool(Box::new(ShellCommandTool));
+```
+
+**Parameters:**
+- `command` (string, required): Shell command to execute
+- `timeout_seconds` (number, optional): Command timeout
+
+#### SystemInfoTool
+Retrieve system information (OS, CPU, memory, disk, network).
+
+```rust
+use helios_engine::SystemInfoTool;
+
+agent.tool(Box::new(SystemInfoTool));
+```
+
+**Parameters:**
+- `category` (string, optional): Info category (all, os, cpu, memory, disk, network)
+
+#### TimestampTool
+Work with timestamps and date/time operations.
+
+```rust
+use helios_engine::TimestampTool;
+
+agent.tool(Box::new(TimestampTool));
+```
+
+**Operations:**
+- `now` - Current time
+- `format` - Format timestamps
+- `parse` - Parse timestamp strings
+- `add`/`subtract` - Time arithmetic
+- `diff` - Time difference calculation
+
+#### TextProcessorTool
+Process and manipulate text with various operations.
+
+```rust
+use helios_engine::TextProcessorTool;
+
+agent.tool(Box::new(TextProcessorTool));
+```
+
+**Operations:**
+- `search` - Regex-based text search
+- `replace` - Find and replace with regex
+- `split`/`join` - Text splitting and joining
+- `count` - Character, word, and line counts
+- `uppercase`/`lowercase` - Case conversion
+- `trim` - Whitespace removal
+- `lines`/`words` - Text formatting
+
+### Data Storage Tools
+
+#### MemoryDBTool
+In-memory key-value database for caching data during conversations.
+
+```rust
+use helios_engine::MemoryDBTool;
+
+agent.tool(Box::new(MemoryDBTool::new()));
+```
+
+**Operations:**
+- `set` - Store key-value pairs
+- `get` - Retrieve values
+- `delete` - Remove entries
+- `list` - Show all stored data
+- `clear` - Remove all data
+- `exists` - Check key existence
+
+#### QdrantRAGTool
+RAG (Retrieval-Augmented Generation) tool with Qdrant vector database.
+
+```rust
+use helios_engine::QdrantRAGTool;
+
+let rag_tool = QdrantRAGTool::new(
+    "http://localhost:6333",                    // Qdrant URL
+    "my_collection",                             // Collection name
+    "https://api.openai.com/v1/embeddings",     // Embedding API
+    std::env::var("OPENAI_API_KEY").unwrap(),   // API key
+);
+
+agent.tool(Box::new(rag_tool));
+```
+
+**Operations:**
+- `add_document` - Store and embed documents
+- `search` - Semantic search
+- `delete` - Remove documents
+- `clear` - Clear collection
+
+## Creating Custom Tools
+
+Implement the `Tool` trait to create custom tools. Tools must be thread-safe and handle errors gracefully.
+
+### Basic Tool Structure
+
+```rust
+use async_trait::async_trait;
+use helios_engine::{Tool, ToolParameter, ToolResult};
+use serde_json::Value;
+use std::collections::HashMap;
+
+struct WeatherTool;
+
+#[async_trait]
+impl Tool for WeatherTool {
+    fn name(&self) -> &str {
+        "get_weather"
+    }
+
+    fn description(&self) -> &str {
+        "Get the current weather for a location"
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "location".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "City name or location".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
+        let location = args["location"]
+            .as_str()
+            .ok_or_else(|| helios_engine::Error::InvalidParameter("location".to_string()))?;
+
+        // Your weather API logic here
+        let weather_data = fetch_weather_data(location).await?;
+
+        Ok(ToolResult::success(format!(
+            "Weather in {}: {}°, {}",
+            location, weather_data.temperature, weather_data.condition
+        )))
+    }
+}
+```
+
+### Complete Example
+
+```rust
+use async_trait::async_trait;
+use helios_engine::{Tool, ToolParameter, ToolResult, Agent, Config};
+use serde_json::Value;
+use std::collections::HashMap;
+
+struct WeatherTool;
+
+#[async_trait]
+impl Tool for WeatherTool {
+    fn name(&self) -> &str {
+        "get_weather"
+    }
+
+    fn description(&self) -> &str {
+        "Get current weather information for a location"
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "location".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "City name (e.g., 'New York', 'London, UK')".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "unit".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Temperature unit: 'celsius' or 'fahrenheit'".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
+        let location = args["location"]
+            .as_str()
+            .ok_or_else(|| helios_engine::Error::InvalidParameter("location is required".to_string()))?;
+
+        let unit = args["unit"]
+            .as_str()
+            .unwrap_or("celsius");
+
+        // Simulate weather API call
+        let temperature = 22;
+        let condition = "Sunny";
+
+        let temp_display = match unit {
+            "fahrenheit" => format!("{}°F", temperature * 9/5 + 32),
+            _ => format!("{}°C", temperature),
+        };
+
+        Ok(ToolResult::success(format!(
+            "Weather in {}: {}, {}",
+            location, temp_display, condition
+        )))
+    }
+}
+
+// Use your custom tool
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("WeatherAgent")
+        .config(config)
+        .system_prompt("You are a helpful assistant with access to weather information.")
+        .tool(Box::new(WeatherTool))
+        .build()
+        .await?;
+
+    let response = agent.chat("What's the weather like in Tokyo?").await?;
+    println!("{}", response);
+
+    Ok(())
+}
+```
+
+## Tool Best Practices
+
+### Error Handling
+- Always handle errors gracefully in your `execute` method
+- Return appropriate `ToolResult` types for different outcomes
+- Provide meaningful error messages
+
+### Parameter Validation
+- Validate required parameters early
+- Provide sensible defaults for optional parameters
+- Use clear parameter names and descriptions
+
+### Performance
+- Keep tool execution reasonably fast
+- Avoid blocking operations when possible
+- Consider implementing timeouts for external API calls
+
+### Security
+- Validate file paths to prevent directory traversal
+- Sanitize command inputs for shell tools
+- Be cautious with network requests and API keys
+
+### Naming Conventions
+- Use lowercase with underscores for tool names: `file_search`, `web_scraper`
+- Make descriptions clear and actionable
+- Parameter names should be descriptive but concise
+
+## Advanced Tool Patterns
+
+### Stateful Tools
+Tools can maintain state between executions:
+
+```rust
+use std::sync::Mutex;
+
+struct CounterTool {
+    count: Mutex<i32>,
+}
+
+#[async_trait]
+impl Tool for CounterTool {
+    fn name(&self) -> &str {
+        "counter"
+    }
+
+    fn description(&self) -> &str {
+        "A simple counter that maintains state"
+    }
+
+    // ... parameters and execute methods
+}
+```
+
+### Async Tools
+Tools can perform async operations naturally since `execute` is async:
+
+```rust
+async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
+    // Perform async HTTP request
+    let response = reqwest::get("https://api.example.com/data").await?;
+    let data: serde_json::Value = response.json().await?;
+
+    Ok(ToolResult::success(format!("Fetched: {}", data)))
+}
+```
+
+### Tool Composition
+Create complex tools by combining simpler ones:
+
+```rust
+struct DataProcessorTool {
+    file_tool: FileReadTool,
+    json_tool: JsonParserTool,
+}
+
+#[async_trait]
+impl Tool for DataProcessorTool {
+    // Implementation that uses both tools internally
+}
+```
+
+## Tool Registry
+
+The `ToolRegistry` manages all available tools:
+
+```rust
+use helios_engine::ToolRegistry;
+
+// Create registry
+let mut registry = ToolRegistry::new();
+
+// Register tools
+registry.register(Box::new(CalculatorTool));
+registry.register(Box::new(FileReadTool));
+
+// List available tools
+let tool_names = registry.list_tools();
+println!("Available tools: {:?}", tool_names);
+
+// Execute tools directly
+let result = registry.execute("calculator", serde_json::json!({
+    "expression": "2 + 2"
+})).await?;
+```
+
+## Next Steps
+
+- **[Examples](../examples/)** - See tools in action
+- **[API Reference](API.md)** - Complete Tool trait documentation
+- **[Usage Guide](USAGE.md)** - More usage patterns
