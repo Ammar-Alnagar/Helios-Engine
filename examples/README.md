@@ -198,7 +198,7 @@ async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     // Create a forest with specialized agents
-    let forest = ForestBuilder::new()
+    let mut forest = ForestBuilder::new()
         .config(config)
         .agent(
             "coordinator".to_string(),
