@@ -160,6 +160,7 @@ let response = agent.chat("What do you know about Rust?").await?;
 #### Qdrant RAG
 
 ```rust
+let config = Config::from_file("config.toml").unwrap_or_default();
 let rag_tool = RAGTool::new_qdrant(
     "http://localhost:6333",
     "my_collection",
