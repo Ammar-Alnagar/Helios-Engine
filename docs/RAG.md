@@ -138,6 +138,7 @@ The simplest way to use RAG is through the `RAGTool` with an agent.
 ```rust
 use helios_engine::{Agent, Config, RAGTool};
 
+let config = Config::from_file("config.toml").unwrap_or_default();
 let rag_tool = RAGTool::new_in_memory(
     "https://api.openai.com/v1/embeddings",
     std::env::var("OPENAI_API_KEY").unwrap()
