@@ -13,6 +13,15 @@
 use helios_engine::{InMemoryVectorStore, OpenAIEmbeddings, RAGSystem, SearchResult};
 use std::collections::HashMap;
 
+// Helper macro for creating HashMaps
+macro_rules! hashmap {
+    ($($key:expr => $val:expr),* $(,)?) => {{
+        let mut map = HashMap::new();
+        $(map.insert($key, $val);)*
+        map
+    }};
+}
+
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     println!("🚀 Helios Engine - Advanced RAG Features");
@@ -179,14 +188,3 @@ fn print_results(results: &[SearchResult]) {
         }
     }
 }
-
-// Helper macro for creating HashMaps
-macro_rules! hashmap {
-    ($($key:expr => $val:expr),* $(,)?) => {{
-        let mut map = HashMap::new();
-        $(map.insert($key, $val);)*
-        map
-    }};
-}
-
-use hashmap;
