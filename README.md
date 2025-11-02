@@ -1,7 +1,7 @@
 # 🔥 Helios Engine - LLM Agent Framework
 
 <p align="center">
-  <img src="Logob.gif" alt="Helios Engine Logo" width="350"/>
+  <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
 </p>
 
 [![Crates.io](https://img.shields.io/crates/v/helios-engine.svg)](https://crates.io/crates/helios-engine)
