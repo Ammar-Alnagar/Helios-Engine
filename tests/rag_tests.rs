@@ -245,7 +245,7 @@ async fn test_cosine_similarity() {
 }
 
 #[tokio::test]
-async fn test_in_memory_store_update() {
+async fn test_in_memory_store_add_and_get() {
     let embeddings = MockEmbeddings;
     let vector_store = InMemoryVectorStore::new();
     let rag_system = RAGSystem::new(Box::new(embeddings), Box::new(vector_store));
