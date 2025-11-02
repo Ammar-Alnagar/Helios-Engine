@@ -832,6 +832,7 @@ Unified file operations: read, write, append, delete, copy, move, exists, size.
 - `src_path` (string, optional): Source path for copy/move
 - `dst_path` (string, optional): Destination path for copy/move
 - `content` (string, optional): Content for write/append
+- `recursive` (boolean, optional): Allow recursive directory deletion (default: false for safety)
 
 #### `FileListTool`
 List directory contents with detailed metadata.

@@ -2190,7 +2190,7 @@ impl Tool for FileIOTool {
     }
 
     fn description(&self) -> &str {
-        "Basic file operations: read, write, append, delete, copy, move. Unified interface for common file I/O tasks."
+        "Basic file operations: read, write, append, delete, copy, move. Unified interface for common file I/O tasks. Delete operation is safe by default (only empty directories)."
     }
 
     fn parameters(&self) -> HashMap<String, ToolParameter> {
@@ -2199,7 +2199,7 @@ impl Tool for FileIOTool {
             "operation".to_string(),
             ToolParameter {
                 param_type: "string".to_string(),
-                description: "Operation: 'read', 'write', 'append', 'delete', 'copy', 'move', 'exists', 'size'".to_string(),
+                description: "Operation: 'read', 'write', 'append', 'delete', 'copy', 'move', 'exists', 'size' (delete is safe by default)".to_string(),
                 required: Some(true),
             },
         );
@@ -2232,6 +2232,15 @@ impl Tool for FileIOTool {
             ToolParameter {
                 param_type: "string".to_string(),
                 description: "Content for write/append operations".to_string(),
+                required: Some(false),
+            },
+        );
+        params.insert(
+            "recursive".to_string(),
+            ToolParameter {
+                param_type: "boolean".to_string(),
+                description: "Allow recursive directory deletion (default: false for safety)"
+                    .to_string(),
                 required: Some(false),
             },
         );
@@ -2318,6 +2327,8 @@ impl Tool for FileIOTool {
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| HeliosError::ToolError("Missing 'path' parameter for delete operation".to_string()))?;
 
+                let recursive = args.get("recursive").and_then(|v| v.as_bool()).unwrap_or(false);
+
                 let metadata = std::fs::metadata(path)
                     .map_err(|e| HeliosError::ToolError(format!("Cannot access file: {}", e)))?;
 
@@ -2326,14 +2337,21 @@ impl Tool for FileIOTool {
                 if metadata.is_file() {
                     std::fs::remove_file(path)
                         .map_err(|e| HeliosError::ToolError(format!("Failed to delete file: {}", e)))?;
-                } else {
+                } else if recursive {
+                    // Recursive deletion allowed when explicitly requested
                     std::fs::remove_dir_all(path)
-                        .map_err(|e| HeliosError::ToolError(format!("Failed to delete directory: {}", e)))?;
+                        .map_err(|e| HeliosError::ToolError(format!("Failed to delete directory recursively: {}", e)))?;
+                } else {
+                    // Safe by default: only delete empty directories
+                    std::fs::remove_dir(path)
+                        .map_err(|e| HeliosError::ToolError(format!("Failed to delete directory (must be empty, or set recursive=true): {}", e)))?;
                 }
 
+                let delete_type = if recursive && !metadata.is_file() { "recursively" } else { "" };
+                let separator = if delete_type.is_empty() { "" } else { ": " };
                 Ok(ToolResult::success(format!(
-                    "✓ Deleted {}: {}",
-                    file_type, path
+                    "✓ Deleted {} {}{}{}",
+                    file_type, delete_type, separator, path
                 )))
             }
             "copy" => {
@@ -3923,6 +3941,50 @@ mod tests {
         assert!(result.success);
         assert!(result.output.contains("exists: true"));
         assert!(result.output.contains("(file)"));
+    }
+
+    /// Tests the FileIOTool safe delete operation (empty directories only by default).
+    #[tokio::test]
+    async fn test_file_io_tool_safe_delete() {
+        let tool = FileIOTool;
+
+        // Create a temporary directory
+        let temp_dir = tempfile::tempdir().unwrap();
+        let dir_path = temp_dir.path().to_string_lossy().to_string();
+
+        // Test deleting an empty directory (should work)
+        let args = json!({
+            "operation": "delete",
+            "path": dir_path
+        });
+        let result = tool.execute(args).await.unwrap();
+        assert!(result.success);
+        assert!(result.output.contains("✓ Deleted directory"));
+
+        // Create a new directory with a file inside
+        let temp_dir2 = tempfile::tempdir().unwrap();
+        let dir_path2 = temp_dir2.path().to_string_lossy().to_string();
+        let file_path = temp_dir2.path().join("test.txt");
+        std::fs::write(&file_path, "test content").unwrap();
+
+        // Test deleting a non-empty directory without recursive flag (should fail)
+        let args2 = json!({
+            "operation": "delete",
+            "path": dir_path2
+        });
+        let result2 = tool.execute(args2).await;
+        assert!(result2.is_err()); // Should fail because directory is not empty
+        assert!(result2.unwrap_err().to_string().contains("must be empty"));
+
+        // Test deleting a non-empty directory with recursive flag (should work)
+        let args3 = json!({
+            "operation": "delete",
+            "path": temp_dir2.path().to_string_lossy(),
+            "recursive": true
+        });
+        let result3 = tool.execute(args3).await.unwrap();
+        assert!(result3.success);
+        assert!(result3.output.contains("✓ Deleted directory recursively:"));
     }
 
     /// Tests the ShellCommandTool with a safe command.
