@@ -142,7 +142,13 @@ impl Agent {
 
     /// Executes the agent's main loop, including tool calls.
     async fn execute_with_tools(&mut self) -> Result<String> {
-        self.execute_with_tools_with_params(None, None, None).await
+        self.execute_with_tools_streaming().await
+    }
+
+    /// Executes the agent's main loop with streaming, including tool calls.
+    async fn execute_with_tools_streaming(&mut self) -> Result<String> {
+        self.execute_with_tools_streaming_with_params(None, None, None)
+            .await
     }
 
     /// Executes the agent's main loop with parameters, including tool calls.
@@ -211,6 +217,92 @@ impl Agent {
             // No tool calls, we have the final response
             self.chat_session.add_message(response.clone());
             return Ok(response.content);
+        }
+    }
+
+    /// Executes the agent's main loop with parameters and streaming, including tool calls.
+    async fn execute_with_tools_streaming_with_params(
+        &mut self,
+        temperature: Option<f32>,
+        max_tokens: Option<u32>,
+        stop: Option<Vec<String>>,
+    ) -> Result<String> {
+        let mut iterations = 0;
+        let tool_definitions = self.tool_registry.get_definitions();
+
+        loop {
+            if iterations >= self.max_iterations {
+                return Err(HeliosError::AgentError(
+                    "Maximum iterations reached".to_string(),
+                ));
+            }
+
+            let messages = self.chat_session.get_messages();
+            let tools_option = if tool_definitions.is_empty() {
+                None
+            } else {
+                Some(tool_definitions.clone())
+            };
+
+            let mut streamed_content = String::new();
+
+            let stream_result = self
+                .llm_client
+                .chat_stream(
+                    messages,
+                    tools_option, // Enable tools for streaming
+                    temperature,
+                    max_tokens,
+                    stop.clone(),
+                    |chunk| {
+                        // Print chunk to stdout for visible streaming
+                        print!("{}", chunk);
+                        let _ = std::io::Write::flush(&mut std::io::stdout());
+                        streamed_content.push_str(chunk);
+                    },
+                )
+                .await;
+
+            let response = stream_result?;
+
+            // Print newline after streaming completes
+            println!();
+
+            // Check if the response includes tool calls
+            if let Some(ref tool_calls) = response.tool_calls {
+                // Add assistant message with tool calls
+                let mut msg_with_content = response.clone();
+                msg_with_content.content = streamed_content.clone();
+                self.chat_session.add_message(msg_with_content);
+
+                // Execute each tool call
+                for tool_call in tool_calls {
+                    let tool_name = &tool_call.function.name;
+                    let tool_args: Value = serde_json::from_str(&tool_call.function.arguments)
+                        .unwrap_or(Value::Object(serde_json::Map::new()));
+
+                    let tool_result = self
+                        .tool_registry
+                        .execute(tool_name, tool_args)
+                        .await
+                        .unwrap_or_else(|e| {
+                            ToolResult::error(format!("Tool execution failed: {}", e))
+                        });
+
+                    // Add tool result message
+                    let tool_message = ChatMessage::tool(tool_result.output, tool_call.id.clone());
+                    self.chat_session.add_message(tool_message);
+                }
+
+                iterations += 1;
+                continue;
+            }
+
+            // No tool calls, we have the final response with streamed content
+            let mut final_msg = response;
+            final_msg.content = streamed_content.clone();
+            self.chat_session.add_message(final_msg);
+            return Ok(streamed_content);
         }
     }
 
@@ -466,108 +558,64 @@ impl Agent {
                 Some(tool_definitions.clone())
             };
 
-            // Use streaming LLM call for the first iteration
-            if iterations == 0 {
-                let mut streamed_content = String::new();
+            // Use streaming for all iterations
+            let mut streamed_content = String::new();
 
-                let stream_result = self
-                    .llm_client
-                    .chat_stream(
-                        messages,
-                        tools_option,
-                        temperature,
-                        max_tokens,
-                        stop.clone(),
-                        |chunk| {
-                            on_chunk(chunk);
-                            streamed_content.push_str(chunk);
-                        },
-                    )
-                    .await;
+            let stream_result = self
+                .llm_client
+                .chat_stream(
+                    messages,
+                    tools_option,
+                    temperature,
+                    max_tokens,
+                    stop.clone(),
+                    |chunk| {
+                        on_chunk(chunk);
+                        streamed_content.push_str(chunk);
+                    },
+                )
+                .await;
 
-                match stream_result {
-                    Ok(response) => {
-                        // Check if the response includes tool calls
-                        if let Some(ref tool_calls) = response.tool_calls {
-                            // Add assistant message with tool calls to temp session
-                            temp_session.add_message(response.clone());
+            match stream_result {
+                Ok(response) => {
+                    // Check if the response includes tool calls
+                    if let Some(ref tool_calls) = response.tool_calls {
+                        // Add assistant message with tool calls to temp session
+                        let mut msg_with_content = response.clone();
+                        msg_with_content.content = streamed_content.clone();
+                        temp_session.add_message(msg_with_content);
 
-                            // Execute each tool call
-                            for tool_call in tool_calls {
-                                let tool_name = &tool_call.function.name;
-                                let tool_args: Value =
-                                    serde_json::from_str(&tool_call.function.arguments)
-                                        .unwrap_or(Value::Object(serde_json::Map::new()));
+                        // Execute each tool call
+                        for tool_call in tool_calls {
+                            let tool_name = &tool_call.function.name;
+                            let tool_args: Value =
+                                serde_json::from_str(&tool_call.function.arguments)
+                                    .unwrap_or(Value::Object(serde_json::Map::new()));
 
-                                let tool_result = self
-                                    .tool_registry
-                                    .execute(tool_name, tool_args)
-                                    .await
-                                    .unwrap_or_else(|e| {
-                                        ToolResult::error(format!("Tool execution failed: {}", e))
-                                    });
+                            let tool_result = self
+                                .tool_registry
+                                .execute(tool_name, tool_args)
+                                .await
+                                .unwrap_or_else(|e| {
+                                    ToolResult::error(format!("Tool execution failed: {}", e))
+                                });
 
-                                // Add tool result message to temp session
-                                let tool_message =
-                                    ChatMessage::tool(tool_result.output, tool_call.id.clone());
-                                temp_session.add_message(tool_message);
-                            }
-
-                            iterations += 1;
-                            continue; // Continue the loop for another iteration
-                        } else {
-                            // No tool calls, return the final response with streamed content
-                            let mut final_msg = response;
-                            final_msg.content = streamed_content;
-                            return Ok(final_msg);
+                            // Add tool result message to temp session
+                            let tool_message =
+                                ChatMessage::tool(tool_result.output, tool_call.id.clone());
+                            temp_session.add_message(tool_message);
                         }
+
+                        iterations += 1;
+                        continue; // Continue the loop for another iteration
+                    } else {
+                        // No tool calls, return the final response with streamed content
+                        let mut final_msg = response;
+                        final_msg.content = streamed_content;
+                        return Ok(final_msg);
                     }
-                    Err(e) => return Err(e),
                 }
-            } else {
-                // For subsequent iterations (after tool calls), use non-streaming
-                // since we're just getting tool results processed
-                let response = self
-                    .llm_client
-                    .chat(
-                        messages,
-                        tools_option,
-                        temperature,
-                        max_tokens,
-                        stop.clone(),
-                    )
-                    .await?;
-
-                if let Some(ref tool_calls) = response.tool_calls {
-                    // Add assistant message with tool calls to temp session
-                    temp_session.add_message(response.clone());
-
-                    // Execute each tool call
-                    for tool_call in tool_calls {
-                        let tool_name = &tool_call.function.name;
-                        let tool_args: Value = serde_json::from_str(&tool_call.function.arguments)
-                            .unwrap_or(Value::Object(serde_json::Map::new()));
-
-                        let tool_result = self
-                            .tool_registry
-                            .execute(tool_name, tool_args)
-                            .await
-                            .unwrap_or_else(|e| {
-                                ToolResult::error(format!("Tool execution failed: {}", e))
-                            });
-
-                        // Add tool result message to temp session
-                        let tool_message =
-                            ChatMessage::tool(tool_result.output, tool_call.id.clone());
-                        temp_session.add_message(tool_message);
-                    }
-
-                    iterations += 1;
-                    continue;
-                }
-
-                // No tool calls, we have the final response
-                return Ok(response);
+                Err(e) => return Err(e),
             }
         }
     }

@@ -1,22 +1,25 @@
 //! # Forest of Agents Example
 //!
-//! This example demonstrates the Forest of Agents feature, which allows multiple agents
-//! to collaborate, communicate, and share context to accomplish complex tasks together.
+//! This example demonstrates the Forest of Agents feature with STREAMING enabled by default.
+//! Watch as multiple agents collaborate in real-time, with their responses streaming
+//! token-by-token as they think and communicate.
 //!
 //! The Forest of Agents enables:
-//! - Inter-agent communication and messaging
+//! - Inter-agent communication and messaging (with streaming responses)
 //! - Task delegation between agents
 //! - Shared context and memory
-//! - Collaborative task execution
+//! - Collaborative task execution with real-time output
 //!
 //! Run this example with: `cargo run --example forest_of_agents`
 
 use helios_engine::{Agent, Config, ForestBuilder};
+use std::io::{self, Write};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    println!("🚀 Helios Engine - Forest of Agents Demo");
-    println!("=========================================\n");
+    println!("🚀 Helios Engine - Forest of Agents Demo (with Real-Time Streaming)");
+    println!("====================================================================\n");
+    println!("💡 Note: All agent responses stream in real-time, token by token!\n");
 
     // Load configuration
     let config = Config::from_file("config.toml")?;
@@ -82,94 +85,95 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✓ Created Forest of Agents with 5 specialized agents:");
-    println!("  • Coordinator: Manages projects and delegates tasks");
-    println!("  • Researcher: Gathers and analyzes information");
-    println!("  • Writer: Creates content and documentation");
-    println!("  • Editor: Reviews and improves content quality");
-    println!("  • QA: Validates requirements and final output");
+    println!("✅ Created Forest of Agents with 5 specialized agents:");
+    println!("  • 🎯 Coordinator: Manages projects and delegates tasks");
+    println!("  • 🔬 Researcher: Gathers and analyzes information");
+    println!("  • ✍️  Writer: Creates content and documentation");
+    println!("  • 📝 Editor: Reviews and improves content quality");
+    println!("  • ✅ QA: Validates requirements and final output");
     println!();
 
-    // Demonstrate collaborative task execution
-    println!("🎯 Executing collaborative task:");
-    println!("\"Create a comprehensive guide on sustainable gardening practices\"");
+    // Demonstrate collaborative task execution with streaming
+    println!("🎯 TASK: Create a brief guide on sustainable gardening");
+    println!("{}", "=".repeat(70));
     println!();
 
-    let result = forest
+    println!("🎬 Starting collaborative task execution...");
+    println!("   (Watch the responses stream in real-time!)\n");
+
+    // Simpler task for demonstration
+    let task = "Create a brief guide (2-3 paragraphs) on sustainable gardening. \
+                Include key benefits and one practical technique.";
+
+    println!("📋 Task Description:");
+    println!("   {}\n", task);
+
+    println!("{}", "─".repeat(70));
+    println!("🤖 COORDINATOR (streaming response):");
+    print!("   ");
+    io::stdout().flush()?;
+
+    let _result = forest
         .execute_collaborative_task(
             &"coordinator".to_string(),
-            "Create a comprehensive guide on sustainable gardening practices. This should include \
-            environmental benefits, practical techniques, common challenges, and tips for beginners. \
-            Make it informative yet accessible to people new to sustainable gardening.".to_string(),
-            vec![
-                "researcher".to_string(),
-                "writer".to_string(),
-                "editor".to_string(),
-                "qa".to_string(),
-            ],
+            task.to_string(),
+            vec!["researcher".to_string(), "writer".to_string()],
         )
         .await?;
 
-    println!("📄 Final Result:");
-    println!("{}", "=".repeat(60));
-    println!("{}", result);
-    println!("{}", "=".repeat(60));
+    println!();
+    println!("{}", "─".repeat(70));
+    println!();
+    println!("✨ Collaborative task completed!");
     println!();
 
-    // Demonstrate direct agent communication
-    println!("💬 Demonstrating inter-agent communication:");
+    // Demonstrate direct agent communication with streaming
+    println!("💬 Testing direct agent-to-agent communication with streaming:");
+    println!("{}", "─".repeat(70));
     println!();
 
-    let mut forest_clone = forest; // Clone for mutable operations
+    let mut forest_clone = forest;
 
-    // Send a direct message
-    println!("📤 Coordinator sends a message to Researcher...");
+    // Test a simple chat to show streaming
+    println!("📤 Sending task to Writer agent...");
+    println!("🤖 WRITER (streaming response):");
+    print!("   ");
+    io::stdout().flush()?;
+
+    if let Some(writer) = forest_clone.get_agent_mut(&"writer".to_string()) {
+        let _response = writer
+            .chat("Write one short paragraph about composting.")
+            .await?;
+        println!();
+    }
+
+    println!();
+    println!("{}", "─".repeat(70));
+    println!();
+
+    // Send a direct message between agents
+    println!("📤 Coordinator → Researcher: Direct message");
     forest_clone
         .send_message(
             &"coordinator".to_string(),
             Some(&"researcher".to_string()),
-            "Please research the latest sustainable gardening techniques for urban environments."
-                .to_string(),
+            "Great job on the research! The information was very helpful.".to_string(),
         )
         .await?;
 
-    // Process messages
     forest_clone.process_messages().await?;
 
-    // Check what the researcher received
     if let Some(researcher) = forest_clone.get_agent(&"researcher".to_string()) {
         let messages = researcher.chat_session().messages.clone();
         if let Some(last_msg) = messages.last() {
-            println!("📥 Researcher received: {}", last_msg.content);
+            println!("📥 Researcher received: \"{}\"", last_msg.content);
         }
     }
-
-    // Send a broadcast message
-    println!("\n📢 Coordinator broadcasts an update...");
-    forest_clone
-        .send_message(
-            &"coordinator".to_string(),
-            None, // None = broadcast
-            "Team update: We've successfully completed the sustainable gardening guide. Great collaboration everyone!".to_string(),
-        )
-        .await?;
-
-    forest_clone.process_messages().await?;
-
-    // Check what agents received
-    for agent_id in ["coordinator", "researcher", "writer", "editor", "qa"] {
-        if let Some(agent) = forest_clone.get_agent(&agent_id.to_string()) {
-            let messages = agent.chat_session().messages.clone();
-            if let Some(last_msg) = messages.last() {
-                if last_msg.content.contains("broadcast") {
-                    println!("📥 {} received broadcast: {}", agent_id, last_msg.content);
-                }
-            }
-        }
-    }
+    println!();
 
     // Demonstrate shared context
-    println!("\n🧠 Demonstrating shared context:");
+    println!("🧠 Shared Context Demo:");
+    println!("{}", "─".repeat(70));
     forest_clone
         .set_shared_context(
             "project_status".to_string(),
@@ -177,23 +181,32 @@ async fn main() -> helios_engine::Result<()> {
                 "name": "Sustainable Gardening Guide",
                 "status": "completed",
                 "contributors": ["coordinator", "researcher", "writer"],
-                "completion_date": "2025-11-02"
+                "completion_date": "2025-11-03"
             }),
         )
         .await;
 
     let context = forest_clone.get_shared_context().await;
     if let Some(status) = context.get("project_status") {
-        println!("📊 Shared project status: {}", status);
+        println!("📊 Shared project status:");
+        println!("{}", serde_json::to_string_pretty(&status).unwrap());
     }
+    println!();
 
-    println!("\n✅ Forest of Agents demo completed successfully!");
-    println!("\nKey features demonstrated:");
-    println!("  • Multi-agent collaboration on complex tasks");
-    println!("  • Inter-agent communication (direct and broadcast)");
-    println!("  • Task delegation and coordination");
-    println!("  • Shared context and memory");
-    println!("  • Specialized agent roles working together");
+    println!("{}", "=".repeat(70));
+    println!("✅ Forest of Agents Demo Completed Successfully!");
+    println!("{}", "=".repeat(70));
+    println!();
+    println!("🎉 Key Features Demonstrated:");
+    println!("  ✓ Real-time streaming responses from all agents");
+    println!("  ✓ Multi-agent collaboration on tasks");
+    println!("  ✓ Inter-agent communication (direct messages)");
+    println!("  ✓ Task delegation and coordination");
+    println!("  ✓ Shared context and memory");
+    println!("  ✓ Specialized agent roles working together");
+    println!();
+    println!("💡 Notice how all responses streamed token-by-token in real-time!");
+    println!("   This provides immediate feedback and better user experience.");
 
     Ok(())
 }

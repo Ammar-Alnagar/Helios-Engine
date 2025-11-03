@@ -98,6 +98,30 @@ pub struct StreamChoice {
     pub finish_reason: Option<String>,
 }
 
+/// A tool call in a streamed delta.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeltaToolCall {
+    /// The index of the tool call.
+    pub index: u32,
+    /// The ID of the tool call.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The function call information.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function: Option<DeltaFunctionCall>,
+}
+
+/// A function call in a streamed delta.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeltaFunctionCall {
+    /// The name of the function.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The arguments for the function.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<String>,
+}
+
 /// The delta of a streamed choice.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Delta {
@@ -107,6 +131,9 @@ pub struct Delta {
     /// The content of the delta.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+    /// The tool calls in the delta.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<DeltaToolCall>>,
 }
 
 /// A response from an LLM.
@@ -551,6 +578,7 @@ impl RemoteLLMClient {
         let mut stream = response.bytes_stream();
         let mut full_content = String::new();
         let mut role = None;
+        let mut tool_calls = Vec::new();
         let mut buffer = String::new();
 
         while let Some(chunk_result) = stream.next().await {
@@ -578,6 +606,41 @@ impl RemoteLLMClient {
                                     full_content.push_str(content);
                                     on_chunk(content);
                                 }
+                                if let Some(delta_tool_calls) = &choice.delta.tool_calls {
+                                    for delta_tool_call in delta_tool_calls {
+                                        // Find or create the tool call at this index
+                                        while tool_calls.len() <= delta_tool_call.index as usize {
+                                            tool_calls.push(None);
+                                        }
+                                        let tool_call_slot =
+                                            &mut tool_calls[delta_tool_call.index as usize];
+
+                                        if tool_call_slot.is_none() {
+                                            *tool_call_slot = Some(crate::chat::ToolCall {
+                                                id: String::new(),
+                                                call_type: "function".to_string(),
+                                                function: crate::chat::FunctionCall {
+                                                    name: String::new(),
+                                                    arguments: String::new(),
+                                                },
+                                            });
+                                        }
+
+                                        if let Some(tool_call) = tool_call_slot.as_mut() {
+                                            if let Some(id) = &delta_tool_call.id {
+                                                tool_call.id = id.clone();
+                                            }
+                                            if let Some(function) = &delta_tool_call.function {
+                                                if let Some(name) = &function.name {
+                                                    tool_call.function.name = name.clone();
+                                                }
+                                                if let Some(args) = &function.arguments {
+                                                    tool_call.function.arguments = args.clone();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         Err(e) => {
@@ -588,11 +651,21 @@ impl RemoteLLMClient {
             }
         }
 
+        let final_tool_calls = tool_calls
+            .into_iter()
+            .filter_map(|tc| tc)
+            .collect::<Vec<_>>();
+        let tool_calls_option = if final_tool_calls.is_empty() {
+            None
+        } else {
+            Some(final_tool_calls)
+        };
+
         Ok(ChatMessage {
             role: crate::chat::Role::from(role.as_deref().unwrap_or("assistant")),
             content: full_content,
             name: None,
-            tool_calls: None,
+            tool_calls: tool_calls_option,
             tool_call_id: None,
         })
     }
