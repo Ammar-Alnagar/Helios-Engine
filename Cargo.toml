@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.3.9"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.70"
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support, both locally and online"
@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://github.com/Ammar-Alnagar/Helios-Engine.git"
 repository = "https://github.com/Ammar-Alnagar/Helios-Engine.git"
 license = "Apache-2.0 OR MIT"
-keywords = ["Llama_cpp", "agent", "ai", "llm", "openai"]
+keywords = ["Llama_cpp", "agent", "ai", "helios", "llm"]
 categories = ["api-bindings", "asynchronous", "command-line-utilities"]
 
 [lib]
