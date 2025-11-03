@@ -69,11 +69,11 @@ Add Helios-Engine to your `Cargo.toml`:
 ```toml
 [dependencies]
 # Without local model support (lighter dependency)
-helios-engine = "0.3.4"
+helios-engine = "0.3.7"
 tokio = { version = "1.35", features = ["full"] }
 
 # OR with local model support for offline inference
-helios-engine = { version = "0.3.4", features = ["local"] }
+helios-engine = { version = "0.3.7", features = ["local"] }
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -147,11 +147,11 @@ cargo build --release --features local
 ```toml
 # Remote API only
 [dependencies]
-helios-engine = "0.3.4"
+helios-engine = "0.3.7"
 
 # With local model support
 [dependencies]
-helios-engine = { version = "0.3.4", features = ["local"] }
+helios-engine = { version = "0.3.7", features = ["local"] }
 ```
 
 ## System Requirements

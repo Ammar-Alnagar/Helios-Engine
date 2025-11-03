@@ -39,8 +39,8 @@ tokio = { version = "1.35", features = ["full"] }
 ### Build from Source
 
 ```bash
-git clone https://github.com/yourusername/helios.git
-cd helios
+git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
+cd Helios-Engine
 
 # Build and install CLI
 cargo install --path .

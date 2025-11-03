@@ -167,8 +167,8 @@ helios/
 ### Quick Installation
 
 ```bash
-git clone https://github.com/yourusername/helios.git
-cd helios
+git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
+cd Helios-Engine
 cargo build --release
 ```
 
