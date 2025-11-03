@@ -356,7 +356,8 @@ impl ForestOfAgents {
         let result = initiator_agent.chat(breakdown_prompt).await?;
 
         // Process any messages that were generated and trigger agent responses
-        self.process_messages_and_trigger_responses(&involved_agents).await?;
+        self.process_messages_and_trigger_responses(&involved_agents)
+            .await?;
 
         // Mark task as completed
         {
@@ -380,14 +381,14 @@ impl ForestOfAgents {
         involved_agents: &[AgentId],
     ) -> Result<()> {
         let mut iteration = 0;
-        
+
         while iteration < self.max_iterations {
             // First, deliver all pending messages
             self.process_messages().await?;
 
             // Track agents that received new messages and need to respond
             let mut agents_to_respond = Vec::new();
-            
+
             for agent_id in involved_agents {
                 if let Some(agent) = self.agents.get(agent_id) {
                     let messages = &agent.chat_session().messages;
