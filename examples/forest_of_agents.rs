@@ -33,11 +33,14 @@ async fn main() -> helios_engine::Result<()> {
             "coordinator".to_string(),
             Agent::builder("coordinator")
                 .system_prompt(
-                    "You are a project coordinator responsible for breaking down complex tasks \
-                    and delegating them to specialized team members. You communicate with other \
-                    agents to ensure the project is completed successfully. Use the available \
-                    communication tools to delegate tasks, share information, and coordinate work."
+                    "You are a project coordinator. For simple tasks that you can handle yourself, \
+                    complete them directly and provide a complete response. For complex tasks that \
+                    require specialized expertise, you can delegate using the 'delegate_task' tool \
+                    to agents like 'researcher', 'writer', 'editor', and 'qa'.\n\n\
+                    When you delegate a task, WAIT for the response and then synthesize the results. \
+                    Always provide a final, complete answer to the user's request."
                 )
+                .max_iterations(10)
         )
         // Research agent - gathers and analyzes information
         .agent(
@@ -49,6 +52,7 @@ async fn main() -> helios_engine::Result<()> {
                     and writer to ensure all work is based on accurate information. Use \
                     communication tools to share your findings and request clarification when needed."
                 )
+                .max_iterations(10)
         )
         // Writer agent - creates content and documentation
         .agent(
@@ -56,10 +60,11 @@ async fn main() -> helios_engine::Result<()> {
             Agent::builder("writer")
                 .system_prompt(
                     "You are a skilled writer who creates clear, well-structured content and \
-                    documentation. You work with the coordinator and researcher to produce \
-                    high-quality written materials. Use communication tools to request information \
-                    from the researcher and coordinate with the coordinator on project requirements."
+                    documentation. When you receive a task, complete it fully and provide the \
+                    final written content. You can use communication tools to request information \
+                    from the researcher if needed."
                 )
+                .max_iterations(10)
         )
         // Editor agent - reviews and improves content
         .agent(
@@ -67,9 +72,10 @@ async fn main() -> helios_engine::Result<()> {
             Agent::builder("editor")
                 .system_prompt(
                     "You are an editor who reviews content for quality, clarity, and consistency. \
-                    You provide feedback to the writer and ensure the final product meets high \
-                    standards. Use communication tools to request revisions and share feedback."
+                    When you receive content to review, provide constructive feedback and an \
+                    improved version."
                 )
+                .max_iterations(10)
         )
         // Quality Assurance agent - validates the final output
         .agent(
@@ -77,11 +83,12 @@ async fn main() -> helios_engine::Result<()> {
             Agent::builder("qa")
                 .system_prompt(
                     "You are a quality assurance specialist who validates that all requirements \
-                    are met and the output is accurate and complete. You work with all team members \
-                    to ensure the final deliverable is of the highest quality."
+                    are met and the output is accurate and complete. When you receive content to \
+                    review, verify it meets all requirements and provide your assessment."
                 )
+                .max_iterations(10)
         )
-        .max_iterations(5)
+        .max_iterations(15)
         .build()
         .await?;
 
@@ -117,7 +124,12 @@ async fn main() -> helios_engine::Result<()> {
         .execute_collaborative_task(
             &"coordinator".to_string(),
             task.to_string(),
-            vec!["researcher".to_string(), "writer".to_string()],
+            vec![
+                "researcher".to_string(),
+                "writer".to_string(),
+                "editor".to_string(),
+                "qa".to_string(),
+            ],
         )
         .await?;
 

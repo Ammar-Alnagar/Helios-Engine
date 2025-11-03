@@ -341,53 +341,22 @@ impl ForestOfAgents {
             );
         }
 
-        // Start the collaboration by having the initiator break down the task
+        // Start the collaboration by having the initiator handle the task
         let initiator_agent = self.agents.get_mut(initiator).unwrap();
         let breakdown_prompt = format!(
-            "You are working with other agents to complete this task: {}\n\
-            The other agents involved are: {}\n\
-            Please break down this task into subtasks that can be delegated to the other agents, \
-            or coordinate with them to work together. Use the available communication tools to \
-            delegate tasks, share information, and collaborate.",
+            "Task: {}\n\n\
+            Available team members: {}\n\n\
+            If this task is simple, complete it yourself. If it's complex and requires \
+            specialized expertise, you can use the 'delegate_task' tool to assign work to \
+            the appropriate team members. Provide a complete final answer.",
             task_description,
             involved_agents.join(", ")
         );
 
-        let mut result = initiator_agent.chat(breakdown_prompt).await?;
+        let result = initiator_agent.chat(breakdown_prompt).await?;
 
-        // Process agent interactions for up to max_iterations
-        for _iteration in 0..self.max_iterations {
-            // Process any pending messages
-            self.process_messages().await?;
-
-            // Check if any agents want to respond or continue the collaboration
-            let mut active_responses = Vec::new();
-
-            for agent_id in &involved_agents {
-                if let Some(agent) = self.agents.get_mut(agent_id) {
-                    // Check if agent has new messages to process
-                    if !agent.chat_session().messages.is_empty() {
-                        let last_message = &agent.chat_session().messages.last().unwrap();
-                        if last_message.role == crate::chat::Role::User {
-                            // Agent has a new message to respond to
-                            let response = agent
-                                .chat("Continue collaborating on the current task.")
-                                .await?;
-                            active_responses.push((agent_id.clone(), response));
-                        }
-                    }
-                }
-            }
-
-            if active_responses.is_empty() {
-                break; // No more active responses
-            }
-
-            // Process responses and continue collaboration
-            for (agent_id, response) in active_responses {
-                result = format!("{}\n\nAgent {}: {}", result, agent_id, response);
-            }
-        }
+        // Process any messages that were generated and trigger agent responses
+        self.process_messages_and_trigger_responses(&involved_agents).await?;
 
         // Mark task as completed
         {
@@ -399,6 +368,56 @@ impl ForestOfAgents {
         }
 
         Ok(result)
+    }
+
+    /// Processes pending messages and triggers responses from agents.
+    ///
+    /// This method iterates through pending messages, delivers them to recipient agents,
+    /// and triggers their responses. It continues until no more messages are generated
+    /// or max_iterations is reached.
+    async fn process_messages_and_trigger_responses(
+        &mut self,
+        involved_agents: &[AgentId],
+    ) -> Result<()> {
+        let mut iteration = 0;
+        
+        while iteration < self.max_iterations {
+            // First, deliver all pending messages
+            self.process_messages().await?;
+
+            // Track agents that received new messages and need to respond
+            let mut agents_to_respond = Vec::new();
+            
+            for agent_id in involved_agents {
+                if let Some(agent) = self.agents.get(agent_id) {
+                    let messages = &agent.chat_session().messages;
+                    if !messages.is_empty() {
+                        let last_message = messages.last().unwrap();
+                        // If the last message is from a user (another agent), this agent should respond
+                        if last_message.role == crate::chat::Role::User {
+                            agents_to_respond.push(agent_id.clone());
+                        }
+                    }
+                }
+            }
+
+            // If no agents need to respond, we're done
+            if agents_to_respond.is_empty() {
+                break;
+            }
+
+            // Have each agent respond to their messages
+            for agent_id in agents_to_respond {
+                if let Some(agent) = self.agents.get_mut(&agent_id) {
+                    // Agent processes the message and may use tools to delegate or send messages
+                    let _response = agent.chat("").await?;
+                }
+            }
+
+            iteration += 1;
+        }
+
+        Ok(())
     }
 
     /// Gets the shared context.
