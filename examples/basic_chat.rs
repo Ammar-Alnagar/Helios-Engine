@@ -30,7 +30,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("User: Hello! How are you?");
     print!("Agent (streaming): ");
     io::stdout().flush()?;
-    
+
     let _response = agent.chat("Hello! How are you?").await?;
     println!();
 
@@ -38,7 +38,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("\nUser: What can you help me with?");
     print!("Agent (streaming): ");
     io::stdout().flush()?;
-    
+
     let _response = agent.chat("What can you help me with?").await?;
     println!();
 
