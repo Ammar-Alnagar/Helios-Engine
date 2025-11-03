@@ -115,7 +115,8 @@ let agent = Agent::builder("MyAgent")
     .system_prompt("You are helpful")
     .tool(Box::new(CalculatorTool))
     .max_iterations(5)
-    .build()?;
+    .build()
+    .await?;
 ```
 
 ---
@@ -234,7 +235,7 @@ pub trait Tool: Send + Sync {
 **Example Implementation:**
 ```rust
 use async_trait::async_trait;
-use helios::{Tool, ToolParameter, ToolResult};
+use helios_engine::{Tool, ToolParameter, ToolResult};
 
 struct MyTool;
 
@@ -491,12 +492,13 @@ pub struct CalculatorTool;
 
 **Example:**
 ```rust
-use helios::CalculatorTool;
+use helios_engine::CalculatorTool;
 
 let mut agent = Agent::builder("MathBot")
     .config(config)
     .tool(Box::new(CalculatorTool))
-    .build()?;
+    .build()
+    .await?;
 ```
 
 ### `EchoTool`
@@ -512,12 +514,13 @@ pub struct EchoTool;
 
 **Example:**
 ```rust
-use helios::EchoTool;
+use helios_engine::EchoTool;
 
 let mut agent = Agent::builder("EchoBot")
     .config(config)
     .tool(Box::new(EchoTool))
-    .build()?;
+    .build()
+    .await?;
 ```
 
 ---
@@ -526,26 +529,28 @@ let mut agent = Agent::builder("EchoBot")
 
 ### Basic Agent
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 let config = Config::from_file("config.toml")?;
 let mut agent = Agent::builder("Assistant")
     .config(config)
     .system_prompt("You are helpful")
-    .build()?;
+    .build()
+    .await?;
 
 let response = agent.chat("Hello").await?;
 ```
 
 ### Agent with Tools
 ```rust
-use helios::{Agent, Config, CalculatorTool};
+use helios_engine::{Agent, Config, CalculatorTool};
 
 let config = Config::from_file("config.toml")?;
 let mut agent = Agent::builder("MathBot")
     .config(config)
     .tool(Box::new(CalculatorTool))
-    .build()?;
+    .build()
+    .await?;
 
 let response = agent.chat("What is 10 * 5?").await?;
 ```
@@ -553,7 +558,7 @@ let response = agent.chat("What is 10 * 5?").await?;
 ### Custom Tool
 ```rust
 use async_trait::async_trait;
-use helios::{Tool, ToolParameter, ToolResult};
+use helios_engine::{Tool, ToolParameter, ToolResult};
 
 struct CustomTool;
 

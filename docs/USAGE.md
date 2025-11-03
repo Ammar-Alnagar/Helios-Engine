@@ -32,7 +32,7 @@ Add to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios-engine = "0.1.0"
+helios-engine = "0.3.7"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -245,7 +245,8 @@ async fn main() -> helios_engine::Result<()> {
         .system_prompt("You are a helpful assistant with tools.")
         .tool(Box::new(CalculatorTool))
         .max_iterations(5)
-        .build()?;
+        .build()
+    .await?;
 
     // Chat
     let response = agent.chat("What is 123 * 456?").await?;
@@ -262,38 +263,41 @@ Create your own tools:
 ```rust
 use helios_engine::{Tool, ToolParameter, ToolResult, Agent, Config};
 use async_trait::async_trait;
-use serde_json::json;
+use serde_json::Value;
+use std::collections::HashMap;
 
 struct WeatherTool;
 
 #[async_trait]
 impl Tool for WeatherTool {
-    fn name(&self) -> String {
-        "get_weather".to_string()
+    fn name(&self) -> &str {
+        "get_weather"
     }
 
-    fn description(&self) -> String {
-        "Get weather for a location".to_string()
+    fn description(&self) -> &str {
+        "Get weather for a location"
     }
 
-    fn parameters(&self) -> Vec<ToolParameter> {
-        vec![
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "location".to_string(),
             ToolParameter {
-                name: "location".to_string(),
                 param_type: "string".to_string(),
                 description: "City name".to_string(),
-                required: true,
-            }
-        ]
+                required: Some(true),
+            },
+        );
+        params
     }
 
-    async fn execute(&self, args: serde_json::Value) -> ToolResult {
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let location = args["location"].as_str()
-            .ok_or("Missing location")?;
-        
+            .unwrap_or("Unknown");
+
         // Simulate weather API call
         let weather = format!("Sunny, 72°F in {}", location);
-        Ok(json!({"weather": weather}).to_string())
+        Ok(ToolResult::success(weather))
     }
 }
 
@@ -305,7 +309,8 @@ async fn main() -> helios_engine::Result<()> {
         .config(config)
         .system_prompt("You help with weather info.")
         .tool(Box::new(WeatherTool))
-        .build()?;
+        .build()
+    .await?;
 
     let response = agent.chat("What's the weather in Paris?").await?;
     println!("{}", response);
@@ -328,12 +333,14 @@ async fn main() -> helios_engine::Result<()> {
     let mut math_agent = Agent::builder("MathExpert")
         .config(config.clone())
         .system_prompt("You are a math expert.")
-        .build()?;
+        .build()
+    .await?;
 
     let mut writer_agent = Agent::builder("Writer")
         .config(config)
         .system_prompt("You are a creative writer.")
-        .build()?;
+        .build()
+    .await?;
 
     let math_response = math_agent.chat("What is 15 * 23?").await?;
     println!("Math Expert: {}", math_response);
@@ -581,7 +588,7 @@ helios-engine chat
 ### Library Issues
 
 **"Cannot find module helios"**
-- Add to Cargo.toml: `helios-engine = "0.1.0"`
+- Add to Cargo.toml: `helios-engine = "0.3.7"`
 - Run: `cargo build`
 
 **Connection errors**

@@ -175,16 +175,17 @@ cargo build --release
 ### Basic Usage
 
 ```rust
-use helios::{Agent, Config, CalculatorTool};
+use helios_engine::{Agent, Config, CalculatorTool};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     let mut agent = Agent::builder("Assistant")
         .config(config)
         .tool(Box::new(CalculatorTool))
-        .build()?;
+        .build()
+        .await?;
     
     let response = agent.chat("What is 15 * 8?").await?;
     println!("{}", response);

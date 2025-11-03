@@ -77,7 +77,8 @@ let mut agent = Agent::builder("MyAgent")
     .config(config)
     .system_prompt("You are helpful.")
     .tool(Box::new(CalculatorTool))
-    .build()?;
+    .build()
+    .await?;
 
 let response = agent.chat("Calculate 2+2").await?;
 ```

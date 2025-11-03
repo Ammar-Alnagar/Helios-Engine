@@ -236,10 +236,10 @@ target/release/
 ```rust
 // In your Cargo.toml
 [dependencies]
-helios = "0.1.0"
+helios-engine = "0.3.7"
 
 // In your code
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 ```
 
 **Entry Point**: `src/lib.rs`

@@ -300,7 +300,8 @@ use reqwest::Client;
 let http_client = Client::builder()
     .pool_max_idle_per_host(10)
     .pool_idle_timeout(std::time::Duration::from_secs(30))
-    .build()?;
+    .build()
+    .await?;
 
 let config = LLMConfig {
     // ... other config

@@ -8,9 +8,9 @@ Add Helios to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-helios = { path = "../helios" }  # If using locally
+helios-engine = { path = "../helios-engine" }  # If using locally
 # or
-helios-engine = "0.1.0"  # Once published to crates.io
+helios-engine = "0.3.7"  # From crates.io
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -36,7 +36,7 @@ async fn main() -> helios_engine::Result<()> {
     };
 
     // Create LLM client
-    let client = LLMClient::new(llm_config);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     // Prepare messages
     let messages = vec![
@@ -45,7 +45,7 @@ async fn main() -> helios_engine::Result<()> {
     ];
 
     // Call the model
-    let response = client.chat(messages, None).await?;
+    let response = client.chat(messages, None, None, None, None).await?;
     println!("Response: {}", response.content);
 
     Ok(())
@@ -65,14 +65,14 @@ async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     
     // Create client from config
-    let client = LLMClient::new(config.llm);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(config.llm)).await?;
     
     // Make a call
     let messages = vec![
         ChatMessage::user("Hello, how are you?"),
     ];
     
-    let response = client.chat(messages, None).await?;
+    let response = client.chat(messages, None, None, None, None).await?;
     println!("{}", response.content);
     
     Ok(())
@@ -97,7 +97,7 @@ async fn main() -> helios_engine::Result<()> {
         max_tokens: 2048,
     };
 
-    let client = LLMClient::new(llm_config);
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
     
     // Use ChatSession to manage conversation
     let mut session = ChatSession::new()
@@ -105,13 +105,13 @@ async fn main() -> helios_engine::Result<()> {
     
     // First message
     session.add_user_message("I need help with algebra.");
-    let response1 = client.chat(session.get_messages(), None).await?;
+    let response1 = client.chat(session.get_messages(), None, None, None, None).await?;
     session.add_assistant_message(&response1.content);
     println!("Assistant: {}", response1.content);
     
     // Follow-up message (with context)
     session.add_user_message("Can you explain quadratic equations?");
-    let response2 = client.chat(session.get_messages(), None).await?;
+    let response2 = client.chat(session.get_messages(), None, None, None, None).await?;
     session.add_assistant_message(&response2.content);
     println!("Assistant: {}", response2.content);
     
@@ -130,13 +130,15 @@ use helios_engine::config::LLMConfig;
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    let client = LLMClient::new(LLMConfig {
+    let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
         api_key: "your-key".to_string(),
         temperature: 0.7,
         max_tokens: 2048,
-    });
+    };
+    
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     // Build custom request
     let request = LLMRequest {
@@ -148,6 +150,8 @@ async fn main() -> helios_engine::Result<()> {
         max_tokens: Some(100),
         tools: None,
         tool_choice: None,
+        stream: None,
+        stop: None,
     };
 
     // Get full response with metadata
@@ -220,13 +224,15 @@ use std::io::{self, Write};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    let client = LLMClient::new(LLMConfig {
+    let llm_config = LLMConfig {
         model_name: "gpt-3.5-turbo".to_string(),
         base_url: "https://api.openai.com/v1".to_string(),
         api_key: std::env::var("OPENAI_API_KEY").unwrap(),
         temperature: 0.7,
         max_tokens: 2048,
-    });
+    };
+    
+    let client = LLMClient::new(helios_engine::llm::LLMProviderType::Remote(llm_config)).await?;
 
     let mut session = ChatSession::new()
         .with_system_prompt("You are a helpful assistant.");
@@ -248,7 +254,7 @@ async fn main() -> helios_engine::Result<()> {
 
         session.add_user_message(input);
         
-        match client.chat(session.get_messages(), None).await {
+        match client.chat(session.get_messages(), None, None, None, None).await {
             Ok(response) => {
                 session.add_assistant_message(&response.content);
                 println!("Assistant: {}\n", response.content);
@@ -471,7 +477,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-helios = { path = "../helios" }
+helios-engine = { path = "../helios-engine" }
 tokio = { version = "1.35", features = ["full"] }
 ```
 

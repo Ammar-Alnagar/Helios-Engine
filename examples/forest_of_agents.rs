@@ -22,6 +22,7 @@ async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     // Create a Forest of Agents with specialized agents
+    // You can add as many agents as you want!
     let mut forest = ForestBuilder::new()
         .config(config)
         // Coordinator agent - manages the team and delegates tasks
@@ -57,14 +58,36 @@ async fn main() -> helios_engine::Result<()> {
                     from the researcher and coordinate with the coordinator on project requirements."
                 )
         )
+        // Editor agent - reviews and improves content
+        .agent(
+            "editor".to_string(),
+            Agent::builder("editor")
+                .system_prompt(
+                    "You are an editor who reviews content for quality, clarity, and consistency. \
+                    You provide feedback to the writer and ensure the final product meets high \
+                    standards. Use communication tools to request revisions and share feedback."
+                )
+        )
+        // Quality Assurance agent - validates the final output
+        .agent(
+            "qa".to_string(),
+            Agent::builder("qa")
+                .system_prompt(
+                    "You are a quality assurance specialist who validates that all requirements \
+                    are met and the output is accurate and complete. You work with all team members \
+                    to ensure the final deliverable is of the highest quality."
+                )
+        )
         .max_iterations(5)
         .build()
         .await?;
 
-    println!("✓ Created Forest of Agents with 3 specialized agents:");
+    println!("✓ Created Forest of Agents with 5 specialized agents:");
     println!("  • Coordinator: Manages projects and delegates tasks");
     println!("  • Researcher: Gathers and analyzes information");
     println!("  • Writer: Creates content and documentation");
+    println!("  • Editor: Reviews and improves content quality");
+    println!("  • QA: Validates requirements and final output");
     println!();
 
     // Demonstrate collaborative task execution
@@ -81,6 +104,8 @@ async fn main() -> helios_engine::Result<()> {
             vec![
                 "researcher".to_string(),
                 "writer".to_string(),
+                "editor".to_string(),
+                "qa".to_string(),
             ],
         )
         .await?;
@@ -132,7 +157,7 @@ async fn main() -> helios_engine::Result<()> {
     forest_clone.process_messages().await?;
 
     // Check what agents received
-    for agent_id in ["coordinator", "researcher", "writer"] {
+    for agent_id in ["coordinator", "researcher", "writer", "editor", "qa"] {
         if let Some(agent) = forest_clone.get_agent(&agent_id.to_string()) {
             let messages = agent.chat_session().messages.clone();
             if let Some(last_msg) = messages.last() {

@@ -59,7 +59,7 @@ cd my-helios-agent
 Add dependencies to `Cargo.toml`:
 ```toml
 [dependencies]
-helios = "0.1.0"
+helios-engine = "0.3.7"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
@@ -78,23 +78,24 @@ max_tokens = 2048
 ### Step 3: Simple Chat Agent
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     // Load configuration
     let config = Config::from_file("config.toml")?;
-    
+
     // Create agent
     let mut agent = Agent::builder("ChatBot")
         .config(config)
         .system_prompt("You are a friendly chatbot.")
-        .build()?;
-    
+        .build()
+        .await?;
+
     // Single interaction
     let response = agent.chat("Tell me a joke").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
@@ -109,36 +110,37 @@ cargo run
 Add conversation memory:
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 use std::io::{self, Write};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("ChatBot")
         .config(config)
         .system_prompt("You are a friendly chatbot with good memory.")
-        .build()?;
-    
+        .build()
+        .await?;
+
     println!("Chat with the bot (type 'exit' to quit):");
-    
+
     loop {
         print!("\nYou: ");
         io::stdout().flush()?;
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
-        
+
         if input == "exit" {
             break;
         }
-        
+
         let response = agent.chat(input).await?;
         println!("Bot: {}", response);
     }
-    
+
     Ok(())
 }
 ```
@@ -159,12 +161,12 @@ Bot: Your name is Alice!
 Helios comes with example tools:
 
 ```rust
-use helios::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("ToolBot")
         .config(config)
         .system_prompt(
@@ -173,16 +175,17 @@ async fn main() -> helios::Result<()> {
         )
         .tool(Box::new(CalculatorTool))
         .tool(Box::new(EchoTool))
-        .build()?;
-    
+        .build()
+        .await?;
+
     // Agent will automatically use calculator
     let response = agent.chat("What is 15 * 8 + 12?").await?;
     println!("{}", response);
-    
+
     // Agent will use echo
     let response = agent.chat("Please echo: Hello World").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
@@ -204,7 +207,7 @@ async fn main() -> helios::Result<()> {
 
 ```rust
 use async_trait::async_trait;
-use helios::{Tool, ToolParameter, ToolResult};
+use helios_engine::{Tool, ToolParameter, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -215,11 +218,11 @@ impl Tool for GreetingTool {
     fn name(&self) -> &str {
         "greet"
     }
-    
+
     fn description(&self) -> &str {
         "Generate a personalized greeting"
     }
-    
+
     fn parameters(&self) -> HashMap<String, ToolParameter> {
         let mut params = HashMap::new();
         params.insert(
@@ -240,19 +243,19 @@ impl Tool for GreetingTool {
         );
         params
     }
-    
-    async fn execute(&self, args: Value) -> helios::Result<ToolResult> {
+
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let name = args["name"].as_str().unwrap_or("Friend");
         let language = args.get("language")
             .and_then(|v| v.as_str())
             .unwrap_or("english");
-        
+
         let greeting = match language {
             "spanish" => format!("¡Hola, {}!", name),
             "french" => format!("Bonjour, {}!", name),
             _ => format!("Hello, {}!", name),
         };
-        
+
         Ok(ToolResult::success(greeting))
     }
 }
@@ -261,21 +264,22 @@ impl Tool for GreetingTool {
 ### Using Your Custom Tool
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut agent = Agent::builder("GreetBot")
         .config(config)
         .system_prompt("You greet people using the greet tool.")
         .tool(Box::new(GreetingTool))
-        .build()?;
-    
+        .build()
+        .await?;
+
     let response = agent.chat("Greet Alice in Spanish").await?;
     println!("{}", response);
-    
+
     Ok(())
 }
 ```
@@ -284,32 +288,22 @@ async fn main() -> helios::Result<()> {
 
 ```rust
 use async_trait::async_trait;
-use helios::{Tool, ToolParameter, ToolResult};
+use helios_engine::{Tool, ToolParameter, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
 
-struct WeatherTool {
-    client: reqwest::Client,
-}
-
-impl WeatherTool {
-    fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
-    }
-}
+struct WeatherTool;
 
 #[async_trait]
 impl Tool for WeatherTool {
     fn name(&self) -> &str {
         "get_weather"
     }
-    
+
     fn description(&self) -> &str {
         "Get current weather for a city"
     }
-    
+
     fn parameters(&self) -> HashMap<String, ToolParameter> {
         let mut params = HashMap::new();
         params.insert(
@@ -322,17 +316,14 @@ impl Tool for WeatherTool {
         );
         params
     }
-    
-    async fn execute(&self, args: Value) -> helios::Result<ToolResult> {
+
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
         let city = args["city"].as_str().unwrap_or("Unknown");
-        
-        // Call a weather API (example - replace with real API)
-        // let url = format!("https://api.weather.com/v1/current?city={}", city);
-        // let response = self.client.get(&url).send().await?;
-        
+
+        // In a real implementation, you would call a weather API here.
         // For demo purposes, return mock data
         let weather = format!("Weather in {}: Sunny, 72°F", city);
-        
+
         Ok(ToolResult::success(weather))
     }
 }
@@ -343,7 +334,7 @@ impl Tool for WeatherTool {
 ### Multiple Specialized Agents
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 struct AgentTeam {
     researcher: Agent,
@@ -351,43 +342,45 @@ struct AgentTeam {
 }
 
 impl AgentTeam {
-    async fn new(config: Config) -> helios::Result<Self> {
+    async fn new(config: Config) -> helios_engine::Result<Self> {
         let researcher = Agent::builder("Researcher")
             .config(config.clone())
             .system_prompt("You are a research specialist. Provide factual information.")
-            .build()?;
-        
+            .build()
+            .await?;
+
         let writer = Agent::builder("Writer")
             .config(config)
             .system_prompt("You are a creative writer. Transform information into engaging content.")
-            .build()?;
-        
+            .build()
+            .await?;
+
         Ok(Self { researcher, writer })
     }
-    
-    async fn process(&mut self, topic: &str) -> helios::Result<String> {
+
+    async fn process(&mut self, topic: &str) -> helios_engine::Result<String> {
         // Research phase
         let research = self.researcher
             .chat(&format!("Research key facts about: {}", topic))
             .await?;
-        
+
         // Writing phase
         let article = self.writer
             .chat(&format!("Write an article based on: {}", research))
             .await?;
-        
+
         Ok(article)
     }
 }
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     let mut team = AgentTeam::new(config).await?;
-    
+
     let result = team.process("Rust programming language").await?;
     println!("{}", result);
-    
+
     Ok(())
 }
 ```
@@ -395,25 +388,25 @@ async fn main() -> helios::Result<()> {
 ### Dynamic Tool Selection
 
 ```rust
-use helios::{Agent, Config, CalculatorTool, EchoTool};
+use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
 
 fn create_agent_with_tools(
     config: Config,
     enable_calculator: bool,
     enable_echo: bool,
-) -> helios::Result<Agent> {
+) -> helios_engine::Result<Agent> {
     let mut builder = Agent::builder("DynamicAgent")
         .config(config)
         .system_prompt("Use available tools when needed.");
-    
+
     if enable_calculator {
         builder = builder.tool(Box::new(CalculatorTool));
     }
-    
+
     if enable_echo {
         builder = builder.tool(Box::new(EchoTool));
     }
-    
+
     builder.build()
 }
 ```
@@ -421,26 +414,27 @@ fn create_agent_with_tools(
 ### Conversation Management
 
 ```rust
-use helios::{Agent, Config};
+use helios_engine::{Agent, Config};
 
 #[tokio::main]
-async fn main() -> helios::Result<()> {
+async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
     let mut agent = Agent::builder("Assistant")
         .config(config)
-        .build()?;
-    
+        .build()
+        .await?;
+
     // Long conversation
     for i in 1..100 {
         agent.chat(&format!("Message {}", i)).await?;
-        
+
         // Clear history every 10 messages to manage memory
         if i % 10 == 0 {
             agent.clear_history();
             println!("History cleared");
         }
     }
-    
+
     Ok(())
 }
 ```
@@ -517,7 +511,8 @@ Set appropriate limits:
 let mut agent = Agent::builder("Agent")
     .config(config)
     .max_iterations(5)  // Prevent infinite loops
-    .build()?;
+    .build()
+    .await?;
 ```
 
 ### 6. Testing
@@ -591,7 +586,8 @@ async fn main() -> helios::Result<()> {
     let config = Config::from_file("config.toml")?;
     let mut agent = Agent::builder("Agent")
         .config(config)
-        .build()?;
+        .build()
+    .await?;
     
     info!("Agent initialized");
     

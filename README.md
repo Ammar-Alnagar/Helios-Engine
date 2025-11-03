@@ -68,7 +68,7 @@ helios-engine ask "What is Rust?"
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-helios-engine = "0.3.4"
+helios-engine = "0.3.7"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
