@@ -651,10 +651,7 @@ impl RemoteLLMClient {
             }
         }
 
-        let final_tool_calls = tool_calls
-            .into_iter()
-            .filter_map(|tc| tc)
-            .collect::<Vec<_>>();
+        let final_tool_calls = tool_calls.into_iter().flatten().collect::<Vec<_>>();
         let tool_calls_option = if final_tool_calls.is_empty() {
             None
         } else {
