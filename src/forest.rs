@@ -122,8 +122,10 @@ pub struct TaskPlan {
     pub plan_id: String,
     /// Overall goal/objective.
     pub objective: String,
-    /// Individual tasks in the plan.
-    pub tasks: Vec<TaskItem>,
+    /// Individual tasks in the plan (HashMap for O(1) lookup).
+    pub tasks: HashMap<String, TaskItem>,
+    /// Task order (maintains insertion order for iteration).
+    pub task_order: Vec<String>,
     /// Timestamp when plan was created.
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -133,32 +135,37 @@ impl TaskPlan {
         Self {
             plan_id,
             objective,
-            tasks: Vec::new(),
+            tasks: HashMap::new(),
+            task_order: Vec::new(),
             created_at: chrono::Utc::now(),
         }
     }
 
     pub fn add_task(&mut self, task: TaskItem) {
-        self.tasks.push(task);
+        self.task_order.push(task.id.clone());
+        self.tasks.insert(task.id.clone(), task);
     }
 
     pub fn get_task_mut(&mut self, task_id: &str) -> Option<&mut TaskItem> {
-        self.tasks.iter_mut().find(|t| t.id == task_id)
+        self.tasks.get_mut(task_id)
     }
 
     pub fn get_task(&self, task_id: &str) -> Option<&TaskItem> {
-        self.tasks.iter().find(|t| t.id == task_id)
+        self.tasks.get(task_id)
     }
 
+    /// Get next ready tasks with O(T * D) complexity instead of O(T²)
+    /// where T = number of tasks, D = average dependencies per task
     pub fn get_next_ready_tasks(&self) -> Vec<&TaskItem> {
-        self.tasks
+        self.task_order
             .iter()
+            .filter_map(|task_id| self.tasks.get(task_id))
             .filter(|t| {
                 t.status == TaskStatus::Pending
                     && t.dependencies.iter().all(|dep_id| {
+                        // O(1) HashMap lookup instead of O(T) Vec iteration
                         self.tasks
-                            .iter()
-                            .find(|dt| &dt.id == dep_id)
+                            .get(dep_id)
                             .map(|dt| dt.status == TaskStatus::Completed)
                             .unwrap_or(false)
                     })
@@ -168,17 +175,25 @@ impl TaskPlan {
 
     pub fn is_complete(&self) -> bool {
         self.tasks
-            .iter()
+            .values()
             .all(|t| t.status == TaskStatus::Completed || t.status == TaskStatus::Failed)
     }
 
     pub fn get_progress(&self) -> (usize, usize) {
         let completed = self
             .tasks
-            .iter()
+            .values()
             .filter(|t| t.status == TaskStatus::Completed)
             .count();
         (completed, self.tasks.len())
+    }
+
+    /// Get all tasks in order
+    pub fn tasks_in_order(&self) -> Vec<&TaskItem> {
+        self.task_order
+            .iter()
+            .filter_map(|id| self.tasks.get(id))
+            .collect()
     }
 }
 
@@ -560,7 +575,7 @@ impl ForestOfAgents {
                     let context = self.shared_context.read().await;
                     context
                         .get_plan()
-                        .map(|p| p.tasks.iter().any(|t| t.status == TaskStatus::InProgress))
+                        .map(|p| p.tasks.values().any(|t| t.status == TaskStatus::InProgress))
                         .unwrap_or(false)
                 };
 
@@ -602,7 +617,7 @@ impl ForestOfAgents {
                         ));
 
                         info.push_str("Completed Tasks:\n");
-                        for task in &plan.tasks {
+                        for task in plan.tasks_in_order() {
                             if task.status == TaskStatus::Completed {
                                 info.push_str(&format!(
                                     "  ✓ [{}] {}: {}\n",
@@ -674,7 +689,7 @@ impl ForestOfAgents {
                 ));
 
                 summary.push_str("Task Results:\n");
-                for task in &plan.tasks {
+                for task in plan.tasks_in_order() {
                     summary.push_str(&format!("\n[{}] {}\n", task.assigned_to, task.description));
                     if let Some(result) = &task.result {
                         summary.push_str(&format!("Result: {}\n", result));
@@ -1276,7 +1291,7 @@ impl Tool for CreatePlanTool {
         context.set_plan(plan.clone());
 
         let task_summary = plan
-            .tasks
+            .tasks_in_order()
             .iter()
             .map(|t| {
                 format!(

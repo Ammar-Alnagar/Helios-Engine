@@ -222,7 +222,7 @@ async fn main() -> helios_engine::Result<()> {
         println!("  Progress: {}/{} tasks completed\n", completed, total);
 
         println!("  Task Breakdown:");
-        for (idx, task) in plan.tasks.iter().enumerate() {
+        for (idx, task) in plan.tasks_in_order().iter().enumerate() {
             let status_icon = match task.status {
                 helios_engine::forest::TaskStatus::Completed => "✅",
                 helios_engine::forest::TaskStatus::InProgress => "🔄",

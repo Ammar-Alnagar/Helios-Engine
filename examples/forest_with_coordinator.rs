@@ -187,7 +187,7 @@ async fn main() -> helios_engine::Result<()> {
             plan.get_progress().1
         );
         println!("\n  Task Breakdown:");
-        for task in &plan.tasks {
+        for task in plan.tasks_in_order() {
             let status_icon = match task.status {
                 helios_engine::forest::TaskStatus::Completed => "✅",
                 helios_engine::forest::TaskStatus::InProgress => "🔄",
