@@ -1,10 +1,20 @@
 //! Comprehensive tests for the Forest of Agents planning system
 
-use helios_engine::{Agent, Config, ForestBuilder, TaskItem, TaskPlan, TaskStatus};
+use helios_engine::{Agent, Config, ForestBuilder, LLMConfig, TaskItem, TaskPlan, TaskStatus};
 
 /// Helper function to create a test config
 fn create_test_config() -> Config {
-    Config::from_file("config.toml").expect("Failed to load config")
+    Config {
+        llm: LLMConfig {
+            model_name: "gpt-3.5-turbo".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: "test-key".to_string(),
+            temperature: 0.7,
+            max_tokens: 2048,
+        },
+        #[cfg(feature = "local")]
+        local: None,
+    }
 }
 
 #[tokio::test]
