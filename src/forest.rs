@@ -480,7 +480,7 @@ impl ForestOfAgents {
         }
 
         println!("\n[{}] 📋 Creating plan for task...", initiator);
-        
+
         // Phase 1: Coordinator creates a plan
         {
             let mut context = self.shared_context.write().await;
@@ -523,7 +523,7 @@ impl ForestOfAgents {
 
         // Phase 2: Execute tasks according to the plan
         println!("\n[{}] 🚀 Executing planned tasks...\n", initiator);
-        
+
         let mut iteration = 0;
         let max_task_iterations = self.max_iterations * 2; // Allow more iterations for complex plans
 
@@ -543,11 +543,13 @@ impl ForestOfAgents {
                     // No plan created, fall back to simple delegation
                     println!("[WARNING] No plan was created, falling back to simple mode");
                     let initiator_agent = self.agents.get_mut(initiator).unwrap();
-                    let result = initiator_agent.chat(format!(
-                        "Complete this task: {}\nYou can delegate to: {}",
-                        task_description,
-                        involved_agents.join(", ")
-                    )).await?;
+                    let result = initiator_agent
+                        .chat(format!(
+                            "Complete this task: {}\nYou can delegate to: {}",
+                            task_description,
+                            involved_agents.join(", ")
+                        ))
+                        .await?;
                     return Ok(result);
                 }
             };
@@ -556,15 +558,16 @@ impl ForestOfAgents {
                 // Check if we're waiting for in-progress tasks
                 let has_in_progress = {
                     let context = self.shared_context.read().await;
-                    context.get_plan()
+                    context
+                        .get_plan()
                         .map(|p| p.tasks.iter().any(|t| t.status == TaskStatus::InProgress))
                         .unwrap_or(false)
                 };
-                
+
                 if !has_in_progress {
                     break; // No tasks ready and none in progress
                 }
-                
+
                 // Wait a bit and check again
                 iteration += 1;
                 continue;
@@ -588,26 +591,34 @@ impl ForestOfAgents {
                 let shared_memory_info = {
                     let context = self.shared_context.read().await;
                     let mut info = String::from("\n=== SHARED TASK MEMORY ===\n");
-                    
+
                     if let Some(plan) = context.get_plan() {
                         info.push_str(&format!("Overall Objective: {}\n", plan.objective));
-                        info.push_str(&format!("Progress: {}/{} tasks completed\n\n", 
-                            plan.get_progress().0, plan.get_progress().1));
-                        
+                        info.push_str(&format!(
+                            "Progress: {}/{} tasks completed\n\n",
+                            plan.get_progress().0,
+                            plan.get_progress().1
+                        ));
+
                         info.push_str("Completed Tasks:\n");
                         for task in &plan.tasks {
                             if task.status == TaskStatus::Completed {
-                                info.push_str(&format!("  ✓ [{}] {}: {}\n", 
-                                    task.assigned_to, task.description, 
-                                    task.result.as_ref().unwrap_or(&"No result".to_string())));
+                                info.push_str(&format!(
+                                    "  ✓ [{}] {}: {}\n",
+                                    task.assigned_to,
+                                    task.description,
+                                    task.result.as_ref().unwrap_or(&"No result".to_string())
+                                ));
                             }
                         }
                     }
-                    
+
                     info.push_str("\nShared Data:\n");
                     for (key, value) in &context.data {
-                        if !key.starts_with("current_task") && !key.starts_with("involved_agents") 
-                            && !key.starts_with("task_status") {
+                        if !key.starts_with("current_task")
+                            && !key.starts_with("involved_agents")
+                            && !key.starts_with("task_status")
+                        {
                             info.push_str(&format!("  • {}: {}\n", key, value));
                         }
                     }
@@ -648,16 +659,19 @@ impl ForestOfAgents {
 
         // Phase 3: Coordinator synthesizes final result
         println!("\n[{}] 📊 Synthesizing final result...\n", initiator);
-        
+
         let final_summary = {
             let context = self.shared_context.read().await;
             let mut summary = String::from("=== TASK COMPLETION SUMMARY ===\n\n");
-            
+
             if let Some(plan) = context.get_plan() {
                 summary.push_str(&format!("Objective: {}\n", plan.objective));
-                summary.push_str(&format!("Status: All tasks completed ({}/{} tasks)\n\n", 
-                    plan.get_progress().0, plan.get_progress().1));
-                
+                summary.push_str(&format!(
+                    "Status: All tasks completed ({}/{} tasks)\n\n",
+                    plan.get_progress().0,
+                    plan.get_progress().1
+                ));
+
                 summary.push_str("Task Results:\n");
                 for task in &plan.tasks {
                     summary.push_str(&format!("\n[{}] {}\n", task.assigned_to, task.description));
@@ -697,6 +711,7 @@ impl ForestOfAgents {
     /// This method iterates through pending messages, delivers them to recipient agents,
     /// and triggers their responses. It continues until no more messages are generated
     /// or max_iterations is reached.
+    #[allow(dead_code)]
     async fn process_messages_and_trigger_responses(
         &mut self,
         involved_agents: &[AgentId],
@@ -1037,6 +1052,244 @@ impl Tool for ShareContextTool {
         Ok(ToolResult::success(format!(
             "Information shared with key '{}'",
             key
+        )))
+    }
+}
+
+/// A tool for updating task memory with results and findings.
+pub struct UpdateTaskMemoryTool {
+    agent_id: AgentId,
+    shared_context: Arc<RwLock<SharedContext>>,
+}
+
+impl UpdateTaskMemoryTool {
+    pub fn new(agent_id: AgentId, shared_context: Arc<RwLock<SharedContext>>) -> Self {
+        Self {
+            agent_id,
+            shared_context,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Tool for UpdateTaskMemoryTool {
+    fn name(&self) -> &str {
+        "update_task_memory"
+    }
+
+    fn description(&self) -> &str {
+        "Update the shared task memory with your results, findings, and data. This allows other agents to see your progress and use your outputs."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "task_id".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The ID of the task you're updating (e.g., 'task_1')".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "result".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Your results, findings, or output from completing the task"
+                    .to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "data".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "Additional data or information to share (e.g., key findings, metrics, recommendations)".to_string(),
+                required: Some(false),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let task_id = args
+            .get("task_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'task_id' parameter".to_string()))?;
+
+        let result = args
+            .get("result")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'result' parameter".to_string()))?;
+
+        let additional_data = args.get("data").and_then(|v| v.as_str()).unwrap_or("");
+
+        let mut context = self.shared_context.write().await;
+
+        // Update the task in the plan
+        if let Some(plan) = context.get_plan_mut() {
+            if let Some(task) = plan.get_task_mut(task_id) {
+                task.status = TaskStatus::Completed;
+                task.result = Some(result.to_string());
+                let task_description = task.description.clone();
+
+                // Also store in shared data for easy access
+                if !additional_data.is_empty() {
+                    let data_key = format!("task_data_{}", task_id);
+                    context.set(
+                        data_key,
+                        serde_json::json!({
+                            "agent": self.agent_id,
+                            "task": task_description,
+                            "data": additional_data,
+                            "timestamp": chrono::Utc::now().to_rfc3339()
+                        }),
+                    );
+                }
+
+                return Ok(ToolResult::success(format!(
+                    "Task '{}' marked as completed. Results saved to shared memory.",
+                    task_id
+                )));
+            } else {
+                return Err(HeliosError::ToolError(format!(
+                    "Task '{}' not found in current plan",
+                    task_id
+                )));
+            }
+        }
+
+        Err(HeliosError::ToolError(
+            "No active task plan found".to_string(),
+        ))
+    }
+}
+
+/// A tool for the coordinator to create a task plan.
+pub struct CreatePlanTool {
+    #[allow(dead_code)]
+    agent_id: AgentId,
+    shared_context: Arc<RwLock<SharedContext>>,
+}
+
+impl CreatePlanTool {
+    pub fn new(agent_id: AgentId, shared_context: Arc<RwLock<SharedContext>>) -> Self {
+        Self {
+            agent_id,
+            shared_context,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Tool for CreatePlanTool {
+    fn name(&self) -> &str {
+        "create_plan"
+    }
+
+    fn description(&self) -> &str {
+        "Create a detailed task plan for collaborative work. Break down the overall objective into specific tasks and assign them to team members."
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "objective".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The overall objective or goal of the plan".to_string(),
+                required: Some(true),
+            },
+        );
+        params.insert(
+            "tasks".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "JSON array of tasks. Each task must have: id (string), description (string), assigned_to (string), dependencies (array of task IDs)".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let objective = args
+            .get("objective")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'objective' parameter".to_string()))?;
+
+        let tasks_json = args
+            .get("tasks")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| HeliosError::ToolError("Missing 'tasks' parameter".to_string()))?;
+
+        // Parse the tasks JSON
+        let tasks_array: Vec<Value> = serde_json::from_str(tasks_json)
+            .map_err(|e| HeliosError::ToolError(format!("Invalid JSON for tasks: {}", e)))?;
+
+        let plan_id = format!("plan_{}", chrono::Utc::now().timestamp());
+        let mut plan = TaskPlan::new(plan_id.clone(), objective.to_string());
+
+        for task_value in tasks_array {
+            let task_obj = task_value.as_object().ok_or_else(|| {
+                HeliosError::ToolError("Each task must be a JSON object".to_string())
+            })?;
+
+            let id = task_obj
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| HeliosError::ToolError("Task missing 'id' field".to_string()))?
+                .to_string();
+
+            let description = task_obj
+                .get("description")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    HeliosError::ToolError("Task missing 'description' field".to_string())
+                })?
+                .to_string();
+
+            let assigned_to = task_obj
+                .get("assigned_to")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    HeliosError::ToolError("Task missing 'assigned_to' field".to_string())
+                })?
+                .to_string();
+
+            let dependencies = task_obj
+                .get("dependencies")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect::<Vec<String>>()
+                })
+                .unwrap_or_else(Vec::new);
+
+            let task = TaskItem::new(id, description, assigned_to).with_dependencies(dependencies);
+            plan.add_task(task);
+        }
+
+        let mut context = self.shared_context.write().await;
+        context.set_plan(plan.clone());
+
+        let task_summary = plan
+            .tasks
+            .iter()
+            .map(|t| {
+                format!(
+                    "  • [{}] {} (assigned to: {})",
+                    t.id, t.description, t.assigned_to
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        Ok(ToolResult::success(format!(
+            "Plan created with {} tasks:\n{}",
+            plan.tasks.len(),
+            task_summary
         )))
     }
 }
