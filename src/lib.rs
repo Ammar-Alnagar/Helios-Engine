@@ -147,6 +147,7 @@ pub use serve::{
 
 /// Re-export of Forest of Agents functionality.
 pub use forest::{
-    AgentId, DelegateTaskTool, ForestBuilder, ForestMessage, ForestOfAgents, SendMessageTool,
-    ShareContextTool, SharedContext,
+    AgentId, CreatePlanTool, DelegateTaskTool, ForestBuilder, ForestMessage, ForestOfAgents,
+    SendMessageTool, ShareContextTool, SharedContext, TaskItem, TaskPlan, TaskStatus,
+    UpdateTaskMemoryTool,
 };

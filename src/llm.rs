@@ -471,14 +471,21 @@ impl LLMProvider for RemoteLLMClient {
     async fn generate(&self, request: LLMRequest) -> Result<LLMResponse> {
         let url = format!("{}/chat/completions", self.config.base_url);
 
-        let response = self
+        let mut request_builder = self
             .client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.config.api_key))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await?;
+            .header("Content-Type", "application/json");
+
+        // Only add authorization header if not a local vLLM instance
+        if !self.config.base_url.contains("10.")
+            && !self.config.base_url.contains("localhost")
+            && !self.config.base_url.contains("127.0.0.1")
+        {
+            request_builder =
+                request_builder.header("Authorization", format!("Bearer {}", self.config.api_key));
+        }
+
+        let response = request_builder.json(&request).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -512,8 +519,12 @@ impl RemoteLLMClient {
             messages,
             temperature: temperature.or(Some(self.config.temperature)),
             max_tokens: max_tokens.or(Some(self.config.max_tokens)),
-            tools,
-            tool_choice: None,
+            tools: tools.clone(),
+            tool_choice: if tools.is_some() {
+                Some("auto".to_string())
+            } else {
+                None
+            },
             stream: None,
             stop,
         };
@@ -546,22 +557,33 @@ impl RemoteLLMClient {
             messages,
             temperature: temperature.or(Some(self.config.temperature)),
             max_tokens: max_tokens.or(Some(self.config.max_tokens)),
-            tools,
-            tool_choice: None,
+            tools: tools.clone(),
+            tool_choice: if tools.is_some() {
+                Some("auto".to_string())
+            } else {
+                None
+            },
             stream: Some(true),
             stop,
         };
 
         let url = format!("{}/chat/completions", self.config.base_url);
 
-        let response = self
+        let mut request_builder = self
             .client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.config.api_key))
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await?;
+            .header("Content-Type", "application/json");
+
+        // Only add authorization header if not a local vLLM instance
+        if !self.config.base_url.contains("10.")
+            && !self.config.base_url.contains("localhost")
+            && !self.config.base_url.contains("127.0.0.1")
+        {
+            request_builder =
+                request_builder.header("Authorization", format!("Bearer {}", self.config.api_key));
+        }
+
+        let response = request_builder.json(&request).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -635,7 +657,7 @@ impl RemoteLLMClient {
                                                     tool_call.function.name = name.clone();
                                                 }
                                                 if let Some(args) = &function.arguments {
-                                                    tool_call.function.arguments = args.clone();
+                                                    tool_call.function.arguments.push_str(args);
                                                 }
                                             }
                                         }
@@ -994,8 +1016,12 @@ impl LLMClient {
             messages,
             temperature: temperature.or(Some(default_temperature)),
             max_tokens: max_tokens.or(Some(default_max_tokens)),
-            tools,
-            tool_choice: None,
+            tools: tools.clone(),
+            tool_choice: if tools.is_some() {
+                Some("auto".to_string())
+            } else {
+                None
+            },
             stream: None,
             stop,
         };

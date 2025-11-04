@@ -47,6 +47,12 @@ cargo run --example multiple_agents
 # Forest of Agents - collaborative multi-agent system
 cargo run --example forest_of_agents
 
+# Forest with Coordinator - enhanced planning system
+cargo run --example forest_with_coordinator
+
+# Forest Simple Demo - simple reliable demo of planning system
+cargo run --example forest_simple_demo
+
 # Direct LLM usage without agents
 cargo run --example direct_llm_usage
 
@@ -513,6 +519,56 @@ async fn main() -> helios_engine::Result<()> {
 - **Task delegation** between agents
 - **Shared context** and memory
 - **Specialized agent roles** working together
+- **Real-time streaming output**
+
+### Forest of Agents with Coordinator (`forest_with_coordinator.rs`)
+
+**NEW!** Enhanced Forest of Agents with coordinator-based planning system.
+
+This advanced example demonstrates structured multi-agent collaboration with:
+
+- **Coordinator-based planning**: Coordinator creates detailed task plans with dependencies
+- **Shared task memory**: All agents read from and write to shared memory
+- **Task dependencies**: Ensures proper execution order (e.g., research → analysis → writing → review)
+- **Progress tracking**: Real-time monitoring of task completion
+- **Three-phase workflow**:
+  1. **Planning Phase**: Coordinator analyzes task and creates structured plan
+  2. **Execution Phase**: Tasks executed in dependency order, agents update shared memory
+  3. **Synthesis Phase**: Coordinator creates comprehensive final result
+
+**Use Cases:**
+- Content creation pipelines (Research → Draft → Edit → Review)
+- Data analysis projects (Collection → Cleaning → Analysis → Report)
+- Software development workflows (Requirements → Design → Implementation → Testing)
+- Business strategy (Market Research → Analysis → Strategy → Review)
+
+**Run:**
+```bash
+cargo run --example forest_with_coordinator
+```
+
+**Documentation:** See `docs/FOREST_COORDINATOR_PLANNING.md` for complete guide.
+
+### Forest of Agents Simple Demo (`forest_simple_demo.rs`)
+
+**NEW!** A simpler, more reliable demonstration of the planning system.
+
+This example shows the coordinator-based planning with minimal complexity:
+
+- **Simple Task**: Easy to understand task (listing benefits)
+- **3 Agents**: Coordinator + 2 workers
+- **Clear Output**: Shows plan creation and execution
+- **Reliable**: Designed to work consistently with various LLMs
+
+**Run:**
+```bash
+cargo run --example forest_simple_demo
+```
+
+**Best for:**
+- Learning how the planning system works
+- Testing your configuration
+- Understanding task delegation flow
 
 ### Complete Demo (`complete_demo.rs`)
 
