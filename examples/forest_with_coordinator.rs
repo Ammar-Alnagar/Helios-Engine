@@ -48,7 +48,7 @@ async fn main() -> helios_engine::Result<()> {
                     - How to ensure quality (review steps)\n\n\
                     Always use the create_plan tool to structure the work.",
                 )
-                .max_iterations(15),
+                .max_iterations(20),
         )
         // Research agent - gathers information and data
         .agent(
@@ -124,9 +124,9 @@ async fn main() -> helios_engine::Result<()> {
                     4. Provide clear assessment and final approval\n\n\
                     Be thorough and constructive in your reviews.",
                 )
-                .max_iterations(10),
+                .max_iterations(15),
         )
-        .max_iterations(20)
+        .max_iterations(30)
         .build()
         .await?;
 

@@ -47,7 +47,7 @@ async fn main() -> helios_engine::Result<()> {
                     - Finally synthesizes findings\n\n\
                     Use the create_plan tool to structure the work with proper dependencies.",
                 )
-                .max_iterations(15),
+                .max_iterations(20),
         )
         // File Explorer agent - explores directory structure
         .agent(
@@ -156,9 +156,9 @@ async fn main() -> helios_engine::Result<()> {
                     5. Make it comprehensive but readable\n\n\
                     Your report should give a complete picture of the project.",
                 )
-                .max_iterations(10),
+                .max_iterations(15),
         )
-        .max_iterations(25)
+        .max_iterations(40)
         .build()
         .await?;
 

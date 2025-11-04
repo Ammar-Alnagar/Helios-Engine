@@ -493,9 +493,6 @@ impl ForestOfAgents {
                 initiator
             )));
         }
-
-        println!("\n[{}] 📋 Creating plan for task...", initiator);
-
         // Phase 1: Coordinator creates a plan
         {
             let mut context = self.shared_context.write().await;
@@ -537,10 +534,8 @@ impl ForestOfAgents {
         let _planning_result = coordinator.chat(planning_prompt).await?;
 
         // Phase 2: Execute tasks according to the plan
-        println!("\n[{}] 🚀 Executing planned tasks...\n", initiator);
-
         let mut iteration = 0;
-        let max_task_iterations = self.max_iterations * 2; // Allow more iterations for complex plans
+        let max_task_iterations = self.max_iterations * 3; // Allow more iterations for complex plans
 
         while iteration < max_task_iterations {
             // Get next ready tasks
@@ -556,7 +551,6 @@ impl ForestOfAgents {
                         .collect()
                 } else {
                     // No plan created, fall back to simple delegation
-                    println!("[WARNING] No plan was created, falling back to simple mode");
                     let initiator_agent = self.agents.get_mut(initiator).unwrap();
                     let result = initiator_agent
                         .chat(format!(
@@ -600,8 +594,6 @@ impl ForestOfAgents {
                         }
                     }
                 }
-
-                println!("[{}] 🔨 Working on: {}", agent_id, task_desc);
 
                 // Get shared memory context for the agent
                 let shared_memory_info = {
@@ -662,7 +654,6 @@ impl ForestOfAgents {
                                 if task.status == TaskStatus::InProgress {
                                     task.status = TaskStatus::Completed;
                                     task.result = Some(result.clone());
-                                    println!("[{}] ✅ Task completed", agent_id);
                                 }
                             }
                         }
@@ -674,7 +665,6 @@ impl ForestOfAgents {
         }
 
         // Phase 3: Coordinator synthesizes final result
-        println!("\n[{}] 📊 Synthesizing final result...\n", initiator);
 
         let final_summary = {
             let context = self.shared_context.read().await;
