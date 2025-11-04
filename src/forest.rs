@@ -569,6 +569,7 @@ impl ForestOfAgents {
                 }
 
                 // Wait a bit and check again
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 iteration += 1;
                 continue;
             }
