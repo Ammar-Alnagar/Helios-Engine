@@ -17,9 +17,7 @@ use helios_engine::{Agent, Config, FileListTool, FileReadTool, FileSearchTool, F
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    println!("🚀 Forest of Agents - File System Analysis Demo");
-    println!("================================================\n");
-    println!("This demo will analyze the project structure using multiple agents\n");
+    println!("🚀 Forest of Agents - File System Analysis\n");
 
     // Load configuration
     let config = Config::from_file("config.toml")?;
@@ -164,19 +162,7 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✅ Created Forest with 5 specialized agents:");
-    println!("  • 🎯 Coordinator: Creates analysis plan");
-    println!("  • 📁 File Explorer: Maps directory structure");
-    println!("  • 💻 Code Analyzer: Examines source code");
-    println!("  • 📚 Doc Analyst: Reviews documentation");
-    println!("  • ✍️  Report Writer: Synthesizes findings");
-    println!();
-
-    // Execute the collaborative file system analysis
-    println!("{}", "=".repeat(70));
-    println!("📋 TASK: Analyze Project Structure");
-    println!("{}", "=".repeat(70));
-    println!();
+    println!("✅ Forest created with 5 specialized agents\n");
 
     let analysis_task = "Perform a comprehensive analysis of this Rust project. \
                         I want to understand:\n\
@@ -186,9 +172,7 @@ async fn main() -> helios_engine::Result<()> {
                         4. Overall project architecture and purpose\n\n\
                         Create a detailed analysis report with all findings.";
 
-    println!("📝 Analysis Request:");
-    println!("{}\n", analysis_task);
-    println!("🎬 Starting collaborative analysis...\n");
+    println!("📋 Analysis Task:\n{}\n", analysis_task);
 
     let result = forest
         .execute_collaborative_task(
@@ -203,15 +187,12 @@ async fn main() -> helios_engine::Result<()> {
         )
         .await?;
 
-    println!("\n{}", "=".repeat(70));
-    println!("📊 ANALYSIS COMPLETE - FINAL REPORT");
-    println!("{}", "=".repeat(70));
-    println!("\n{}\n", result);
+    println!("\n{}\n", "=".repeat(70));
+    println!("📊 ANALYSIS REPORT:\n{}\n", result);
+    println!("{}\n", "=".repeat(70));
 
     // Show detailed task breakdown
-    println!("{}", "=".repeat(70));
-    println!("🔍 TASK EXECUTION DETAILS");
-    println!("{}", "=".repeat(70));
+    println!("🔍 TASK EXECUTION DETAILS:");
 
     let context = forest.get_shared_context().await;
 
@@ -271,25 +252,7 @@ async fn main() -> helios_engine::Result<()> {
         }
     }
 
-    println!("\n{}", "=".repeat(70));
-    println!("✅ File System Analysis Demo Completed!");
-    println!("{}", "=".repeat(70));
-    println!();
-    println!("🎉 Key Features Demonstrated:");
-    println!("  ✓ Coordinator creates structured analysis plan");
-    println!("  ✓ File Explorer uses file_list and file_search tools");
-    println!("  ✓ Code Analyzer uses file_read to examine source");
-    println!("  ✓ Doc Analyst reviews documentation files");
-    println!("  ✓ Report Writer synthesizes all findings");
-    println!("  ✓ Agents share findings via shared task memory");
-    println!("  ✓ Task dependencies ensure proper execution order");
-    println!("  ✓ Tools integrated seamlessly with planning system");
-    println!();
-    println!("💡 This demonstrates how Forest of Agents can:");
-    println!("   • Use tools for real-world tasks (file operations)");
-    println!("   • Coordinate complex multi-step workflows");
-    println!("   • Share data between specialized agents");
-    println!("   • Produce comprehensive analysis reports");
+    println!("\n✅ Analysis completed successfully!");
 
     Ok(())
 }

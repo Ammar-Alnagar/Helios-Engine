@@ -17,9 +17,7 @@ use helios_engine::{Agent, Config, ForestBuilder};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    println!("🚀 Helios Engine - Enhanced Forest of Agents with Coordinator");
-    println!("==============================================================\n");
-    println!("💡 Featuring: Planning, Shared Memory, and Task Dependencies\n");
+    println!("🚀 Forest of Agents with Coordinator-Based Planning\n");
 
     // Load configuration
     let config = Config::from_file("config.toml")?;
@@ -132,26 +130,13 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✅ Created Forest of Agents with 5 specialized agents:");
-    println!("  • 🎯 Coordinator: Creates plans and manages workflow");
-    println!("  • 🔬 Researcher: Gathers information and data");
-    println!("  • ✍️  Writer: Creates content and documentation");
-    println!("  • 📊 Analyst: Analyzes data and provides insights");
-    println!("  • 📝 Reviewer: Ensures quality and completeness");
-    println!();
-
-    // Example 1: Simple task with planning
-    println!("{}", "=".repeat(70));
-    println!("📋 EXAMPLE 1: Creating a Comprehensive Guide");
-    println!("{}", "=".repeat(70));
-    println!();
+    println!("✅ Forest created with 5 specialized agents\n");
 
     let task1 = "Create a comprehensive guide about the benefits of renewable energy. \
                  Include research-backed information, clear explanations, data analysis, \
                  and ensure it's well-reviewed for quality.";
 
-    println!("📝 Task: {}\n", task1);
-    println!("🎬 Starting collaborative execution with planning...\n");
+    println!("📋 Task: {}\n", task1);
 
     let result1 = forest
         .execute_collaborative_task(
@@ -166,15 +151,12 @@ async fn main() -> helios_engine::Result<()> {
         )
         .await?;
 
-    println!("\n{}", "=".repeat(70));
-    println!("✨ FINAL RESULT:");
-    println!("{}", "=".repeat(70));
-    println!("{}\n", result1);
+    println!("\n{}\n", "=".repeat(70));
+    println!("✨ FINAL RESULT:\n{}\n", result1);
+    println!("{}\n", "=".repeat(70));
 
     // Show the shared memory state
-    println!("{}", "=".repeat(70));
-    println!("🧠 SHARED MEMORY STATE:");
-    println!("{}", "=".repeat(70));
+    println!("📊 SHARED MEMORY STATE:");
     let context = forest.get_shared_context().await;
 
     if let Some(plan) = context.get_plan() {
@@ -219,26 +201,7 @@ async fn main() -> helios_engine::Result<()> {
         }
     }
 
-    println!();
-    println!("{}", "=".repeat(70));
-    println!("✅ Enhanced Forest of Agents Demo Completed!");
-    println!("{}", "=".repeat(70));
-    println!();
-    println!("🎉 Key Features Demonstrated:");
-    println!("  ✓ Coordinator creates structured task plans");
-    println!("  ✓ Tasks assigned based on agent expertise");
-    println!("  ✓ Task dependencies ensure proper execution order");
-    println!("  ✓ Agents update shared memory with their results");
-    println!("  ✓ Each agent sees previous work in shared memory");
-    println!("  ✓ Coordinator synthesizes final comprehensive result");
-    println!("  ✓ Real-time progress tracking");
-    println!();
-    println!("💡 The coordinator-based approach ensures:");
-    println!("   • Systematic task breakdown and planning");
-    println!("   • Efficient collaboration through shared memory");
-    println!("   • Proper task sequencing with dependencies");
-    println!("   • Quality assurance through review steps");
-    println!("   • Comprehensive final deliverables");
+    println!("\n✅ Demo completed successfully!");
 
     Ok(())
 }
