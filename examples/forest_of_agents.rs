@@ -108,7 +108,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("🎬 Starting collaborative task execution...");
     println!("   (Watch the responses stream in real-time!)\n");
 
-    // Simpler task for demonstration
+    // Simpler task for demonstration - DISABLED TOOLS FOR TESTING
     let task = "Create a brief guide (2-3 paragraphs) on sustainable gardening. \
                 Include key benefits and one practical technique.";
 
