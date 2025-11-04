@@ -165,6 +165,50 @@ ForestBuilder
 - **Network**: No additional requests - streaming uses same LLM connection
 - **Tool calls**: Non-streaming iterations for stability
 
+## Latest Enhancement: Coordinator-Based Planning System
+
+### New in v0.4.1: Structured Task Planning and Shared Memory
+
+The Forest of Agents now includes a sophisticated coordinator-based planning system:
+
+**New Features:**
+- **TaskPlan**: Structured plans with task breakdown and dependencies
+- **Shared Task Memory**: All agents can read/write to shared memory
+- **create_plan tool**: Coordinator creates detailed task plans
+- **update_task_memory tool**: Agents save results for others to use
+- **Task Dependencies**: Ensure proper execution order
+- **Progress Tracking**: Real-time monitoring of task completion
+
+**How It Works:**
+1. Coordinator analyzes the task and creates a structured plan
+2. Tasks are executed in dependency order
+3. Each agent updates shared memory with their results
+4. Other agents can see and build upon previous work
+5. Coordinator synthesizes final comprehensive result
+
+**Example:**
+```rust
+let mut forest = ForestBuilder::new()
+    .config(config)
+    .agent("coordinator".to_string(), Agent::builder("coordinator")...)
+    .agent("researcher".to_string(), Agent::builder("researcher")...)
+    .agent("writer".to_string(), Agent::builder("writer")...)
+    .build()
+    .await?;
+
+let result = forest
+    .execute_collaborative_task(
+        &"coordinator".to_string(),
+        "Create a comprehensive guide on renewable energy".to_string(),
+        vec!["researcher".to_string(), "writer".to_string()],
+    )
+    .await?;
+```
+
+**Documentation:**
+- See `docs/FOREST_COORDINATOR_PLANNING.md` for complete guide
+- Run `cargo run --example forest_with_coordinator` for demo
+
 ## Future Enhancements
 
 Potential improvements:
@@ -174,6 +218,10 @@ Potential improvements:
 - [ ] Stream tool execution results
 - [ ] Progress indicators for long tasks
 - [ ] Log streaming output to files
+- [ ] Parallel task execution for independent tasks
+- [ ] Task retry logic for failed tasks
+- [ ] Dynamic replanning based on results
+- [ ] Visualization of task execution flow
 
 ## Files Modified
 
