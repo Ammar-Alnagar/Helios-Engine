@@ -160,7 +160,7 @@ impl TaskPlan {
                             .iter()
                             .find(|dt| &dt.id == dep_id)
                             .map(|dt| dt.status == TaskStatus::Completed)
-                            .unwrap_or(true)
+                            .unwrap_or(false)
                     })
             })
             .collect()
