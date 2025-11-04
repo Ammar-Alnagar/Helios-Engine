@@ -526,12 +526,24 @@ impl ForestOfAgents {
             - description: what needs to be done\n\
             - assigned_to: agent name\n\
             - dependencies: array of task IDs that must complete first (use [] if none)\n\n\
-            Create the plan now.",
+            IMPORTANT: You MUST use the create_plan tool to create a plan before doing anything else. \
+            Do not try to complete the task yourself - just create the plan using the tool.",
             task_description,
             involved_agents.join(", ")
         );
 
         let _planning_result = coordinator.chat(planning_prompt).await?;
+
+        // Check if plan was actually created
+        let plan_exists = {
+            let context = self.shared_context.read().await;
+            context.get_plan().is_some()
+        };
+
+        if !plan_exists {
+            // Fallback: coordinator handles it directly
+            return Ok(_planning_result);
+        }
 
         // Phase 2: Execute tasks according to the plan
         let mut iteration = 0;
@@ -577,7 +589,11 @@ impl ForestOfAgents {
                     break; // No tasks ready and none in progress
                 }
 
-                // Wait a bit and check again
+                // Avoid infinite loop - if we've waited too long, break
+                if iteration > 5 {
+                    break;
+                }
+
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 iteration += 1;
                 continue;

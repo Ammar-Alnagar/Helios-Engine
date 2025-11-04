@@ -50,8 +50,8 @@ cargo run --example forest_of_agents
 # Forest with Coordinator - enhanced planning system
 cargo run --example forest_with_coordinator
 
-# Forest with File Analysis - agents using tools to analyze project
-cargo run --example forest_with_file_analysis
+# Forest Simple Demo - simple reliable demo of planning system
+cargo run --example forest_simple_demo
 
 # Direct LLM usage without agents
 cargo run --example direct_llm_usage
@@ -549,37 +549,26 @@ cargo run --example forest_with_coordinator
 
 **Documentation:** See `docs/FOREST_COORDINATOR_PLANNING.md` for complete guide.
 
-### Forest of Agents with File System Analysis (`forest_with_file_analysis.rs`)
+### Forest of Agents Simple Demo (`forest_simple_demo.rs`)
 
-**NEW!** Demonstrates Forest of Agents using file tools to analyze a project.
+**NEW!** A simpler, more reliable demonstration of the planning system.
 
-This example shows how agents can use tools while collaborating:
+This example shows the coordinator-based planning with minimal complexity:
 
-- **File Explorer Agent**: Uses `file_list`, `file_search` tools to map directory structure
-- **Code Analyzer Agent**: Uses `file_read` to examine source code files
-- **Documentation Analyst Agent**: Reviews README and documentation files
-- **Report Writer Agent**: Synthesizes findings from all agents
-- **Tool Integration**: All file tools work seamlessly with the planning system
-- **Real-world Task**: Performs actual file system analysis
-
-**Workflow:**
-1. Coordinator creates analysis plan with dependencies
-2. File Explorer maps the directory structure and file types
-3. Code Analyzer examines source files and identifies modules
-4. Doc Analyst reviews documentation and features
-5. Report Writer creates comprehensive analysis report
+- **Simple Task**: Easy to understand task (listing benefits)
+- **3 Agents**: Coordinator + 2 workers
+- **Clear Output**: Shows plan creation and execution
+- **Reliable**: Designed to work consistently with various LLMs
 
 **Run:**
 ```bash
-cargo run --example forest_with_file_analysis
+cargo run --example forest_simple_demo
 ```
 
-**Demonstrates:**
-- Using tools within Forest of Agents
-- File system operations with multiple agents
-- Data sharing through shared task memory
-- Complex analysis workflows
-- Real-world collaborative problem solving
+**Best for:**
+- Learning how the planning system works
+- Testing your configuration
+- Understanding task delegation flow
 
 ### Complete Demo (`complete_demo.rs`)
 
