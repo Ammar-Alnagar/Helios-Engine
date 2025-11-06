@@ -130,7 +130,11 @@ async fn main() -> helios_engine::Result<()> {
         .description("Apply a fixed discount to a price")
         .required_parameter("price", "number", "The original price")
         .sync_function(move |args: Value| {
-            let price = args.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let price = args.get("price").and_then(|v| v.as_f64()).ok_or_else(|| {
+                helios_engine::HeliosError::ToolError(
+                    "Missing or invalid 'price' parameter".to_string(),
+                )
+            })?;
 
             let discounted = price * (1.0 - discount_rate);
             Ok(ToolResult::success(format!(
