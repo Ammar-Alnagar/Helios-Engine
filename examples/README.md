@@ -425,6 +425,36 @@ cargo run --example tool_builder_demo
 
 See the **Tool Builder** section in **[Tools Guide](../docs/TOOLS.md#creating-custom-tools)** for complete documentation.
 
+### Simplified Tool Builder Demo (`tool_builder_simple_demo.rs`)
+
+**✨ NEW SIMPLIFIED API!** The easiest way to create tools - define all parameters at once:
+
+```rust
+use helios_engine::{ToolBuilder, ToolResult};
+
+// Define all parameters in one line!
+let tool = ToolBuilder::from_fn(
+    "calculate_volume",
+    "Calculate the volume of a box",
+    "width:f64:The width, height:f64:The height, depth:f64:The depth",
+    |args| {
+        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let height = args.get("height").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let depth = args.get("depth").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        Ok(ToolResult::success(format!("Volume: {}", width * height * depth)))
+    }
+).build();
+```
+
+This demo compares the old verbose way vs. the new simplified API.
+
+**Run:**
+```bash
+cargo run --example tool_builder_simple_demo
+```
+
+See the **[Simplified Tool Builder Guide](../docs/TOOL_BUILDER_SIMPLIFIED.md)** for complete documentation.
+
 ### Custom Tool (`custom_tool.rs`)
 
 Create and use a custom tool by implementing the Tool trait:

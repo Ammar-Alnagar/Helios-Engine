@@ -317,6 +317,10 @@ agent.tool(Box::new(rag_tool));
 
 The **ToolBuilder** provides a simplified way to create custom tools without implementing the Tool trait manually. This is the recommended approach for most use cases.
 
+> **✨ NEW: Simplified API Available!**  
+> We've added an even easier way to create tools with the new `parameters()` method and `from_fn()` functions.  
+> See the [Simplified Tool Builder Guide](TOOL_BUILDER_SIMPLIFIED.md) for details or jump to the [Quick Start](#simplified-api-quick-start) below.
+
 #### Why Use ToolBuilder?
 
 **Before (Manual Implementation):**
@@ -439,6 +443,44 @@ async fn main() -> helios_engine::Result<()> {
 - `"boolean"` - True/false values
 - `"object"` - JSON objects
 - `"array"` - JSON arrays
+
+#### Simplified API Quick Start
+
+**New in this version!** You can now define all parameters at once and derive tools directly from functions:
+
+```rust
+use helios_engine::{ToolBuilder, ToolResult};
+
+// Define all parameters in one line instead of multiple method calls
+let tool = ToolBuilder::new("calculate_volume")
+    .description("Calculate the volume of a box")
+    .parameters("width:f64:The width, height:f64:The height, depth:f64:The depth")
+    .sync_function(|args| {
+        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let height = args.get("height").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let depth = args.get("depth").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        Ok(ToolResult::success(format!("Volume: {}", width * height * depth)))
+    })
+    .build();
+
+// Or even simpler with from_fn - everything in one place!
+let tool = ToolBuilder::from_fn(
+    "calculate_area",
+    "Calculate the area of a rectangle",
+    "length:f64:The length, width:f64:The width",
+    |args| {
+        let length = args.get("length").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        Ok(ToolResult::success(format!("Area: {}", length * width)))
+    }
+).build();
+```
+
+**Format**: `"param_name:type:description, param2:type2:description2, ..."`
+
+**Supported types**: `i32`, `i64`, `f32`, `f64`, `string`, `bool`, `object`, `array`, etc.
+
+For complete documentation, see [TOOL_BUILDER_SIMPLIFIED.md](TOOL_BUILDER_SIMPLIFIED.md).
 
 #### ToolBuilder Patterns
 

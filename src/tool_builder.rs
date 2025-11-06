@@ -63,6 +63,108 @@ impl ToolBuilder {
         }
     }
 
+    /// Creates a `ToolBuilder` from an existing function, automatically deriving the tool name.
+    ///
+    /// This method extracts the function name and uses it as the tool name, making it
+    /// extremely simple to convert existing functions into tools without redefining anything.
+    ///
+    /// # Arguments
+    ///
+    /// * `func_name` - The name to use for the tool (typically the function name)
+    /// * `description` - A description of what the tool does
+    /// * `params` - Parameter definitions in the format "name:type:description, ..."
+    /// * `func` - The function to execute
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use helios_engine::{ToolBuilder, ToolResult};
+    ///
+    /// fn calculate_area(length: f64, width: f64) -> f64 {
+    ///     length * width
+    /// }
+    ///
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let tool = ToolBuilder::from_fn(
+    ///     "calculate_area",
+    ///     "Calculate the area of a rectangle",
+    ///     "length:f64:The length of the rectangle, width:f64:The width of the rectangle",
+    ///     |args| {
+    ///         let length = args.get("length").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    ///         let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
+    ///         let area = calculate_area(length, width);
+    ///         Ok(ToolResult::success(format!("The area is {} square units", area)))
+    ///     }
+    /// ).build();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn from_fn<F>(
+        func_name: impl Into<String>,
+        description: impl Into<String>,
+        params: impl Into<String>,
+        func: F,
+    ) -> Self
+    where
+        F: Fn(Value) -> Result<ToolResult> + Send + Sync + 'static,
+    {
+        Self::new(func_name)
+            .description(description)
+            .parameters(params)
+            .sync_function(func)
+    }
+
+    /// Creates a `ToolBuilder` from an existing async function, automatically deriving the tool name.
+    ///
+    /// This is the async version of `from_fn`, for functions that need to perform async operations.
+    ///
+    /// # Arguments
+    ///
+    /// * `func_name` - The name to use for the tool (typically the function name)
+    /// * `description` - A description of what the tool does
+    /// * `params` - Parameter definitions in the format "name:type:description, ..."
+    /// * `func` - The async function to execute
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use helios_engine::{ToolBuilder, ToolResult};
+    ///
+    /// async fn fetch_temperature(city: &str) -> Result<f64, String> {
+    ///     // Simulate API call
+    ///     Ok(20.5)
+    /// }
+    ///
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let tool = ToolBuilder::from_async_fn(
+    ///     "fetch_temperature",
+    ///     "Get the temperature for a city",
+    ///     "city:string:The name of the city",
+    ///     |args| async move {
+    ///         let city = args.get("city").and_then(|v| v.as_str()).unwrap_or("");
+    ///         let temp = fetch_temperature(city).await.unwrap_or(0.0);
+    ///         Ok(ToolResult::success(format!("Temperature: {}°C", temp)))
+    ///     }
+    /// ).build();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn from_async_fn<F, Fut>(
+        func_name: impl Into<String>,
+        description: impl Into<String>,
+        params: impl Into<String>,
+        func: F,
+    ) -> Self
+    where
+        F: Fn(Value) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<ToolResult>> + Send + 'static,
+    {
+        Self::new(func_name)
+            .description(description)
+            .parameters(params)
+            .function(func)
+    }
+
     /// Sets the description of the tool.
     ///
     /// # Arguments
@@ -129,6 +231,87 @@ impl ToolBuilder {
         description: impl Into<String>,
     ) -> Self {
         self.parameter(name, param_type, description, true)
+    }
+
+    /// Adds multiple parameters at once using a compact format.
+    ///
+    /// This method allows you to define all parameters in a single string, making it much
+    /// easier and more concise than calling `required_parameter` multiple times.
+    ///
+    /// # Format
+    ///
+    /// The format is: `"param_name:type:description, param_name2:type2:description2, ..."`
+    ///
+    /// Supported types:
+    /// - `i32`, `i64`, `u32`, `u64`, `isize`, `usize` -> mapped to "integer"
+    /// - `f32`, `f64`, `number` -> mapped to "number"
+    /// - `str`, `String`, `string` -> mapped to "string"
+    /// - `bool`, `boolean` -> mapped to "boolean"
+    /// - `object` -> mapped to "object"
+    /// - `array` -> mapped to "array"
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - A comma-separated string of parameters in the format "name:type:description"
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use helios_engine::ToolBuilder;
+    ///
+    /// let tool = ToolBuilder::new("calculate_volume")
+    ///     .description("Calculate the volume of a box")
+    ///     .parameters("width:i32:The width of the box, height:i32:The height of the box, depth:f64:The depth of the box")
+    ///     .sync_function(|args| {
+    ///         // function implementation
+    /// #       Ok(helios_engine::ToolResult::success("done".to_string()))
+    ///     })
+    ///     .build();
+    /// ```
+    pub fn parameters(mut self, params: impl Into<String>) -> Self {
+        let params_str = params.into();
+
+        for param in params_str.split(',') {
+            let param = param.trim();
+            if param.is_empty() {
+                continue;
+            }
+
+            let parts: Vec<&str> = param.splitn(3, ':').collect();
+            if parts.len() < 2 {
+                continue;
+            }
+
+            let name = parts[0].trim();
+            let param_type = parts[1].trim();
+            let description = if parts.len() >= 3 {
+                parts[2].trim()
+            } else {
+                ""
+            };
+
+            // Map Rust types to JSON schema types
+            let json_type = match param_type.to_lowercase().as_str() {
+                "i32" | "i64" | "u32" | "u64" | "isize" | "usize" | "integer" => "integer",
+                "f32" | "f64" | "number" => "number",
+                "str" | "string" => "string",
+                "bool" | "boolean" => "boolean",
+                "object" => "object",
+                "array" => "array",
+                _ => param_type, // Use as-is if not recognized
+            };
+
+            self.parameters.insert(
+                name.to_string(),
+                ToolParameter {
+                    param_type: json_type.to_string(),
+                    description: description.to_string(),
+                    required: Some(true),
+                },
+            );
+        }
+
+        self
     }
 
     /// Sets the function to execute when the tool is called.
@@ -388,5 +571,157 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.output, "Processed 3 fields");
+    }
+
+    #[tokio::test]
+    async fn test_parameters_method() {
+        let tool = ToolBuilder::new("calculate_area")
+            .description("Calculate area of a rectangle")
+            .parameters("width:i32:The width, height:i32:The height")
+            .sync_function(|args: Value| {
+                let width = args.get("width").and_then(|v| v.as_i64()).unwrap_or(0);
+                let height = args.get("height").and_then(|v| v.as_i64()).unwrap_or(0);
+                Ok(ToolResult::success(format!("Area: {}", width * height)))
+            })
+            .build();
+
+        assert_eq!(tool.name(), "calculate_area");
+
+        let params = tool.parameters();
+        assert!(params.contains_key("width"));
+        assert!(params.contains_key("height"));
+        assert_eq!(params.get("width").unwrap().param_type, "integer");
+        assert_eq!(params.get("height").unwrap().param_type, "integer");
+
+        let result = tool
+            .execute(json!({"width": 5, "height": 10}))
+            .await
+            .unwrap();
+        assert_eq!(result.output, "Area: 50");
+    }
+
+    #[tokio::test]
+    async fn test_parameters_with_float_types() {
+        let tool = ToolBuilder::new("calculate_volume")
+            .description("Calculate volume")
+            .parameters("width:f64:Width in meters, height:f32:Height in meters, depth:number:Depth in meters")
+            .sync_function(|args: Value| {
+                let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let height = args.get("height").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                let depth = args.get("depth").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                Ok(ToolResult::success(format!("Volume: {:.2}", width * height * depth)))
+            })
+            .build();
+
+        let params = tool.parameters();
+        assert_eq!(params.get("width").unwrap().param_type, "number");
+        assert_eq!(params.get("height").unwrap().param_type, "number");
+        assert_eq!(params.get("depth").unwrap().param_type, "number");
+    }
+
+    #[tokio::test]
+    async fn test_parameters_with_string_and_bool() {
+        let tool = ToolBuilder::new("greet")
+            .description("Greet someone")
+            .parameters("name:string:Person's name, formal:bool:Use formal greeting")
+            .sync_function(|args: Value| {
+                let name = args
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("stranger");
+                let formal = args
+                    .get("formal")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let greeting = if formal {
+                    format!("Good day, {}", name)
+                } else {
+                    format!("Hey {}", name)
+                };
+                Ok(ToolResult::success(greeting))
+            })
+            .build();
+
+        let params = tool.parameters();
+        assert_eq!(params.get("name").unwrap().param_type, "string");
+        assert_eq!(params.get("formal").unwrap().param_type, "boolean");
+    }
+
+    #[tokio::test]
+    async fn test_from_fn() {
+        fn add(a: i32, b: i32) -> i32 {
+            a + b
+        }
+
+        let tool = ToolBuilder::from_fn(
+            "add",
+            "Add two numbers",
+            "a:i32:First number, b:i32:Second number",
+            |args| {
+                let a = args.get("a").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                let b = args.get("b").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                Ok(ToolResult::success(add(a, b).to_string()))
+            },
+        )
+        .build();
+
+        assert_eq!(tool.name(), "add");
+        assert_eq!(tool.description(), "Add two numbers");
+
+        let result = tool.execute(json!({"a": 3, "b": 7})).await.unwrap();
+        assert_eq!(result.output, "10");
+    }
+
+    #[tokio::test]
+    async fn test_from_async_fn() {
+        async fn fetch_data(id: i32) -> String {
+            format!("Data for ID: {}", id)
+        }
+
+        let tool = ToolBuilder::from_async_fn(
+            "fetch_data",
+            "Fetch data by ID",
+            "id:i32:The ID to fetch",
+            |args| async move {
+                let id = args.get("id").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                Ok(ToolResult::success(fetch_data(id).await))
+            },
+        )
+        .build();
+
+        assert_eq!(tool.name(), "fetch_data");
+
+        let result = tool.execute(json!({"id": 42})).await.unwrap();
+        assert_eq!(result.output, "Data for ID: 42");
+    }
+
+    #[tokio::test]
+    async fn test_parameters_empty_and_whitespace() {
+        let tool = ToolBuilder::new("test")
+            .description("Test tool")
+            .parameters("a:i32:First, , b:i32:Second,  ,  c:string:Third  ")
+            .sync_function(|_| Ok(ToolResult::success("ok".to_string())))
+            .build();
+
+        let params = tool.parameters();
+        // Should have 3 parameters (empty strings should be skipped)
+        assert_eq!(params.len(), 3);
+        assert!(params.contains_key("a"));
+        assert!(params.contains_key("b"));
+        assert!(params.contains_key("c"));
+    }
+
+    #[tokio::test]
+    async fn test_parameters_without_description() {
+        let tool = ToolBuilder::new("test")
+            .description("Test tool")
+            .parameters("x:i32, y:i32")
+            .sync_function(|_| Ok(ToolResult::success("ok".to_string())))
+            .build();
+
+        let params = tool.parameters();
+        assert_eq!(params.len(), 2);
+        assert_eq!(params.get("x").unwrap().description, "");
+        assert_eq!(params.get("y").unwrap().description, "");
     }
 }
