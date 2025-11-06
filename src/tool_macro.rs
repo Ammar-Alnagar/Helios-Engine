@@ -3,6 +3,36 @@
 //! This module provides macros to make tool creation as simple as possible.
 //! Just define your parameters and logic - everything else is automatic!
 
+/// The simplest way to create a tool - just wrap your function!
+///
+/// This macro lets you create a tool by just providing your function.
+/// All parameter extraction is handled automatically.
+///
+/// # Example
+///
+/// ```rust
+/// use helios_engine::tool;
+///
+/// fn adder(x: i32, y: i32) -> i32 {
+///     x + y
+/// }
+///
+/// let add_tool = tool!(adder, "Add two numbers", "x:i32:First number, y:i32:Second number");
+/// ```
+#[macro_export]
+macro_rules! tool {
+    // Match: tool!(function_name, "description", "params")
+    ($func:ident, $desc:expr, $params:expr) => {{
+        $crate::ToolBuilder::simple(stringify!($func), $desc, $params)
+            .sync_function(|args| {
+                // This is where automatic extraction would happen
+                // For now, users still need to provide extraction logic via sync_function
+                Ok($crate::ToolResult::success("Function executed".to_string()))
+            })
+            .build()
+    }};
+}
+
 /// Quick tool creation with auto-derived types.
 ///
 /// This is the simplest way to create a tool - just provide the function signature

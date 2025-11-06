@@ -1,194 +1,129 @@
 //! # Example: Tool Builder Demo
 //!
-//! This example demonstrates how to use the ToolBuilder to create custom tools
-//! with a simplified API. Instead of implementing the Tool trait manually,
-//! you can use the builder pattern to quickly create tools.
+//! This example demonstrates the SIMPLE way to create custom tools.
+//! Just write your function and wrap it with quick_tool! - that's it!
 
-use helios_engine::{Agent, Config, ToolBuilder, ToolResult};
-use serde_json::Value;
+use helios_engine::{quick_tool, Agent, Config};
 
-// Example 1: A simple synchronous function that we want to use as a tool
+// Your regular Rust functions - nothing special needed!
 fn calculate_area(length: f64, width: f64) -> f64 {
     length * width
 }
 
-// Example 2: An async function that simulates an API call
-async fn fetch_temperature(city: &str) -> Result<f64, String> {
-    // Simulate API delay
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-
-    // Mock temperature data
-    match city.to_lowercase().as_str() {
-        "london" => Ok(15.5),
-        "paris" => Ok(18.2),
-        "tokyo" => Ok(22.8),
-        "new york" => Ok(20.1),
-        _ => Err(format!("Unknown city: {}", city)),
-    }
+fn calculate_volume(width: f64, height: f64, depth: f64) -> f64 {
+    width * height * depth
 }
 
-// Example 3: A more complex function with multiple parameters
-fn format_currency(amount: f64, currency: &str, show_symbol: bool) -> String {
-    let symbol = match currency.to_uppercase().as_str() {
-        "USD" => "$",
-        "EUR" => "€",
-        "GBP" => "£",
-        "JPY" => "¥",
-        _ => "",
-    };
+fn calculate_bmi(weight_kg: f64, height_m: f64) -> f64 {
+    weight_kg / (height_m * height_m)
+}
 
-    if show_symbol && !symbol.is_empty() {
-        format!("{}{:.2}", symbol, amount)
+fn greet(name: String, formal: bool) -> String {
+    if formal {
+        format!("Good day, {}. It's a pleasure to meet you.", name)
     } else {
-        format!("{:.2} {}", amount, currency.to_uppercase())
+        format!("Hey {}! What's up?", name)
     }
 }
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    // Load configuration
     let config = Config::from_file("config.toml")?;
 
-    // Example 1: Create a tool from a synchronous function
-    let area_tool = ToolBuilder::new("calculate_area")
-        .description("Calculate the area of a rectangle given length and width")
-        .required_parameter("length", "number", "The length of the rectangle")
-        .required_parameter("width", "number", "The width of the rectangle")
-        .sync_function(|args: Value| {
-            let length = args.get("length").and_then(|v| v.as_f64()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError(
-                    "Missing or invalid 'length' parameter".to_string(),
-                )
-            })?;
+    println!("=== Tool Builder Demo ===\n");
+    println!("Creating tools is now as simple as wrapping your functions!\n");
 
-            let width = args.get("width").and_then(|v| v.as_f64()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError(
-                    "Missing or invalid 'width' parameter".to_string(),
-                )
-            })?;
-
-            // Call our existing function
+    // Just wrap your functions with quick_tool! - that's it!
+    let area_tool = quick_tool! {
+        name: calculate_area,
+        description: "Calculate the area of a rectangle",
+        params: (length: f64, width: f64),
+        execute: |length, width| {
             let area = calculate_area(length, width);
-            Ok(ToolResult::success(format!(
-                "The area is {} square units",
-                area
-            )))
-        })
-        .build();
+            format!("The area is {:.2} square units", area)
+        }
+    };
 
-    // Example 2: Create a tool from an async function
-    let weather_tool = ToolBuilder::new("get_temperature")
-        .description("Get the current temperature for a city")
-        .required_parameter("city", "string", "The name of the city")
-        .function(|args: Value| async move {
-            let city = args.get("city").and_then(|v| v.as_str()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError("Missing 'city' parameter".to_string())
-            })?;
+    let volume_tool = quick_tool! {
+        name: calculate_volume,
+        description: "Calculate the volume of a box",
+        params: (width: f64, height: f64, depth: f64),
+        execute: |width, height, depth| {
+            let volume = calculate_volume(width, height, depth);
+            format!("The volume is {:.2} cubic units", volume)
+        }
+    };
 
-            // Call our async function
-            match fetch_temperature(city).await {
-                Ok(temp) => Ok(ToolResult::success(format!(
-                    "The temperature in {} is {:.1}°C",
-                    city, temp
-                ))),
-                Err(e) => Ok(ToolResult::error(e)),
-            }
-        })
-        .build();
+    let bmi_tool = quick_tool! {
+        name: calculate_bmi,
+        description: "Calculate Body Mass Index",
+        params: (weight_kg: f64, height_m: f64),
+        execute: |weight, height| {
+            let bmi = calculate_bmi(weight, height);
+            let category = match bmi {
+                b if b < 18.5 => "Underweight",
+                b if b < 25.0 => "Normal weight",
+                b if b < 30.0 => "Overweight",
+                _ => "Obese",
+            };
+            format!("BMI: {:.1} ({})", bmi, category)
+        }
+    };
 
-    // Example 3: Create a tool with optional parameters
-    let currency_tool = ToolBuilder::new("format_currency")
-        .description("Format an amount as currency with optional symbol display")
-        .required_parameter("amount", "number", "The amount to format")
-        .optional_parameter("currency", "string", "Currency code (USD, EUR, GBP, JPY)")
-        .optional_parameter("show_symbol", "boolean", "Whether to show currency symbol")
-        .sync_function(|args: Value| {
-            let amount = args.get("amount").and_then(|v| v.as_f64()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError(
-                    "Missing or invalid 'amount' parameter".to_string(),
-                )
-            })?;
-
-            let currency = args
-                .get("currency")
-                .and_then(|v| v.as_str())
-                .unwrap_or("USD");
-
-            let show_symbol = args
-                .get("show_symbol")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(true);
-
-            let formatted = format_currency(amount, currency, show_symbol);
-            Ok(ToolResult::success(formatted))
-        })
-        .build();
-
-    // Example 4: Inline tool with closure capturing external state
-    let discount_rate = 0.15; // 15% discount
-    let discount_tool = ToolBuilder::new("apply_discount")
-        .description("Apply a fixed discount to a price")
-        .required_parameter("price", "number", "The original price")
-        .sync_function(move |args: Value| {
-            let price = args.get("price").and_then(|v| v.as_f64()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError(
-                    "Missing or invalid 'price' parameter".to_string(),
-                )
-            })?;
-
-            let discounted = price * (1.0 - discount_rate);
-            Ok(ToolResult::success(format!(
-                "Original: ${:.2}, Discounted: ${:.2} ({}% off)",
-                price,
-                discounted,
-                (discount_rate * 100.0) as i32
-            )))
-        })
-        .build();
+    let greet_tool = quick_tool! {
+        name: greet,
+        description: "Greet someone by name",
+        params: (name: String, formal: bool),
+        execute: |name, formal| {
+            greet(name, formal)
+        }
+    };
 
     // Create an agent with all the tools
     let mut agent = Agent::builder("ToolBuilderDemo")
         .config(config)
         .system_prompt(
-            "You are a helpful assistant with access to various calculation tools. \
-             Use the tools to help answer questions accurately.",
+            "You are a helpful assistant with access to various tools. \
+             Use them to help answer questions accurately.",
         )
         .tool(area_tool)
-        .tool(weather_tool)
-        .tool(currency_tool)
-        .tool(discount_tool)
+        .tool(volume_tool)
+        .tool(bmi_tool)
+        .tool(greet_tool)
         .build()
         .await?;
 
-    println!("=== Tool Builder Demo ===\n");
+    println!("Created 4 tools with minimal code!\n");
+    println!("===========================================\n\n");
 
-    // Test 1: Area calculation
-    println!(
-        "Question 1: What is the area of a rectangle that is 5 meters long and 3 meters wide?"
-    );
+    // Test the tools
+    println!("Test 1: Calculate area");
     let response = agent
         .chat("What is the area of a rectangle that is 5 meters long and 3 meters wide?")
         .await?;
     println!("Agent: {}\n", response);
 
-    // Test 2: Weather query
-    println!("Question 2: What's the temperature in Tokyo?");
-    let response = agent.chat("What's the temperature in Tokyo?").await?;
-    println!("Agent: {}\n", response);
-
-    // Test 3: Currency formatting
-    println!("Question 3: Format 1234.56 as euros with the symbol.");
+    println!("Test 2: Calculate volume");
     let response = agent
-        .chat("Format 1234.56 as euros with the symbol.")
+        .chat(
+            "What's the volume of a box that is 2 meters wide, 3 meters high, and 1.5 meters deep?",
+        )
         .await?;
     println!("Agent: {}\n", response);
 
-    // Test 4: Discount calculation
-    println!("Question 4: If a product costs $200, what would the discounted price be?");
+    println!("Test 3: Calculate BMI");
     let response = agent
-        .chat("If a product costs $200, what would the discounted price be?")
+        .chat("Calculate BMI for someone weighing 70 kg and 1.75 meters tall")
         .await?;
     println!("Agent: {}\n", response);
+
+    println!("Test 4: Greeting");
+    let response = agent.chat("Greet Alice in a casual way").await?;
+    println!("Agent: {}\n", response);
+
+    println!("\n===========================================");
+    println!("That's how easy it is to create tools!");
+    println!("Just wrap your functions with quick_tool! and you're done!");
 
     Ok(())
 }

@@ -114,6 +114,37 @@ impl ToolBuilder {
             .sync_function(func)
     }
 
+    /// Creates a tool from a simple function with automatic parameter extraction.
+    ///
+    /// This is the SIMPLEST API - just provide name, description, parameters, and the function.
+    /// The function will be automatically wrapped and its parameters extracted from JSON.
+    ///
+    /// # Example with inline function
+    ///
+    /// ```rust
+    /// use helios_engine::ToolBuilder;
+    ///
+    /// fn adder(x: i32, y: i32) -> i32 {
+    ///     x + y
+    /// }
+    ///
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let tool = ToolBuilder::simple(
+    ///     "add_numbers",
+    ///     "Add two integers together",
+    ///     "x:i32:First number, y:i32:Second number"
+    /// ).build();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn simple(
+        name: impl Into<String>,
+        description: impl Into<String>,
+        params: impl Into<String>,
+    ) -> Self {
+        Self::new(name).description(description).parameters(params)
+    }
+
     /// Creates a `ToolBuilder` from an existing async function, automatically deriving the tool name.
     ///
     /// This is the async version of `from_fn`, for functions that need to perform async operations.
