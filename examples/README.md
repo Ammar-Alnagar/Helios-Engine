@@ -397,9 +397,65 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
+### Tool Builder Demo (`tool_builder_demo.rs`)
+
+**NEW!** Create custom tools easily with the ToolBuilder - no need to implement the Tool trait manually:
+
+```rust
+use helios_engine::{ToolBuilder, ToolResult};
+use serde_json::Value;
+
+// Wrap your existing function as a tool
+let calculator = ToolBuilder::new("multiply")
+    .description("Multiply two numbers")
+    .required_parameter("x", "number", "First number")
+    .required_parameter("y", "number", "Second number")
+    .sync_function(|args: Value| {
+        let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        Ok(ToolResult::success((x * y).to_string()))
+    })
+    .build();
+```
+
+**✨ THE EASIEST WAY TO CREATE TOOLS!** Use the `ftool` API - just pass your function directly:
+
+```rust
+use helios_engine::ToolBuilder;
+
+// Your normal function
+fn adder(x: i32, y: i32) -> i32 {
+    x + y
+}
+
+// Create a tool by just passing your function!
+let tool = ToolBuilder::new("add")
+    .description("Add two numbers")
+    .parameters("x:i32:First number, y:i32:Second number")
+    .ftool(adder)
+    .build();
+```
+
+This demo shows multiple examples of the ultra-simple `ftool` API that automatically:
+- Extracts parameters from JSON
+- Calls your function with the right types
+- Handles all the boilerplate for you
+
+Available methods:
+- `.ftool(fn)` - For 2 integer (i32) parameters
+- `.ftool_f64(fn)` - For 2 float (f64) parameters
+- `.ftool3_f64(fn)` - For 3 float (f64) parameters
+
+**Run:**
+```bash
+cargo run --example tool_builder_demo
+```
+
+See the **[Tool Creation Guide](../docs/TOOL_CREATION_SIMPLE.md)** for complete documentation.
+
 ### Custom Tool (`custom_tool.rs`)
 
-Create and use a custom tool:
+Create and use a custom tool by implementing the Tool trait:
 
 ```rust
 use async_trait::async_trait;

@@ -18,6 +18,7 @@
 
 - **🆕 Forest of Agents**: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context
 - **Agent System**: Create multiple agents with different personalities and capabilities
+- **🆕 Tool Builder**: Simplified tool creation with builder pattern - wrap any function as a tool without manual trait implementation
 - **Tool Registry**: Extensible tool system for adding custom functionality
 - **Extensive Tool Suite**: 16+ built-in tools including web scraping, JSON parsing, timestamp operations, file I/O, shell commands, HTTP requests, system info, and text processing
 - **🆕 RAG System**: Retrieval-Augmented Generation with vector stores (InMemory and Qdrant)
@@ -34,7 +35,7 @@
 - **[🛠️ Installation](docs/INSTALLATION.md)** - Complete installation instructions and feature flags
 - **[💻 CLI Usage](docs/USAGE.md)** - Command-line interface and common usage patterns
 - **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
-- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools
+- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools (includes Tool Builder)
 - **[🆕 Advanced Features](docs/ADVANCED.md)** - RAG, Forest of Agents, and advanced capabilities
 - **[📋 API Reference](docs/API.md)** - Complete API documentation
 - **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design principles

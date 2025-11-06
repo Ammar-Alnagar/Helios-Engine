@@ -621,6 +621,66 @@ impl Agent {
     }
 }
 
+pub struct AgentBuilder {
+    name: String,
+    config: Option<Config>,
+    system_prompt: Option<String>,
+    tools: Vec<Box<dyn crate::tools::Tool>>,
+    max_iterations: usize,
+}
+
+impl AgentBuilder {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            config: None,
+            system_prompt: None,
+            tools: Vec::new(),
+            max_iterations: 10,
+        }
+    }
+
+    pub fn config(mut self, config: Config) -> Self {
+        self.config = Some(config);
+        self
+    }
+
+    pub fn system_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.system_prompt = Some(prompt.into());
+        self
+    }
+
+    pub fn tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
+        self.tools.push(tool);
+        self
+    }
+
+    pub fn max_iterations(mut self, max: usize) -> Self {
+        self.max_iterations = max;
+        self
+    }
+
+    pub async fn build(self) -> Result<Agent> {
+        let config = self
+            .config
+            .ok_or_else(|| HeliosError::AgentError("Config is required".to_string()))?;
+
+        let mut agent = Agent::new(self.name, config).await?;
+
+        if let Some(prompt) = self.system_prompt {
+            agent.set_system_prompt(prompt);
+        }
+
+        for tool in self.tools {
+            agent.register_tool(tool);
+        }
+
+        agent.set_max_iterations(self.max_iterations);
+
+        Ok(agent)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -839,65 +899,5 @@ mod tests {
                 .unwrap_or("default");
             Ok(ToolResult::success(format!("Mock tool output: {}", input)))
         }
-    }
-}
-
-pub struct AgentBuilder {
-    name: String,
-    config: Option<Config>,
-    system_prompt: Option<String>,
-    tools: Vec<Box<dyn crate::tools::Tool>>,
-    max_iterations: usize,
-}
-
-impl AgentBuilder {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            config: None,
-            system_prompt: None,
-            tools: Vec::new(),
-            max_iterations: 10,
-        }
-    }
-
-    pub fn config(mut self, config: Config) -> Self {
-        self.config = Some(config);
-        self
-    }
-
-    pub fn system_prompt(mut self, prompt: impl Into<String>) -> Self {
-        self.system_prompt = Some(prompt.into());
-        self
-    }
-
-    pub fn tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
-        self.tools.push(tool);
-        self
-    }
-
-    pub fn max_iterations(mut self, max: usize) -> Self {
-        self.max_iterations = max;
-        self
-    }
-
-    pub async fn build(self) -> Result<Agent> {
-        let config = self
-            .config
-            .ok_or_else(|| HeliosError::AgentError("Config is required".to_string()))?;
-
-        let mut agent = Agent::new(self.name, config).await?;
-
-        if let Some(prompt) = self.system_prompt {
-            agent.set_system_prompt(prompt);
-        }
-
-        for tool in self.tools {
-            agent.register_tool(tool);
-        }
-
-        agent.set_max_iterations(self.max_iterations);
-
-        Ok(agent)
     }
 }

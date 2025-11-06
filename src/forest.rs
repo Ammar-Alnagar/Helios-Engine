@@ -1466,7 +1466,7 @@ mod tests {
         // Check that Bob received the message
         let bob = forest.get_agent(&"bob".to_string()).unwrap();
         let messages = bob.chat_session().messages.clone();
-        assert!(messages.len() >= 1);
+        assert!(!messages.is_empty());
         let last_message = messages.last().unwrap();
         assert_eq!(last_message.role, crate::chat::Role::User);
         assert!(last_message
