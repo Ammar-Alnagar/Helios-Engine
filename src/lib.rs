@@ -85,6 +85,9 @@ pub mod llm;
 /// Contains the tool system, including the `Tool` trait and various tool implementations.
 pub mod tools;
 
+/// Simplified tool creation with the builder pattern.
+pub mod tool_builder;
+
 /// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
 pub mod serve;
 
@@ -128,6 +131,9 @@ pub use tools::{
     SystemInfoTool, TextProcessorTool, TimestampTool, Tool, ToolParameter, ToolRegistry,
     ToolResult, WebScraperTool,
 };
+
+/// Re-export of tool builder for simplified tool creation.
+pub use tool_builder::ToolBuilder;
 
 /// Re-export of RAG system components.
 pub use rag::{
