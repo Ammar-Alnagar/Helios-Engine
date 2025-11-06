@@ -384,32 +384,47 @@ impl ToolBuilder {
         self
     }
 
-    /// Ultra-simple API: Pass a 2-parameter i32 function directly.
+    /// Ultra-simple API: Pass a function directly with automatic type inference.
     ///
-    /// This method automatically wraps a simple function with 2 i32 parameters.
-    /// Parameters must have been defined using `.parameters()` method first.
+    /// This method automatically infers parameter types from your function signature
+    /// and extracts them from JSON. Works with any types that implement `FromValue`.
+    ///
+    /// Supported types: i32, i64, u32, u64, f32, f64, bool, String
     ///
     /// # Example
     ///
     /// ```rust
     /// use helios_engine::ToolBuilder;
     ///
-    /// fn adder(x: i32, y: i32) -> i32 {
-    ///     x + y
+    /// fn adder(x: i32, y: i32) -> i32 { x + y }
+    /// fn greeter(name: String, formal: bool) -> String {
+    ///     if formal {
+    ///         format!("Good day, {}", name)
+    ///     } else {
+    ///         format!("Hey {}!", name)
+    ///     }
     /// }
     ///
     /// # async fn example() -> helios_engine::Result<()> {
-    /// let tool = ToolBuilder::new("add")
+    /// let add_tool = ToolBuilder::new("add")
     ///     .description("Add two numbers")
-    ///     .parameters("x:i32:First number, y:i32:Second number")
+    ///     .parameters("x:i32:First, y:i32:Second")
     ///     .ftool(adder)
+    ///     .build();
+    ///
+    /// let greet_tool = ToolBuilder::new("greet")
+    ///     .description("Greet someone")
+    ///     .parameters("name:string:Name, formal:bool:Formal")
+    ///     .ftool(greeter)
     ///     .build();
     /// # Ok(())
     /// # }
     /// ```
-    pub fn ftool<F, R>(self, f: F) -> Self
+    pub fn ftool<F, T1, T2, R>(self, f: F) -> Self
     where
-        F: Fn(i32, i32) -> R + Send + Sync + 'static,
+        F: Fn(T1, T2) -> R + Send + Sync + 'static,
+        T1: FromValue + Send + 'static,
+        T2: FromValue + Send + 'static,
         R: ToString + Send + 'static,
     {
         let param_order = self.parameter_order.clone();
@@ -422,53 +437,28 @@ impl ToolBuilder {
                 return Ok(ToolResult::error("Expected at least 2 parameters"));
             }
 
-            // Extract values in the order parameters were defined
             let p1 = obj
                 .get(&param_order[0])
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0) as i32;
+                .ok_or_else(|| {
+                    HeliosError::ToolError(format!("Missing parameter: {}", param_order[0]))
+                })?
+                .clone();
             let p2 = obj
                 .get(&param_order[1])
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0) as i32;
+                .ok_or_else(|| {
+                    HeliosError::ToolError(format!("Missing parameter: {}", param_order[1]))
+                })?
+                .clone();
+
+            let p1 = T1::from_value(p1)?;
+            let p2 = T2::from_value(p2)?;
 
             let result = f(p1, p2);
             Ok(ToolResult::success(result.to_string()))
         })
     }
 
-    /// Ultra-simple API: Pass a 2-parameter f64 function directly.
-    pub fn ftool_f64<F, R>(self, f: F) -> Self
-    where
-        F: Fn(f64, f64) -> R + Send + Sync + 'static,
-        R: ToString + Send + 'static,
-    {
-        let param_order = self.parameter_order.clone();
-        self.sync_function(move |args| {
-            let obj = args.as_object().ok_or_else(|| {
-                HeliosError::ToolError("Expected JSON object for arguments".to_string())
-            })?;
-
-            if param_order.len() < 2 {
-                return Ok(ToolResult::error("Expected at least 2 parameters"));
-            }
-
-            // Extract values in the order parameters were defined
-            let p1 = obj
-                .get(&param_order[0])
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
-            let p2 = obj
-                .get(&param_order[1])
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
-
-            let result = f(p1, p2);
-            Ok(ToolResult::success(result.to_string()))
-        })
-    }
-
-    /// Ultra-simple API: Pass a 3-parameter f64 function directly.
+    /// Ultra-simple API: Pass a 3-parameter function directly with automatic type inference.
     ///
     /// # Example
     ///
@@ -483,14 +473,17 @@ impl ToolBuilder {
     /// let tool = ToolBuilder::new("calculate_volume")
     ///     .description("Calculate volume")
     ///     .parameters("width:f64:Width, height:f64:Height, depth:f64:Depth")
-    ///     .ftool3_f64(volume)
+    ///     .ftool3(volume)
     ///     .build();
     /// # Ok(())
     /// # }
     /// ```
-    pub fn ftool3_f64<F, R>(self, f: F) -> Self
+    pub fn ftool3<F, T1, T2, T3, R>(self, f: F) -> Self
     where
-        F: Fn(f64, f64, f64) -> R + Send + Sync + 'static,
+        F: Fn(T1, T2, T3) -> R + Send + Sync + 'static,
+        T1: FromValue + Send + 'static,
+        T2: FromValue + Send + 'static,
+        T3: FromValue + Send + 'static,
         R: ToString + Send + 'static,
     {
         let param_order = self.parameter_order.clone();
@@ -503,21 +496,60 @@ impl ToolBuilder {
                 return Ok(ToolResult::error("Expected at least 3 parameters"));
             }
 
-            // Extract values in the order parameters were defined
             let p1 = obj
                 .get(&param_order[0])
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
+                .ok_or_else(|| {
+                    HeliosError::ToolError(format!("Missing parameter: {}", param_order[0]))
+                })?
+                .clone();
             let p2 = obj
                 .get(&param_order[1])
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
+                .ok_or_else(|| {
+                    HeliosError::ToolError(format!("Missing parameter: {}", param_order[1]))
+                })?
+                .clone();
             let p3 = obj
                 .get(&param_order[2])
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
+                .ok_or_else(|| {
+                    HeliosError::ToolError(format!("Missing parameter: {}", param_order[2]))
+                })?
+                .clone();
+
+            let p1 = T1::from_value(p1)?;
+            let p2 = T2::from_value(p2)?;
+            let p3 = T3::from_value(p3)?;
 
             let result = f(p1, p2, p3);
+            Ok(ToolResult::success(result.to_string()))
+        })
+    }
+
+    /// Ultra-simple API: Pass a 4-parameter function directly with automatic type inference.
+    pub fn ftool4<F, T1, T2, T3, T4, R>(self, f: F) -> Self
+    where
+        F: Fn(T1, T2, T3, T4) -> R + Send + Sync + 'static,
+        T1: FromValue + Send + 'static,
+        T2: FromValue + Send + 'static,
+        T3: FromValue + Send + 'static,
+        T4: FromValue + Send + 'static,
+        R: ToString + Send + 'static,
+    {
+        let param_order = self.parameter_order.clone();
+        self.sync_function(move |args| {
+            let obj = args.as_object().ok_or_else(|| {
+                HeliosError::ToolError("Expected JSON object for arguments".to_string())
+            })?;
+
+            if param_order.len() < 4 {
+                return Ok(ToolResult::error("Expected at least 4 parameters"));
+            }
+
+            let p1 = T1::from_value(obj.get(&param_order[0]).cloned().unwrap_or(Value::Null))?;
+            let p2 = T2::from_value(obj.get(&param_order[1]).cloned().unwrap_or(Value::Null))?;
+            let p3 = T3::from_value(obj.get(&param_order[2]).cloned().unwrap_or(Value::Null))?;
+            let p4 = T4::from_value(obj.get(&param_order[3]).cloned().unwrap_or(Value::Null))?;
+
+            let result = f(p1, p2, p3, p4);
             Ok(ToolResult::success(result.to_string()))
         })
     }
@@ -583,6 +615,80 @@ impl Tool for CustomTool {
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         (self.function)(args).await
+    }
+}
+
+/// Trait for converting JSON values to Rust types.
+/// This enables automatic type inference in the ftool API.
+pub trait FromValue: Sized {
+    fn from_value(value: Value) -> Result<Self>;
+}
+
+impl FromValue for i32 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_i64()
+            .map(|n| n as i32)
+            .ok_or_else(|| HeliosError::ToolError("Expected integer value".to_string()))
+    }
+}
+
+impl FromValue for i64 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_i64()
+            .ok_or_else(|| HeliosError::ToolError("Expected integer value".to_string()))
+    }
+}
+
+impl FromValue for u32 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_u64()
+            .map(|n| n as u32)
+            .ok_or_else(|| HeliosError::ToolError("Expected unsigned integer value".to_string()))
+    }
+}
+
+impl FromValue for u64 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_u64()
+            .ok_or_else(|| HeliosError::ToolError("Expected unsigned integer value".to_string()))
+    }
+}
+
+impl FromValue for f32 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_f64()
+            .map(|n| n as f32)
+            .ok_or_else(|| HeliosError::ToolError("Expected float value".to_string()))
+    }
+}
+
+impl FromValue for f64 {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_f64()
+            .ok_or_else(|| HeliosError::ToolError("Expected float value".to_string()))
+    }
+}
+
+impl FromValue for bool {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_bool()
+            .ok_or_else(|| HeliosError::ToolError("Expected boolean value".to_string()))
+    }
+}
+
+impl FromValue for String {
+    fn from_value(value: Value) -> Result<Self> {
+        value
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| HeliosError::ToolError("Expected string value".to_string()))
     }
 }
 
