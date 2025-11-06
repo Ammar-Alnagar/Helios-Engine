@@ -207,7 +207,7 @@ impl ToolBuilder {
 struct CustomTool {
     name: String,
     description: String,
-    parameters: HashMap<String, ToolParameter>,
+    parameters: std::collections::HashMap<String, ToolParameter>,
     function: ToolFunction,
 }
 
