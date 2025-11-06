@@ -397,9 +397,37 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
+### Tool Builder Demo (`tool_builder_demo.rs`)
+
+**NEW!** Create custom tools easily with the ToolBuilder - no need to implement the Tool trait manually:
+
+```rust
+use helios_engine::{ToolBuilder, ToolResult};
+use serde_json::Value;
+
+// Wrap your existing function as a tool
+let calculator = ToolBuilder::new("multiply")
+    .description("Multiply two numbers")
+    .required_parameter("x", "number", "First number")
+    .required_parameter("y", "number", "Second number")
+    .sync_function(|args: Value| {
+        let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        Ok(ToolResult::success((x * y).to_string()))
+    })
+    .build();
+```
+
+**Run:**
+```bash
+cargo run --example tool_builder_demo
+```
+
+See **[Tool Builder Guide](../docs/TOOL_BUILDER.md)** for complete documentation.
+
 ### Custom Tool (`custom_tool.rs`)
 
-Create and use a custom tool:
+Create and use a custom tool by implementing the Tool trait:
 
 ```rust
 use async_trait::async_trait;

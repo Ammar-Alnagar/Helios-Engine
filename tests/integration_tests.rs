@@ -604,7 +604,7 @@ fn test_token_estimation() {
     assert!(tokens > 10); // Should be roughly len/4
 
     // Test with multiple messages
-    let messages = vec!["Hello", "How are you?", "I'm doing well, thank you!"];
+    let messages = ["Hello", "How are you?", "I'm doing well, thank you!"];
     let combined_tokens: u32 = messages.iter().map(|m| estimate_tokens(m)).sum();
     assert_eq!(combined_tokens, 12); // 2 + 3 + 7 = 12 tokens (5/4=1.25->2, 12/4=3, 27/4=6.75->7)
 }

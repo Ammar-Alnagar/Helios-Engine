@@ -54,7 +54,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("Example 1: Building a Knowledge Base");
     println!("=====================================\n");
 
-    let documents = vec![
+    let documents = [
         "Rust is a systems programming language that runs blazingly fast, prevents segfaults, \
          and guarantees thread safety. It was created by Mozilla Research and first released in 2010.",
         "Python is a high-level, interpreted programming language known for its clear syntax \
