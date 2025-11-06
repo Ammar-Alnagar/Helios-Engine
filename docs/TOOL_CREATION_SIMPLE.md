@@ -1,27 +1,139 @@
 # Tool Creation Guide
 
-This guide shows you the **simplest way** to create tools in Helios Engine using the `quick_tool!` macro.
+This guide shows you the **simplest way** to create tools in Helios Engine.
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [The `quick_tool!` Macro](#the-quick_tool-macro) ⭐ **Recommended**
-3. [Alternative Methods](#alternative-methods)
-4. [Quick Examples](#quick-examples)
-5. [Advanced Usage](#advanced-usage)
-6. [Migration Guide](#migration-guide)
+2. [The Ultra-Simple `ftool` API](#the-ultra-simple-ftool-api) ⭐ **Recommended**
+3. [The `quick_tool!` Macro](#the-quick_tool-macro)
+4. [Alternative Methods](#alternative-methods)
+5. [Quick Examples](#quick-examples)
+6. [Advanced Usage](#advanced-usage)
+7. [Migration Guide](#migration-guide)
 
 ## Overview
 
-Creating tools in Helios Engine is incredibly easy. The `quick_tool!` macro does all the heavy lifting:
-- Automatically extracts parameters from JSON
-- Maps Rust types to JSON schema types  
-- Handles all boilerplate code
-- One simple expression to create a complete tool
+Creating tools in Helios Engine is incredibly easy. We offer multiple approaches:
+
+1. **`ftool` API** ⭐ **SIMPLEST** - Just pass your function directly!
+2. **`quick_tool!` Macro** - Zero boilerplate with inline logic
+3. **`ToolBuilder` Methods** - Full control with builder pattern
+
+## The Ultra-Simple `ftool` API
+
+⭐ **This is the EASIEST way to create tools!**
+
+### The Philosophy
+
+You already have functions. Just pass them directly. That's it!
+
+### Quick Start
+
+**Step 1: Write Your Function**
+
+```rust
+fn adder(x: i32, y: i32) -> i32 {
+    x + y
+}
+```
+
+**Step 2: Pass It to ToolBuilder**
+
+```rust
+use helios_engine::ToolBuilder;
+
+let tool = ToolBuilder::new("add")
+    .description("Add two numbers")
+    .parameters("x:i32:First number, y:i32:Second number")
+    .ftool(adder)
+    .build();
+```
+
+**Step 3: Use It**
+
+```rust
+let mut agent = Agent::builder("MyAgent")
+    .config(config)
+    .tool(tool)
+    .build()
+    .await?;
+```
+
+That's it! The system automatically:
+- Extracts parameters from JSON
+- Calls your function with the right types
+- Returns the result as a string
+
+### Available ftool Methods
+
+- **`ftool(fn(i32, i32) -> R)`** - For 2 integer parameters
+- **`ftool_f64(fn(f64, f64) -> R)`** - For 2 float parameters
+- **`ftool3_f64(fn(f64, f64, f64) -> R)`** - For 3 float parameters
+
+Where `R` is any type that implements `ToString`.
+
+### Complete Example
+
+```rust
+use helios_engine::{Agent, Config, ToolBuilder};
+
+// Your normal functions
+fn adder(x: i32, y: i32) -> i32 {
+    x + y
+}
+
+fn calculate_area(length: f64, width: f64) -> f64 {
+    length * width
+}
+
+fn calculate_volume(w: f64, h: f64, d: f64) -> f64 {
+    w * h * d
+}
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    // Create tools by just passing your functions!
+    let add_tool = ToolBuilder::new("add")
+        .description("Add two integers")
+        .parameters("x:i32:First number, y:i32:Second number")
+        .ftool(adder)
+        .build();
+
+    let area_tool = ToolBuilder::new("calculate_area")
+        .description("Calculate rectangle area")
+        .parameters("length:f64:Length, width:f64:Width")
+        .ftool_f64(calculate_area)
+        .build();
+
+    let volume_tool = ToolBuilder::new("calculate_volume")
+        .description("Calculate box volume")
+        .parameters("width:f64:Width, height:f64:Height, depth:f64:Depth")
+        .ftool3_f64(calculate_volume)
+        .build();
+
+    // Add to agent
+    let mut agent = Agent::builder("CalculatorBot")
+        .config(config)
+        .tool(add_tool)
+        .tool(area_tool)
+        .tool(volume_tool)
+        .build()
+        .await?;
+
+    // Use it!
+    let response = agent.chat("What's 5 + 3?").await?;
+    println!("{}", response);
+
+    Ok(())
+}
+```
 
 ## The `quick_tool!` Macro
 
-⭐ **This is the recommended and easiest way to create tools!**
+An alternative approach with inline logic:
 
 ### The Philosophy
 
@@ -595,6 +707,51 @@ Creating tools in Helios Engine is now as simple as:
 3. **Add to agent** - Use `.tool(your_tool)` when building your agent
 
 No boilerplate. No complexity. Just your logic wrapped and ready to use!
+
+## Comparison: Which Should I Use?
+
+### Use `ftool` API when:
+- ✅ You have simple functions with 2-3 parameters
+- ✅ Your functions work with i32 or f64 types
+- ✅ You want the absolute simplest API possible
+- ✅ Your function already exists and you just want to wrap it
+
+```rust
+fn adder(x: i32, y: i32) -> i32 { x + y }
+
+let tool = ToolBuilder::new("add")
+    .description("Add two numbers")
+    .parameters("x:i32, y:i32")
+    .ftool(adder)
+    .build();
+```
+
+### Use `quick_tool!` when:
+- ✅ You need inline logic with conditionals
+- ✅ You want to mix types (String, bool, etc.)
+- ✅ You need more than 3 parameters
+- ✅ You want to format output directly
+
+```rust
+let tool = quick_tool! {
+    name: greet,
+    description: "Greet someone",
+    params: (name: String, formal: bool),
+    execute: |name, formal| {
+        if formal {
+            format!("Good day, {}", name)
+        } else {
+            format!("Hey {}!", name)
+        }
+    }
+};
+```
+
+### Use `ToolBuilder` directly when:
+- ✅ You need async operations
+- ✅ You need complex parameter validation
+- ✅ You need error handling beyond simple defaults
+- ✅ You need full control over the implementation
 
 ## See Also
 

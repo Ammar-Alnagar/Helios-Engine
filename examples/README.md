@@ -418,42 +418,40 @@ let calculator = ToolBuilder::new("multiply")
     .build();
 ```
 
+**✨ THE EASIEST WAY TO CREATE TOOLS!** Use the `ftool` API - just pass your function directly:
+
+```rust
+use helios_engine::ToolBuilder;
+
+// Your normal function
+fn adder(x: i32, y: i32) -> i32 {
+    x + y
+}
+
+// Create a tool by just passing your function!
+let tool = ToolBuilder::new("add")
+    .description("Add two numbers")
+    .parameters("x:i32:First number, y:i32:Second number")
+    .ftool(adder)
+    .build();
+```
+
+This demo shows multiple examples of the ultra-simple `ftool` API that automatically:
+- Extracts parameters from JSON
+- Calls your function with the right types
+- Handles all the boilerplate for you
+
+Available methods:
+- `.ftool(fn)` - For 2 integer (i32) parameters
+- `.ftool_f64(fn)` - For 2 float (f64) parameters
+- `.ftool3_f64(fn)` - For 3 float (f64) parameters
+
 **Run:**
 ```bash
 cargo run --example tool_builder_demo
 ```
 
-See the **Tool Builder** section in **[Tools Guide](../docs/TOOLS.md#creating-custom-tools)** for complete documentation.
-
-### Simplified Tool Builder Demo (`tool_builder_simple_demo.rs`)
-
-**✨ THE EASIEST WAY TO CREATE TOOLS!** Use the `quick_tool!` macro - zero boilerplate:
-
-```rust
-use helios_engine::quick_tool;
-
-// Create a tool in ONE expression!
-let tool = quick_tool! {
-    name: calculate_volume,
-    description: "Calculate the volume of a box",
-    params: (width: f64, height: f64, depth: f64),
-    execute: |width, height, depth| {
-        format!("Volume: {:.2} cubic meters", width * height * depth)
-    }
-};
-```
-
-This demo shows multiple examples of the simple `quick_tool!` macro that automatically:
-- Extracts parameters from JSON
-- Maps Rust types to JSON schema types
-- Handles all the boilerplate for you
-
-**Run:**
-```bash
-cargo run --example tool_builder_simple_demo
-```
-
-See the **[Simplified Tool Builder Guide](../docs/TOOL_BUILDER_SIMPLIFIED.md)** for complete documentation.
+See the **[Tool Creation Guide](../docs/TOOL_CREATION_SIMPLE.md)** for complete documentation.
 
 ### Custom Tool (`custom_tool.rs`)
 

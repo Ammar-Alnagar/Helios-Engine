@@ -403,13 +403,13 @@ impl ToolBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn ftool<R>(self, f: fn(i32, i32) -> R) -> Self
+    pub fn ftool<F, R>(self, f: F) -> Self
     where
+        F: Fn(i32, i32) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args
-                .as_object()
+            let params: Vec<(String, Value)> = args.as_object()
                 .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
                 .unwrap_or_default();
 
@@ -426,13 +426,13 @@ impl ToolBuilder {
     }
 
     /// Ultra-simple API: Pass a 2-parameter f64 function directly.
-    pub fn ftool_f64<R>(self, f: fn(f64, f64) -> R) -> Self
+    pub fn ftool_f64<F, R>(self, f: F) -> Self
     where
+        F: Fn(f64, f64) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args
-                .as_object()
+            let params: Vec<(String, Value)> = args.as_object()
                 .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
                 .unwrap_or_default();
 
@@ -468,13 +468,13 @@ impl ToolBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn ftool3_f64<R>(self, f: fn(f64, f64, f64) -> R) -> Self
+    pub fn ftool3_f64<F, R>(self, f: F) -> Self
     where
+        F: Fn(f64, f64, f64) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args
-                .as_object()
+            let params: Vec<(String, Value)> = args.as_object()
                 .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
                 .unwrap_or_default();
 
