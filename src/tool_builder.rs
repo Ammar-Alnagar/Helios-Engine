@@ -380,6 +380,117 @@ impl ToolBuilder {
         self
     }
 
+    /// Ultra-simple API: Pass a 2-parameter i32 function directly.
+    ///
+    /// This method automatically wraps a simple function with 2 i32 parameters.
+    /// Parameters must have been defined using `.parameters()` method first.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use helios_engine::ToolBuilder;
+    ///
+    /// fn adder(x: i32, y: i32) -> i32 {
+    ///     x + y
+    /// }
+    ///
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let tool = ToolBuilder::new("add")
+    ///     .description("Add two numbers")
+    ///     .parameters("x:i32:First number, y:i32:Second number")
+    ///     .ftool(adder)
+    ///     .build();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn ftool<R>(self, f: fn(i32, i32) -> R) -> Self
+    where
+        R: ToString + Send + 'static,
+    {
+        self.sync_function(move |args| {
+            let params: Vec<(String, Value)> = args
+                .as_object()
+                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+                .unwrap_or_default();
+
+            if params.len() < 2 {
+                return Ok(ToolResult::error("Expected at least 2 parameters"));
+            }
+
+            let p1 = params[0].1.as_i64().unwrap_or(0) as i32;
+            let p2 = params[1].1.as_i64().unwrap_or(0) as i32;
+
+            let result = f(p1, p2);
+            Ok(ToolResult::success(result.to_string()))
+        })
+    }
+
+    /// Ultra-simple API: Pass a 2-parameter f64 function directly.
+    pub fn ftool_f64<R>(self, f: fn(f64, f64) -> R) -> Self
+    where
+        R: ToString + Send + 'static,
+    {
+        self.sync_function(move |args| {
+            let params: Vec<(String, Value)> = args
+                .as_object()
+                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+                .unwrap_or_default();
+
+            if params.len() < 2 {
+                return Ok(ToolResult::error("Expected at least 2 parameters"));
+            }
+
+            let p1 = params[0].1.as_f64().unwrap_or(0.0);
+            let p2 = params[1].1.as_f64().unwrap_or(0.0);
+
+            let result = f(p1, p2);
+            Ok(ToolResult::success(result.to_string()))
+        })
+    }
+
+    /// Ultra-simple API: Pass a 3-parameter f64 function directly.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use helios_engine::ToolBuilder;
+    ///
+    /// fn volume(width: f64, height: f64, depth: f64) -> f64 {
+    ///     width * height * depth
+    /// }
+    ///
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let tool = ToolBuilder::new("calculate_volume")
+    ///     .description("Calculate volume")
+    ///     .parameters("width:f64:Width, height:f64:Height, depth:f64:Depth")
+    ///     .ftool3_f64(volume)
+    ///     .build();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn ftool3_f64<R>(self, f: fn(f64, f64, f64) -> R) -> Self
+    where
+        R: ToString + Send + 'static,
+    {
+        self.sync_function(move |args| {
+            let params: Vec<(String, Value)> = args
+                .as_object()
+                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+                .unwrap_or_default();
+
+            if params.len() < 3 {
+                return Ok(ToolResult::error("Expected at least 3 parameters"));
+            }
+
+            let p1 = params[0].1.as_f64().unwrap_or(0.0);
+            let p2 = params[1].1.as_f64().unwrap_or(0.0);
+            let p3 = params[2].1.as_f64().unwrap_or(0.0);
+
+            let result = f(p1, p2, p3);
+            Ok(ToolResult::success(result.to_string()))
+        })
+    }
+
     /// Builds the tool, consuming the builder and returning a boxed Tool.
     ///
     /// # Panics
