@@ -82,11 +82,7 @@ async fn main() -> helios_engine::Result<()> {
         .required_parameter("city", "string", "The name of the city")
         .function(|args: Value| async move {
             let city = args.get("city").and_then(|v| v.as_str()).ok_or_else(|| {
-            let city = args.get("city").and_then(|v| v.as_str()).ok_or_else(|| {
-                helios_engine::HeliosError::ToolError(
-                    "Missing or invalid 'city' parameter".to_string(),
-                )
-            })?;
+                helios_engine::HeliosError::ToolError("Missing 'city' parameter".to_string())
             })?;
 
             // Call our async function
