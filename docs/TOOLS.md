@@ -317,32 +317,289 @@ agent.tool(Box::new(rag_tool));
 
 The **ToolBuilder** provides a simplified way to create custom tools without implementing the Tool trait manually. This is the recommended approach for most use cases.
 
+#### Why Use ToolBuilder?
+
+**Before (Manual Implementation):**
+```rust
+use async_trait::async_trait;
+use helios_engine::{Tool, ToolParameter, ToolResult};
+use serde_json::Value;
+use std::collections::HashMap;
+
+struct MyTool;
+
+#[async_trait]
+impl Tool for MyTool {
+    fn name(&self) -> &str {
+        "my_tool"
+    }
+
+    fn description(&self) -> &str {
+        "Does something useful"
+    }
+
+    fn parameters(&self) -> HashMap<String, ToolParameter> {
+        let mut params = HashMap::new();
+        params.insert(
+            "input".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "The input value".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&self, args: Value) -> helios_engine::Result<ToolResult> {
+        let input = args
+            .get("input")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| helios_engine::HeliosError::ToolError(
+                "Missing input parameter".to_string()
+            ))?;
+        
+        Ok(ToolResult::success(format!("Processed: {}", input)))
+    }
+}
+```
+
+**After (Using ToolBuilder):**
 ```rust
 use helios_engine::{ToolBuilder, ToolResult};
 use serde_json::Value;
 
-// Create a tool in just a few lines!
-let my_tool = ToolBuilder::new("calculate_discount")
-    .description("Calculate a discounted price")
+let tool = ToolBuilder::new("my_tool")
+    .description("Does something useful")
+    .required_parameter("input", "string", "The input value")
+    .sync_function(|args: Value| {
+        let input = args.get("input").and_then(|v| v.as_str())
+            .ok_or_else(|| helios_engine::HeliosError::ToolError(
+                "Missing input parameter".to_string()
+            ))?;
+        
+        Ok(ToolResult::success(format!("Processed: {}", input)))
+    })
+    .build();
+```
+
+#### Quick Start
+
+```rust
+use helios_engine::{Agent, Config, ToolBuilder, ToolResult};
+use serde_json::Value;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+    
+    // Create a tool in just a few lines!
+    let calculator = ToolBuilder::new("multiply")
+        .description("Multiply two numbers")
+        .required_parameter("x", "number", "First number")
+        .required_parameter("y", "number", "Second number")
+        .sync_function(|args: Value| {
+            let x = args.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let y = args.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            Ok(ToolResult::success((x * y).to_string()))
+        })
+        .build();
+    
+    // Use it with an agent
+    let mut agent = Agent::builder("MathAgent")
+        .config(config)
+        .tool(calculator)
+        .build()
+        .await?;
+    
+    let response = agent.chat("What is 7 times 8?").await?;
+    println!("Agent: {}", response);
+    
+    Ok(())
+}
+```
+
+#### ToolBuilder API Reference
+
+**Builder Methods:**
+
+- `new(name)` - Create a new ToolBuilder with the given name
+- `description(desc)` - Set the tool description
+- `parameter(name, type, desc, required)` - Add a parameter
+- `required_parameter(name, type, desc)` - Add a required parameter
+- `optional_parameter(name, type, desc)` - Add an optional parameter
+- `function(async_fn)` - Set an async function to execute
+- `sync_function(sync_fn)` - Set a synchronous function to execute
+- `build()` - Build the tool (panics if function not set)
+- `try_build()` - Build the tool (returns Result)
+
+**Parameter Types:**
+- `"string"` - Text values
+- `"number"` - Numeric values (integers or floats)
+- `"boolean"` - True/false values
+- `"object"` - JSON objects
+- `"array"` - JSON arrays
+
+#### ToolBuilder Patterns
+
+**Wrapping Existing Functions:**
+
+```rust
+// Your existing function
+fn calculate_discount(price: f64, discount_percent: f64) -> f64 {
+    price * (1.0 - discount_percent / 100.0)
+}
+
+// Wrap it as a tool
+let discount_tool = ToolBuilder::new("calculate_discount")
+    .description("Calculate discounted price")
     .required_parameter("price", "number", "Original price")
     .required_parameter("discount_percent", "number", "Discount percentage")
     .sync_function(|args: Value| {
         let price = args.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let discount = args.get("discount_percent").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let final_price = price * (1.0 - discount / 100.0);
-        Ok(ToolResult::success(format!("${:.2}", final_price)))
+        
+        let result = calculate_discount(price, discount);
+        Ok(ToolResult::success(format!("${:.2}", result)))
     })
     .build();
-
-// Use it with an agent
-let mut agent = Agent::builder("ShoppingAgent")
-    .config(config)
-    .tool(my_tool)
-    .build()
-    .await?;
 ```
 
-**See the complete [Tool Builder Guide](TOOL_BUILDER.md) for detailed documentation and examples.**
+**Async Operations:**
+
+```rust
+async fn fetch_data(id: &str) -> Result<String, String> {
+    // Async operation
+    Ok(format!("Data for {}", id))
+}
+
+let tool = ToolBuilder::new("fetch")
+    .description("Fetch data by ID")
+    .required_parameter("id", "string", "Resource ID")
+    .function(|args: Value| async move {
+        let id = args.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        match fetch_data(id).await {
+            Ok(data) => Ok(ToolResult::success(data)),
+            Err(e) => Ok(ToolResult::error(e)),
+        }
+    })
+    .build();
+```
+
+**Optional Parameters:**
+
+```rust
+let tool = ToolBuilder::new("greet")
+    .description("Greet someone")
+    .required_parameter("name", "string", "Name of person")
+    .optional_parameter("title", "string", "Optional title")
+    .sync_function(|args: Value| {
+        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("stranger");
+        let title = args.get("title").and_then(|v| v.as_str());
+        
+        let greeting = if let Some(t) = title {
+            format!("Hello, {} {}!", t, name)
+        } else {
+            format!("Hello, {}!", name)
+        };
+        
+        Ok(ToolResult::success(greeting))
+    })
+    .build();
+```
+
+**Capturing External State:**
+
+```rust
+let api_key = "secret_key".to_string();
+let multiplier = 10;
+
+let tool = ToolBuilder::new("api_multiply")
+    .description("Multiply a number and use captured state")
+    .required_parameter("value", "number", "Value to multiply")
+    .function(move |args: Value| {
+        let key = api_key.clone();
+        let mult = multiplier;
+        
+        async move {
+            let value = args.get("value").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let result = value * mult as f64;
+            // Use key in API call...
+            Ok(ToolResult::success(result.to_string()))
+        }
+    })
+    .build();
+```
+
+**Error Handling:**
+
+```rust
+let validator_tool = ToolBuilder::new("validate_email")
+    .description("Validate an email address")
+    .required_parameter("email", "string", "Email to validate")
+    .sync_function(|args: Value| {
+        let email = args.get("email")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| helios_engine::HeliosError::ToolError(
+                "Missing email parameter".to_string()
+            ))?;
+        
+        if email.contains('@') && email.contains('.') {
+            Ok(ToolResult::success(format!("{} is valid", email)))
+        } else {
+            Ok(ToolResult::error(format!("{} is not a valid email", email)))
+        }
+    })
+    .build();
+```
+
+**Complex JSON Parameters:**
+
+```rust
+let tool = ToolBuilder::new("process_order")
+    .description("Process a customer order")
+    .required_parameter("order", "object", "Order details")
+    .sync_function(|args: Value| {
+        let order = args.get("order").ok_or_else(|| {
+            helios_engine::HeliosError::ToolError("Missing order".to_string())
+        })?;
+        
+        let customer = order.get("customer").and_then(|v| v.as_str());
+        let total = order.get("total").and_then(|v| v.as_f64());
+        
+        Ok(ToolResult::success(format!(
+            "Order for {} - ${:.2}",
+            customer.unwrap_or("unknown"),
+            total.unwrap_or(0.0)
+        )))
+    })
+    .build();
+```
+
+#### ToolBuilder Best Practices
+
+1. **Clear Descriptions**: Write clear descriptions for tools and parameters to help the LLM choose the right tool
+2. **Parameter Validation**: Always validate required parameters and provide helpful error messages
+3. **Type Safety**: Use appropriate parameter types (`string`, `number`, `boolean`, etc.)
+4. **Error Handling**: Handle errors gracefully using `Result` and `ToolResult`
+5. **Async When Needed**: Use `function()` for async operations (API calls, I/O), `sync_function()` for simple computations
+
+#### Complete Example
+
+See `examples/tool_builder_demo.rs` for a comprehensive example demonstrating:
+- Wrapping existing functions
+- Async operations
+- Optional parameters
+- Closure capture
+- Multiple tools in one agent
+
+---
+
+### Advanced Way: Implementing the Tool Trait
+
+For advanced use cases or when you need more control, you can implement the `Tool` trait directly. Tools must be thread-safe and handle errors gracefully.
+
+#### Basic Tool Structure
 
 ### Advanced Way: Implementing the Tool Trait
 

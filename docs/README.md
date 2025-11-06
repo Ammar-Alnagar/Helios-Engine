@@ -26,8 +26,7 @@ The documentation is organized to support different user needs and experience le
 |------|-------------|----------|
 | **[USAGE.md](USAGE.md)** | CLI usage patterns, examples, and common workflows | Intermediate users |
 | **[CONFIGURATION.md](CONFIGURATION.md)** | Complete configuration guide with all providers and local inference | Intermediate users |
-| **[TOOLS.md](TOOLS.md)** | Built-in tools documentation and custom tool creation | Intermediate users |
-| **[TOOL_BUILDER.md](TOOL_BUILDER.md)** | 🆕 Simplified tool creation with the builder pattern | Intermediate users |
+| **[TOOLS.md](TOOLS.md)** | Built-in tools, custom tool creation, and Tool Builder | Intermediate users |
 
 ### 📖 Reference Documentation
 
@@ -110,8 +109,7 @@ The documentation is organized to support different user needs and experience le
 - [USAGE.md](USAGE.md) - Configuration examples
 
 **Tools:**
-- [TOOLS.md](TOOLS.md) - Built-in tools and custom creation
-- [TOOL_BUILDER.md](TOOL_BUILDER.md) - 🆕 Simplified tool creation with builder pattern
+- [TOOLS.md](TOOLS.md) - Built-in tools, custom creation, and Tool Builder
 - [USAGE.md](USAGE.md) - Tool usage examples
 - [API.md](API.md) - Tool API reference
 
@@ -138,8 +136,7 @@ The documentation is organized to support different user needs and experience le
 - [API.md](API.md) - Agent API reference
 
 **Using Tools:**
-- [TOOLS.md](TOOLS.md) - Tool documentation
-- [TOOL_BUILDER.md](TOOL_BUILDER.md) - 🆕 Simplified tool creation
+- [TOOLS.md](TOOLS.md) - Tool documentation and Tool Builder guide
 - [USAGE.md](USAGE.md) - Tool usage examples
 - [TUTORIAL.md](TUTORIAL.md) - Tool integration
 

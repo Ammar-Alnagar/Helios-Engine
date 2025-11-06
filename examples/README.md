@@ -423,7 +423,7 @@ let calculator = ToolBuilder::new("multiply")
 cargo run --example tool_builder_demo
 ```
 
-See **[Tool Builder Guide](../docs/TOOL_BUILDER.md)** for complete documentation.
+See the **Tool Builder** section in **[Tools Guide](../docs/TOOLS.md#creating-custom-tools)** for complete documentation.
 
 ### Custom Tool (`custom_tool.rs`)
 

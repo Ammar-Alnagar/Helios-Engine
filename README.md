@@ -35,8 +35,7 @@
 - **[🛠️ Installation](docs/INSTALLATION.md)** - Complete installation instructions and feature flags
 - **[💻 CLI Usage](docs/USAGE.md)** - Command-line interface and common usage patterns
 - **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
-- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools
-- **[🔨 Tool Builder](docs/TOOL_BUILDER.md)** - Simplified tool creation with the builder pattern
+- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools (includes Tool Builder)
 - **[🆕 Advanced Features](docs/ADVANCED.md)** - RAG, Forest of Agents, and advanced capabilities
 - **[📋 API Reference](docs/API.md)** - Complete API documentation
 - **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design principles
