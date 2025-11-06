@@ -63,20 +63,11 @@ async fn main() -> helios_engine::Result<()> {
         .ftool3_f64(calculate_volume)
         .build();
 
-    // Example 5: BMI calculator with float parameters
+    // Example 5: BMI calculator - can also use inline logic with closures
     let bmi_tool = ToolBuilder::new("calculate_bmi")
         .description("Calculate Body Mass Index")
         .parameters("weight_kg:f64:Weight in kilograms, height_m:f64:Height in meters")
-        .ftool_f64(|weight, height| {
-            let bmi = calculate_bmi(weight, height);
-            let category = match bmi {
-                b if b < 18.5 => format!("{:.1} (Underweight)", b),
-                b if b < 25.0 => format!("{:.1} (Normal weight)", b),
-                b if b < 30.0 => format!("{:.1} (Overweight)", b),
-                b => format!("{:.1} (Obese)", b),
-            };
-            category
-        })
+        .ftool_f64(calculate_bmi)
         .build();
 
     // Create an agent with all the tools

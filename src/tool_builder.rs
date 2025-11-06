@@ -45,6 +45,7 @@ pub struct ToolBuilder {
     name: String,
     description: String,
     parameters: HashMap<String, ToolParameter>,
+    parameter_order: Vec<String>,
     function: Option<ToolFunction>,
 }
 
@@ -59,6 +60,7 @@ impl ToolBuilder {
             name: name.into(),
             description: String::new(),
             parameters: HashMap::new(),
+            parameter_order: Vec::new(),
             function: None,
         }
     }
@@ -332,14 +334,16 @@ impl ToolBuilder {
                 _ => param_type, // Use as-is if not recognized
             };
 
+            let name_string = name.to_string();
             self.parameters.insert(
-                name.to_string(),
+                name_string.clone(),
                 ToolParameter {
                     param_type: json_type.to_string(),
                     description: description.to_string(),
                     required: Some(true),
                 },
             );
+            self.parameter_order.push(name_string);
         }
 
         self
@@ -408,17 +412,25 @@ impl ToolBuilder {
         F: Fn(i32, i32) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
+        let param_order = self.parameter_order.clone();
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args.as_object()
-                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-                .unwrap_or_default();
+            let obj = args.as_object().ok_or_else(|| {
+                HeliosError::ToolError("Expected JSON object for arguments".to_string())
+            })?;
 
-            if params.len() < 2 {
+            if param_order.len() < 2 {
                 return Ok(ToolResult::error("Expected at least 2 parameters"));
             }
 
-            let p1 = params[0].1.as_i64().unwrap_or(0) as i32;
-            let p2 = params[1].1.as_i64().unwrap_or(0) as i32;
+            // Extract values in the order parameters were defined
+            let p1 = obj
+                .get(&param_order[0])
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32;
+            let p2 = obj
+                .get(&param_order[1])
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32;
 
             let result = f(p1, p2);
             Ok(ToolResult::success(result.to_string()))
@@ -431,17 +443,25 @@ impl ToolBuilder {
         F: Fn(f64, f64) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
+        let param_order = self.parameter_order.clone();
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args.as_object()
-                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-                .unwrap_or_default();
+            let obj = args.as_object().ok_or_else(|| {
+                HeliosError::ToolError("Expected JSON object for arguments".to_string())
+            })?;
 
-            if params.len() < 2 {
+            if param_order.len() < 2 {
                 return Ok(ToolResult::error("Expected at least 2 parameters"));
             }
 
-            let p1 = params[0].1.as_f64().unwrap_or(0.0);
-            let p2 = params[1].1.as_f64().unwrap_or(0.0);
+            // Extract values in the order parameters were defined
+            let p1 = obj
+                .get(&param_order[0])
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let p2 = obj
+                .get(&param_order[1])
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
 
             let result = f(p1, p2);
             Ok(ToolResult::success(result.to_string()))
@@ -473,18 +493,29 @@ impl ToolBuilder {
         F: Fn(f64, f64, f64) -> R + Send + Sync + 'static,
         R: ToString + Send + 'static,
     {
+        let param_order = self.parameter_order.clone();
         self.sync_function(move |args| {
-            let params: Vec<(String, Value)> = args.as_object()
-                .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-                .unwrap_or_default();
+            let obj = args.as_object().ok_or_else(|| {
+                HeliosError::ToolError("Expected JSON object for arguments".to_string())
+            })?;
 
-            if params.len() < 3 {
+            if param_order.len() < 3 {
                 return Ok(ToolResult::error("Expected at least 3 parameters"));
             }
 
-            let p1 = params[0].1.as_f64().unwrap_or(0.0);
-            let p2 = params[1].1.as_f64().unwrap_or(0.0);
-            let p3 = params[2].1.as_f64().unwrap_or(0.0);
+            // Extract values in the order parameters were defined
+            let p1 = obj
+                .get(&param_order[0])
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let p2 = obj
+                .get(&param_order[1])
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let p3 = obj
+                .get(&param_order[2])
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
 
             let result = f(p1, p2, p3);
             Ok(ToolResult::success(result.to_string()))
