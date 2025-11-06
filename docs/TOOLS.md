@@ -313,9 +313,42 @@ agent.tool(Box::new(rag_tool));
 
 ## Creating Custom Tools
 
-Implement the `Tool` trait to create custom tools. Tools must be thread-safe and handle errors gracefully.
+### 🆕 Easy Way: Using ToolBuilder (Recommended)
 
-### Basic Tool Structure
+The **ToolBuilder** provides a simplified way to create custom tools without implementing the Tool trait manually. This is the recommended approach for most use cases.
+
+```rust
+use helios_engine::{ToolBuilder, ToolResult};
+use serde_json::Value;
+
+// Create a tool in just a few lines!
+let my_tool = ToolBuilder::new("calculate_discount")
+    .description("Calculate a discounted price")
+    .required_parameter("price", "number", "Original price")
+    .required_parameter("discount_percent", "number", "Discount percentage")
+    .sync_function(|args: Value| {
+        let price = args.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let discount = args.get("discount_percent").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let final_price = price * (1.0 - discount / 100.0);
+        Ok(ToolResult::success(format!("${:.2}", final_price)))
+    })
+    .build();
+
+// Use it with an agent
+let mut agent = Agent::builder("ShoppingAgent")
+    .config(config)
+    .tool(my_tool)
+    .build()
+    .await?;
+```
+
+**See the complete [Tool Builder Guide](TOOL_BUILDER.md) for detailed documentation and examples.**
+
+### Advanced Way: Implementing the Tool Trait
+
+For advanced use cases or when you need more control, you can implement the `Tool` trait directly. Tools must be thread-safe and handle errors gracefully.
+
+#### Basic Tool Structure
 
 ```rust
 use async_trait::async_trait;
