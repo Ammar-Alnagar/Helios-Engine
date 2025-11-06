@@ -1,23 +1,109 @@
 # Simplified Tool Builder API
 
-The Tool Builder has been enhanced with new methods that make creating tools much simpler and more intuitive. Instead of defining parameters one by one, you can now define them all at once, and derive tools directly from your existing functions.
+The Tool Builder has been enhanced with the `quick_tool!` macro and simplified methods that make creating tools incredibly easy. No more boilerplate, no more manual parameter extraction - just define what you want!
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [New Features](#new-features)
-3. [Quick Examples](#quick-examples)
-4. [Detailed Usage](#detailed-usage)
-5. [Migration Guide](#migration-guide)
+2. [The `quick_tool!` Macro](#the-quick_tool-macro) ⭐ **Recommended**
+3. [Alternative Methods](#alternative-methods)
+4. [Quick Examples](#quick-examples)
+5. [Detailed Usage](#detailed-usage)
+6. [Migration Guide](#migration-guide)
 
 ## Overview
 
-The new simplified API provides two main improvements:
+The new simplified API provides three levels of simplicity:
 
-1. **Bulk Parameter Definition**: Define all parameters in a single string instead of multiple method calls
-2. **Function Derivation**: Automatically derive tool metadata from function names
+1. **`quick_tool!` Macro** ⭐ **EASIEST** - Zero boilerplate, automatic parameter extraction
+2. **`parameters()` Method** - Define all parameters in a single string
+3. **`from_fn()` Method** - Derive tool from function name with parameters string
 
-## New Features
+## The `quick_tool!` Macro
+
+⭐ **This is the recommended and easiest way to create tools!**
+
+The `quick_tool!` macro does everything for you:
+- Automatically extracts parameters from JSON
+- Maps Rust types to JSON schema types  
+- Handles all boilerplate code
+- One simple expression to create a complete tool
+
+### Basic Usage
+
+```rust
+use helios_engine::quick_tool;
+
+let tool = quick_tool! {
+    name: calculate_area,
+    description: "Calculate the area of a rectangle",
+    params: (length: f64, width: f64),
+    execute: |length, width| {
+        format!("Area: {} square units", length * width)
+    }
+};
+```
+
+That's it! The tool is ready to use with your agent.
+
+### Supported Types
+
+- **Integers**: `i32`, `i64`, `u32`, `u64`
+- **Floats**: `f32`, `f64`
+- **Booleans**: `bool`
+- **Strings**: `String`
+
+The macro automatically handles:
+- Type conversion from JSON
+- Default values (0 for numbers, false for bools, empty string for strings)
+- Error-free parameter extraction
+
+### More Examples
+
+**BMI Calculator:**
+```rust
+let bmi_tool = quick_tool! {
+    name: calculate_bmi,
+    description: "Calculate Body Mass Index",
+    params: (weight_kg: f64, height_m: f64),
+    execute: |weight, height| {
+        let bmi = weight / (height * height);
+        format!("BMI: {:.1}", bmi)
+    }
+};
+```
+
+**Greeting with Boolean:**
+```rust
+let greet_tool = quick_tool! {
+    name: greet_user,
+    description: "Greet a user",
+    params: (name: String, formal: bool),
+    execute: |name, formal| {
+        if formal {
+            format!("Good day, {}.", name)
+        } else {
+            format!("Hey {}!", name)
+        }
+    }
+};
+```
+
+**Power Calculation:**
+```rust
+let power_tool = quick_tool! {
+    name: calculate_power,
+    description: "Calculate base raised to exponent",
+    params: (base: f64, exponent: i32),
+    execute: |base, exp| {
+        format!("{} ^ {} = {:.2}", base, exp, base.powi(exp))
+    }
+};
+```
+
+## Alternative Methods
+
+If you prefer more control or need async functions, you can use these methods:
 
 ### 1. `parameters()` Method
 

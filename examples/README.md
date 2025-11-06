@@ -427,26 +427,26 @@ See the **Tool Builder** section in **[Tools Guide](../docs/TOOLS.md#creating-cu
 
 ### Simplified Tool Builder Demo (`tool_builder_simple_demo.rs`)
 
-**✨ NEW SIMPLIFIED API!** The easiest way to create tools - define all parameters at once:
+**✨ THE EASIEST WAY TO CREATE TOOLS!** Use the `quick_tool!` macro - zero boilerplate:
 
 ```rust
-use helios_engine::{ToolBuilder, ToolResult};
+use helios_engine::quick_tool;
 
-// Define all parameters in one line!
-let tool = ToolBuilder::from_fn(
-    "calculate_volume",
-    "Calculate the volume of a box",
-    "width:f64:The width, height:f64:The height, depth:f64:The depth",
-    |args| {
-        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let height = args.get("height").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let depth = args.get("depth").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        Ok(ToolResult::success(format!("Volume: {}", width * height * depth)))
+// Create a tool in ONE expression!
+let tool = quick_tool! {
+    name: calculate_volume,
+    description: "Calculate the volume of a box",
+    params: (width: f64, height: f64, depth: f64),
+    execute: |width, height, depth| {
+        format!("Volume: {:.2} cubic meters", width * height * depth)
     }
-).build();
+};
 ```
 
-This demo compares the old verbose way vs. the new simplified API.
+This demo shows multiple examples of the simple `quick_tool!` macro that automatically:
+- Extracts parameters from JSON
+- Maps Rust types to JSON schema types
+- Handles all the boilerplate for you
 
 **Run:**
 ```bash

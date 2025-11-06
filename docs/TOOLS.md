@@ -317,9 +317,9 @@ agent.tool(Box::new(rag_tool));
 
 The **ToolBuilder** provides a simplified way to create custom tools without implementing the Tool trait manually. This is the recommended approach for most use cases.
 
-> **✨ NEW: Simplified API Available!**  
-> We've added an even easier way to create tools with the new `parameters()` method and `from_fn()` functions.  
-> See the [Simplified Tool Builder Guide](TOOL_BUILDER_SIMPLIFIED.md) for details or jump to the [Quick Start](#simplified-api-quick-start) below.
+> **✨ NEW: `quick_tool!` Macro - The EASIEST Way!**  
+> We've added the `quick_tool!` macro that makes tool creation incredibly simple with ZERO boilerplate.  
+> See the [Quick Start](#quick-start-quick_tool-macro) below or the full [Simplified Tool Builder Guide](TOOL_BUILDER_SIMPLIFIED.md).
 
 #### Why Use ToolBuilder?
 
@@ -444,43 +444,58 @@ async fn main() -> helios_engine::Result<()> {
 - `"object"` - JSON objects
 - `"array"` - JSON arrays
 
-#### Simplified API Quick Start
+#### Quick Start: `quick_tool!` Macro
 
-**New in this version!** You can now define all parameters at once and derive tools directly from functions:
+⭐ **This is the EASIEST way to create tools!** Zero boilerplate, automatic parameter extraction:
 
 ```rust
-use helios_engine::{ToolBuilder, ToolResult};
+use helios_engine::quick_tool;
 
-// Define all parameters in one line instead of multiple method calls
-let tool = ToolBuilder::new("calculate_volume")
-    .description("Calculate the volume of a box")
-    .parameters("width:f64:The width, height:f64:The height, depth:f64:The depth")
-    .sync_function(|args| {
-        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let height = args.get("height").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let depth = args.get("depth").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        Ok(ToolResult::success(format!("Volume: {}", width * height * depth)))
-    })
-    .build();
-
-// Or even simpler with from_fn - everything in one place!
-let tool = ToolBuilder::from_fn(
-    "calculate_area",
-    "Calculate the area of a rectangle",
-    "length:f64:The length, width:f64:The width",
-    |args| {
-        let length = args.get("length").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let width = args.get("width").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        Ok(ToolResult::success(format!("Area: {}", length * width)))
+// Create a tool in ONE expression!
+let volume_tool = quick_tool! {
+    name: calculate_volume,
+    description: "Calculate the volume of a box",
+    params: (width: f64, height: f64, depth: f64),
+    execute: |width, height, depth| {
+        format!("Volume: {:.2} cubic meters", width * height * depth)
     }
-).build();
+};
+
+// Another example - BMI calculator
+let bmi_tool = quick_tool! {
+    name: calculate_bmi,
+    description: "Calculate Body Mass Index",
+    params: (weight_kg: f64, height_m: f64),
+    execute: |weight, height| {
+        let bmi = weight / (height * height);
+        format!("BMI: {:.1}", bmi)
+    }
+};
+
+// Works with different types too!
+let greet_tool = quick_tool! {
+    name: greet_user,
+    description: "Greet a user",
+    params: (name: String, formal: bool),
+    execute: |name, formal| {
+        if formal {
+            format!("Good day, {}.", name)
+        } else {
+            format!("Hey {}!", name)
+        }
+    }
+};
 ```
 
-**Format**: `"param_name:type:description, param2:type2:description2, ..."`
+**Supported types**: `i32`, `i64`, `u32`, `u64`, `f32`, `f64`, `bool`, `String`
 
-**Supported types**: `i32`, `i64`, `f32`, `f64`, `string`, `bool`, `object`, `array`, etc.
+**What it does automatically:**
+- Extracts parameters from JSON
+- Handles type conversion
+- Provides sensible defaults
+- Zero manual parameter handling!
 
-For complete documentation, see [TOOL_BUILDER_SIMPLIFIED.md](TOOL_BUILDER_SIMPLIFIED.md).
+For complete documentation and alternative methods, see [TOOL_BUILDER_SIMPLIFIED.md](TOOL_BUILDER_SIMPLIFIED.md).
 
 #### ToolBuilder Patterns
 

@@ -88,6 +88,9 @@ pub mod tools;
 /// Simplified tool creation with the builder pattern.
 pub mod tool_builder;
 
+/// Macros for ultra-simple tool creation.
+pub mod tool_macro;
+
 /// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
 pub mod serve;
 
