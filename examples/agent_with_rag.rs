@@ -118,7 +118,7 @@ async fn main() -> helios_engine::Result<()> {
         .chat(
             "Store this with metadata: \
              The Helios Engine is a Rust framework for building LLM agents. \
-             Metadata: category=framework, language=rust, year=2024",
+             Metadata: category=framework, language=rust, year=2025",
         )
         .await?;
     println!("Agent: {}\n", response);
