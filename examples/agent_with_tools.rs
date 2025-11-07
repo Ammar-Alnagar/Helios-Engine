@@ -11,11 +11,11 @@ async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     // Create an agent named "ToolAgent" and equip it with the `CalculatorTool` and `EchoTool`.
+    // Using the improved syntax to add multiple tools at once!
     let mut agent = Agent::builder("ToolAgent")
         .config(config)
         .system_prompt("You are a helpful assistant with access to tools. Use them when needed.")
-        .tool(Box::new(CalculatorTool))
-        .tool(Box::new(EchoTool))
+        .tools(vec![Box::new(CalculatorTool), Box::new(EchoTool)])
         .max_iterations(5)
         .build()
         .await?;

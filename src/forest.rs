@@ -1345,6 +1345,30 @@ impl ForestBuilder {
         self
     }
 
+    /// Adds multiple agents to the forest at once.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::{Agent, Config, ForestBuilder};
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// # let config = Config::new_default();
+    /// let forest = ForestBuilder::new()
+    ///     .config(config)
+    ///     .agents(vec![
+    ///         ("worker1".to_string(), Agent::builder("worker1")),
+    ///         ("worker2".to_string(), Agent::builder("worker2")),
+    ///     ])
+    ///     .build()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn agents(mut self, agents: Vec<(AgentId, AgentBuilder)>) -> Self {
+        self.agents.extend(agents);
+        self
+    }
+
     /// Sets the maximum iterations for agent interactions.
     pub fn max_iterations(mut self, max: usize) -> Self {
         self.max_iterations = max;

@@ -650,8 +650,33 @@ impl AgentBuilder {
         self
     }
 
+    /// Adds a single tool to the agent.
     pub fn tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
         self.tools.push(tool);
+        self
+    }
+
+    /// Adds multiple tools to the agent at once.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// # let config = Config::new_default();
+    /// let agent = Agent::builder("MyAgent")
+    ///     .config(config)
+    ///     .tools(vec![
+    ///         Box::new(CalculatorTool),
+    ///         Box::new(EchoTool),
+    ///     ])
+    ///     .build()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
+        self.tools.extend(tools);
         self
     }
 
