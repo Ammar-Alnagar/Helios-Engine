@@ -166,7 +166,7 @@ Helios Engine includes several built-in tools:
 ### Creating Custom Tools
 
 ```rust
-use helios_engine::{Tool, tool_builder};
+use helios_engine::Tool;
 use async_trait::async_trait;
 use serde_json::Value;
 
