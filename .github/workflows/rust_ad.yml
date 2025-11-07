@@ -1,0 +1,43 @@
+name: Rust Advanced Analysis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: "0 0 * * 1" # Weekly on Mondays
+  workflow_dispatch:
+
+jobs:
+  advanced-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install analysis tools
+        run: |
+          cargo install --force cargo-geiger cargo-udeps cargo-deny
+
+      - name: Run cargo geiger (unsafe code detection)
+        run: cargo geiger --no-fetch
+        continue-on-error: true # Don't fail the build, just report
+
+      - name: Run cargo udeps (unused dependencies)
+        run: cargo udeps --all-targets
+        continue-on-error: true # Don't fail the build, just report
+
+      - name: Run cargo deny (dependency policy checks)
+        run: |
+          cargo deny --version
+          cargo deny check advisories
+          cargo deny check licenses --disable-fetch
+          cargo deny check bans
+        continue-on-error: true # Don't fail the build, just report

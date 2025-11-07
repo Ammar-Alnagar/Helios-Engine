@@ -1,0 +1,66 @@
+name: Code Metrics Analysis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install code analysis tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cloc
+          cargo install --force tokei
+
+      - name: Count lines of code with cloc
+        run: |
+          echo "::group::cloc analysis"
+          cloc .
+          echo "::endgroup::"
+
+      - name: Count lines of code with tokei
+        run: |
+          echo "::group::tokei analysis"
+          tokei
+          echo "::endgroup::"
+
+      - name: Count Rust files
+        run: |
+          echo "::group::Rust file count"
+          find . -name "*.rs" | wc -l
+          echo "::endgroup::"
+
+      - name: Generate code statistics report
+        run: |
+          echo "::group::Detailed statistics"
+          echo "=== CODE STATISTICS REPORT ==="
+          echo ""
+
+          echo "Total Rust files:"
+          find src/ -name "*.rs" 2>/dev/null | wc -l
+
+          echo ""
+          echo "Total lines in Rust files:"
+          find src/ -name "*.rs" -exec cat {} \; 2>/dev/null | wc -l
+
+          echo ""
+          echo "Total test files:"
+          find src/ -name "*_test.rs" -o -name "tests.rs" 2>/dev/null | wc -l
+
+          echo ""
+          echo "Total test lines:"
+          find src/ -name "*_test.rs" -o -name "tests.rs" -exec cat {} \; 2>/dev/null | wc -l
+
+          echo ""
+          echo "Documentation files:"
+          find . -name "*.md" | wc -l
+
+          echo "::endgroup::"

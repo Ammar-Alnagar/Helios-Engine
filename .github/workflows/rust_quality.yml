@@ -1,0 +1,49 @@
+name: Code Quality Analysis
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check for unsafe code
+        run: |
+          echo "::group::Unsafe code analysis"
+          cargo install --force cargo-geiger
+          cargo geiger
+          echo "::endgroup::"
+
+      - name: Check code complexity
+        run: |
+          echo "::group::Code complexity analysis"
+          cargo install --force cargo-count
+          cargo count --all --separator=","
+          echo "::endgroup::"
+
+      - name: Check documentation coverage
+        run: |
+          echo "::group::Documentation coverage"
+          cargo doc --no-deps --document-private-items --workspace --all-features
+          echo "Documentation generated successfully"
+          echo "::endgroup::"
+
+      - name: Check dead code
+        run: |
+          echo "::group::Dead code analysis"
+          cargo install --force cargo-deadlinks
+          cargo deadlinks --check-http-status
+          echo "::endgroup::"

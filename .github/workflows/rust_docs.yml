@@ -1,0 +1,29 @@
+name: Rust Documentation
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate documentation
+        run: cargo doc --no-deps --document-private-items
+
+      - name: Check documentation warnings
+        run: cargo doc --no-deps --document-private-items --workspace --all-features
+        env:
+          RUSTDOCFLAGS: -Dwarnings
