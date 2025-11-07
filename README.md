@@ -31,16 +31,22 @@
 
 ## 📚 Documentation
 
-- **[📖 Getting Started](docs/QUICKSTART.md)** - 5-minute setup guide to get Helios running
-- **[🛠️ Installation](docs/INSTALLATION.md)** - Complete installation instructions and feature flags
-- **[💻 CLI Usage](docs/USAGE.md)** - Command-line interface and common usage patterns
-- **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
-- **[🔧 Tools](docs/TOOLS.md)** - Built-in tools and creating custom tools (includes Tool Builder)
-- **[🆕 Advanced Features](docs/ADVANCED.md)** - RAG, Forest of Agents, and advanced capabilities
-- **[📋 API Reference](docs/API.md)** - Complete API documentation
-- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design principles
+### 🎯 Start Here
+- **[📖 Getting Started](docs/GETTING_STARTED.md)** - Comprehensive guide: installation, configuration, first agent, tools, and CLI
 
-📚 **[Full Documentation Index](docs/README.md)** - Complete guide to all available documentation
+### 🔧 Core Features
+- **[🛠️ Tools Guide](docs/TOOLS.md)** - Built-in tools, custom tool creation, and Tool Builder (new `.tools()` syntax!)
+- **[🌲 Forest of Agents](docs/FOREST.md)** - Multi-agent systems, coordination, and communication (new `.agents()` syntax!)
+- **[🔍 RAG System](docs/RAG.md)** - Retrieval-Augmented Generation with vector stores
+
+### 📖 Reference
+- **[📋 API Reference](docs/API.md)** - Complete API documentation
+- **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
+- **[✨ Features](docs/FEATURES.md)** - Complete feature overview
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)** - System architecture and design
+- **[📦 Using as Crate](docs/USING_AS_CRATE.md)** - Library usage guide
+
+📚 **[Full Documentation Index](docs/README.md)** - Complete navigation and updated structure
 
 ## 🏃‍♂️ Quick Start
 
@@ -73,7 +79,7 @@ helios-engine = "0.4.1"
 tokio = { version = "1.35", features = ["full"] }
 ```
 
-See **[📖 Quick Start Guide](docs/QUICKSTART.md)** for detailed examples!
+See **[📖 Getting Started Guide](docs/GETTING_STARTED.md)** for detailed examples and comprehensive tutorial!
 
 ## 📁 Project Structure
 

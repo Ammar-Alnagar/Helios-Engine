@@ -1,189 +1,155 @@
-# Helios Documentation
+# Helios Engine Documentation
 
-This directory contains comprehensive documentation for the Helios Engine framework. Whether you're getting started, building advanced applications, or contributing to the project, you'll find detailed guides and references here.
+Welcome to the Helios Engine documentation! This guide has been reorganized and streamlined for clarity and ease of use.
 
-## 📚 Documentation Overview
+## 📚 Documentation Structure
 
-The documentation is organized to support different user needs and experience levels:
+### Getting Started
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Complete guide to get up and running quickly
+  - Installation
+  - Configuration
+  - Basic usage examples
+  - Building your first agent
+  - CLI reference
 
-- **Getting Started**: Quick start guides and tutorials
-- **Reference**: API documentation and architecture details
-- **Advanced**: In-depth technical documentation
+### Core Features
+- **[TOOLS.md](TOOLS.md)** - Complete tools guide
+  - Using built-in tools
+  - Creating custom tools
+  - Tool builder patterns
+  - Best practices
+  
+- **[FOREST.md](FOREST.md)** - Forest of Agents guide
+  - Multi-agent systems
+  - Coordinator-based planning
+  - Agent communication
+  - Advanced patterns
 
-## 📋 Documentation Files
+- **[RAG.md](RAG.md)** - Retrieval Augmented Generation
+  - Vector databases
+  - Document indexing
+  - Semantic search
 
-### 🚀 Getting Started
+### Reference
+- **[API.md](API.md)** - Complete API reference
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Configuration options
+- **[FEATURES.md](FEATURES.md)** - Feature overview
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
+- **[USING_AS_CRATE.md](USING_AS_CRATE.md)** - Library usage guide
 
-| File | Description | Audience |
-|------|-------------|----------|
-| **[QUICKSTART.md](QUICKSTART.md)** | 5-minute setup guide to get Helios running | New users |
-| **[INSTALLATION.md](INSTALLATION.md)** | Complete installation instructions and feature flags | New users |
-| **[TUTORIAL.md](TUTORIAL.md)** | Step-by-step tutorial building a complete agent | Beginners |
+## 🚀 Quick Navigation
 
-### 💻 Usage & Configuration
+**New to Helios Engine?**  
+→ Start with [GETTING_STARTED.md](GETTING_STARTED.md)
 
-| File | Description | Audience |
-|------|-------------|----------|
-| **[USAGE.md](USAGE.md)** | CLI usage patterns, examples, and common workflows | Intermediate users |
-| **[CONFIGURATION.md](CONFIGURATION.md)** | Complete configuration guide with all providers and local inference | Intermediate users |
-| **[TOOLS.md](TOOLS.md)** | Built-in tools, custom tool creation, and Tool Builder | Intermediate users |
+**Want to use tools?**  
+→ See [TOOLS.md](TOOLS.md)
 
-### 📖 Reference Documentation
+**Building multi-agent systems?**  
+→ See [FOREST.md](FOREST.md)
 
-| File | Description | Audience |
-|------|-------------|----------|
-| **[API.md](API.md)** | Complete API reference with all modules, structs, and functions | Developers |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System architecture, design principles, and component interactions | Architects/Contributors |
-| **[FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md)** | Project organization and file structure explanation | Contributors |
-| **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** | High-level project description and goals | All users |
+**Need RAG capabilities?**  
+→ See [RAG.md](RAG.md)
 
-### 🔧 Advanced Topics
+**Looking for API details?**  
+→ See [API.md](API.md)
 
-| File | Description | Audience |
-|------|-------------|----------|
-| **[ADVANCED.md](ADVANCED.md)** | Advanced features: Forest of Agents, performance, security | Advanced users |
-| **[RAG.md](RAG.md)** | Retrieval-Augmented Generation implementation guide | Advanced users |
-| **[STREAMING.md](STREAMING.md)** | Real-time streaming responses and implementation | Developers |
-| **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** | Technical implementation details | Contributors |
+## 🎯 Quick Start
 
-### 🛠️ Special Guides
+### Installation
+```bash
+cargo install helios-engine
+```
 
-| File | Description | Audience |
-|------|-------------|----------|
-| **[USING_AS_CRATE.md](USING_AS_CRATE.md)** | Using Helios as a Rust library crate | Library users |
-| **[QUICKREF.md](QUICKREF.md)** | Quick reference for common operations | Experienced users |
+### First Agent
+```rust
+use helios_engine::{Agent, Config, CalculatorTool};
 
-## 🎯 Reading Guide
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+    
+    let mut agent = Agent::builder("MyAgent")
+        .config(config)
+        .tools(vec![Box::new(CalculatorTool)])
+        .build()
+        .await?;
+    
+    let response = agent.chat("What is 15 * 8?").await?;
+    println!("{}", response);
+    
+    Ok(())
+}
+```
 
-### For New Users
-1. Start with **[INSTALLATION.md](INSTALLATION.md)** to install Helios Engine
-2. Follow **[QUICKSTART.md](QUICKSTART.md)** to get up and running quickly
-3. Learn with **[TUTORIAL.md](TUTORIAL.md)** for hands-on agent building
+## 🆕 What's New
 
-### For Intermediate Users
-1. Explore **[USAGE.md](USAGE.md)** for CLI usage patterns and examples
-2. Configure with **[CONFIGURATION.md](CONFIGURATION.md)** for different providers
-3. Discover **[TOOLS.md](TOOLS.md)** for built-in tools and custom tool creation
+### Improved Syntax (v0.4.3+)
 
-### For Developers
-1. Read **[API.md](API.md)** for complete function signatures and usage
-2. Study **[ARCHITECTURE.md](ARCHITECTURE.md)** for system understanding
-3. Reference **[QUICKREF.md](QUICKREF.md)** for common operations
+**Multiple tools at once:**
+```rust
+// Old way
+.tool(Box::new(CalculatorTool))
+.tool(Box::new(EchoTool))
+.tool(Box::new(FileReadTool))
 
-### For Contributors
-1. Review **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** for project vision
-2. Study **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md)**
-3. Read **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** for technical details
+// New way - much cleaner!
+.tools(vec![
+    Box::new(CalculatorTool),
+    Box::new(EchoTool),
+    Box::new(FileReadTool),
+])
+```
 
-## 📖 Content Categories
+**Multiple agents at once:**
+```rust
+// Old way
+.agent("worker1".to_string(), Agent::builder("worker1"))
+.agent("worker2".to_string(), Agent::builder("worker2"))
 
-### User-Facing Documentation
-- Installation and setup guides
-- Tutorials and examples
-- Usage patterns and best practices
-- Configuration options
+// New way - much cleaner!
+.agents(vec![
+    ("worker1".to_string(), Agent::builder("worker1")),
+    ("worker2".to_string(), Agent::builder("worker2")),
+])
+```
 
-### Developer Documentation
-- API references and signatures
-- Architecture and design decisions
-- Implementation details
-- Contributing guidelines
+## 📖 Documentation Philosophy
 
-### Technical Documentation
-- System architecture diagrams
-- Component interactions
-- Performance considerations
-- Security considerations
+This documentation follows these principles:
 
-## 🔍 Finding Information
+1. **Consolidation** - Related information is grouped together
+2. **Clarity** - Clear examples and explanations
+3. **Completeness** - Comprehensive coverage of features
+4. **Consistency** - Consistent style and formatting
+5. **Currency** - Up-to-date with latest features
 
-### Search by Topic
+## 🔗 External Resources
 
-**Installation & Setup:**
-- [INSTALLATION.md](INSTALLATION.md) - Installation instructions
-- [QUICKSTART.md](QUICKSTART.md) - First steps
-- [TUTORIAL.md](TUTORIAL.md) - Learning path
+- [GitHub Repository](https://github.com/Ammar-Alnagar/Helios-Engine)
+- [Crates.io](https://crates.io/crates/helios-engine)
+- [API Documentation](https://docs.rs/helios-engine)
 
-**Configuration:**
-- [CONFIGURATION.md](CONFIGURATION.md) - Complete configuration guide
-- [USAGE.md](USAGE.md) - Configuration examples
+## 💡 Examples
 
-**Tools:**
-- [TOOLS.md](TOOLS.md) - Built-in tools, custom creation, and Tool Builder
-- [USAGE.md](USAGE.md) - Tool usage examples
-- [API.md](API.md) - Tool API reference
+Check out the `examples/` directory for working code:
 
-**API Reference:**
-- [API.md](API.md) - Complete API reference
-- [QUICKREF.md](QUICKREF.md) - Common operations
+- `basic_chat.rs` - Simple chat example
+- `agent_with_tools.rs` - Agent with tools (uses new syntax!)
+- `forest_of_agents.rs` - Multi-agent system (uses new syntax!)
+- `forest_with_coordinator.rs` - Coordinator-based planning
+- `streaming_chat.rs` - Streaming responses
+- `rag_advanced.rs` - RAG implementation
+- And many more!
 
-**Architecture:**
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System design
-- [FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md) - Code organization
-- [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) - Project goals
+## 🤝 Contributing
 
-**Advanced Features:**
-- [ADVANCED.md](ADVANCED.md) - Forest of Agents, performance, security
-- [RAG.md](RAG.md) - Vector search and retrieval
-- [STREAMING.md](STREAMING.md) - Real-time responses
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical details
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
 
-### Search by Use Case
+## 📝 License
 
-**Building Agents:**
-- [TUTORIAL.md](TUTORIAL.md) - Agent creation
-- [USAGE.md](USAGE.md) - Agent patterns
-- [API.md](API.md) - Agent API reference
+See [LICENSE](../LICENSE) for license information.
 
-**Using Tools:**
-- [TOOLS.md](TOOLS.md) - Tool documentation and Tool Builder guide
-- [USAGE.md](USAGE.md) - Tool usage examples
-- [TUTORIAL.md](TUTORIAL.md) - Tool integration
+---
 
-**Running Locally:**
-- [CONFIGURATION.md](CONFIGURATION.md) - Local model setup
-- [USAGE.md](USAGE.md) - Offline mode
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Local inference architecture
-
-**Multi-Agent Systems:**
-- [ADVANCED.md](ADVANCED.md) - Forest of Agents
-- [USAGE.md](USAGE.md) - Multi-agent patterns
-
-**RAG Applications:**
-- [RAG.md](RAG.md) - RAG implementation
-- [ADVANCED.md](ADVANCED.md) - Advanced RAG features
-
-## 🤝 Contributing to Documentation
-
-### Adding New Documentation
-1. Choose the appropriate file or create a new one following the naming convention
-2. Follow the existing documentation style and structure
-3. Update this README to include the new document
-4. Ensure cross-references are accurate
-
-### Documentation Standards
-- Use Markdown for all documentation
-- Include code examples where relevant
-- Provide both conceptual and practical information
-- Keep documentation up-to-date with code changes
-- Use clear, concise language accessible to different experience levels
-
-### File Naming Convention
-- Use UPPER_CASE for main documentation files
-- Use descriptive names that clearly indicate content
-- Use .md extension for all documentation files
-
-## 📞 Support
-
-If you can't find what you're looking for:
-1. Check the main [README.md](../README.md) for a high-level overview
-2. Look at the [examples](../examples/) directory for code samples
-3. Check the [tests](../tests/) directory for implementation examples
-4. Open an issue on GitHub for documentation improvements
-
-## 🔗 Related Resources
-
-- **[Main README](../README.md)** - Project overview and quick start
-- **[Examples](../examples/)** - Code examples and use cases
-- **[Tests](../tests/)** - Implementation examples and testing
-- **[Source Code](../src/)** - Implementation details
+**Questions?** Open an issue on GitHub or check the documentation!

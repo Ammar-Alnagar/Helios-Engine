@@ -25,69 +25,71 @@ async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
 
     // Create a Forest of Agents with specialized agents
-    // You can add as many agents as you want!
+    // Using the improved syntax to add multiple agents at once!
     let mut forest = ForestBuilder::new()
         .config(config)
-        // Coordinator agent - manages the team and delegates tasks
-        .agent(
-            "coordinator".to_string(),
-            Agent::builder("coordinator")
-                .system_prompt(
-                    "You are a project coordinator. For simple tasks that you can handle yourself, \
-                    complete them directly and provide a complete response. For complex tasks that \
-                    require specialized expertise, you can delegate using the 'delegate_task' tool \
-                    to agents like 'researcher', 'writer', 'editor', and 'qa'.\n\n\
-                    When you delegate a task, WAIT for the response and then synthesize the results. \
-                    Always provide a final, complete answer to the user's request."
-                )
-                .max_iterations(10)
-        )
-        // Research agent - gathers and analyzes information
-        .agent(
-            "researcher".to_string(),
-            Agent::builder("researcher")
-                .system_prompt(
-                    "You are a research specialist who excels at gathering information, \
-                    analyzing data, and providing insights. You work closely with the coordinator \
-                    and writer to ensure all work is based on accurate information. Use \
-                    communication tools to share your findings and request clarification when needed."
-                )
-                .max_iterations(10)
-        )
-        // Writer agent - creates content and documentation
-        .agent(
-            "writer".to_string(),
-            Agent::builder("writer")
-                .system_prompt(
-                    "You are a skilled writer who creates clear, well-structured content and \
-                    documentation. When you receive a task, complete it fully and provide the \
-                    final written content. You can use communication tools to request information \
-                    from the researcher if needed."
-                )
-                .max_iterations(10)
-        )
-        // Editor agent - reviews and improves content
-        .agent(
-            "editor".to_string(),
-            Agent::builder("editor")
-                .system_prompt(
-                    "You are an editor who reviews content for quality, clarity, and consistency. \
-                    When you receive content to review, provide constructive feedback and an \
-                    improved version."
-                )
-                .max_iterations(10)
-        )
-        // Quality Assurance agent - validates the final output
-        .agent(
-            "qa".to_string(),
-            Agent::builder("qa")
-                .system_prompt(
-                    "You are a quality assurance specialist who validates that all requirements \
-                    are met and the output is accurate and complete. When you receive content to \
-                    review, verify it meets all requirements and provide your assessment."
-                )
-                .max_iterations(10)
-        )
+        .agents(vec![
+            // Coordinator agent - manages the team and delegates tasks
+            (
+                "coordinator".to_string(),
+                Agent::builder("coordinator")
+                    .system_prompt(
+                        "You are a project coordinator. For simple tasks that you can handle yourself, \
+                        complete them directly and provide a complete response. For complex tasks that \
+                        require specialized expertise, you can delegate using the 'delegate_task' tool \
+                        to agents like 'researcher', 'writer', 'editor', and 'qa'.\n\n\
+                        When you delegate a task, WAIT for the response and then synthesize the results. \
+                        Always provide a final, complete answer to the user's request."
+                    )
+                    .max_iterations(10)
+            ),
+            // Research agent - gathers and analyzes information
+            (
+                "researcher".to_string(),
+                Agent::builder("researcher")
+                    .system_prompt(
+                        "You are a research specialist who excels at gathering information, \
+                        analyzing data, and providing insights. You work closely with the coordinator \
+                        and writer to ensure all work is based on accurate information. Use \
+                        communication tools to share your findings and request clarification when needed."
+                    )
+                    .max_iterations(10)
+            ),
+            // Writer agent - creates content and documentation
+            (
+                "writer".to_string(),
+                Agent::builder("writer")
+                    .system_prompt(
+                        "You are a skilled writer who creates clear, well-structured content and \
+                        documentation. When you receive a task, complete it fully and provide the \
+                        final written content. You can use communication tools to request information \
+                        from the researcher if needed."
+                    )
+                    .max_iterations(10)
+            ),
+            // Editor agent - reviews and improves content
+            (
+                "editor".to_string(),
+                Agent::builder("editor")
+                    .system_prompt(
+                        "You are an editor who reviews content for quality, clarity, and consistency. \
+                        When you receive content to review, provide constructive feedback and an \
+                        improved version."
+                    )
+                    .max_iterations(10)
+            ),
+            // Quality Assurance agent - validates the final output
+            (
+                "qa".to_string(),
+                Agent::builder("qa")
+                    .system_prompt(
+                        "You are a quality assurance specialist who validates that all requirements \
+                        are met and the output is accurate and complete. When you receive content to \
+                        review, verify it meets all requirements and provide your assessment."
+                    )
+                    .max_iterations(10)
+            ),
+        ])
         .max_iterations(15)
         .build()
         .await?;
