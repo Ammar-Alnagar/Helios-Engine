@@ -126,7 +126,7 @@ This documentation follows these principles:
 
 ## 🔗 External Resources
 
-- [GitHub Repository](https://github.com/yourusername/helios-engine)
+- [GitHub Repository](https://github.com/Ammar-Alnagar/Helios-Engine)
 - [Crates.io](https://crates.io/crates/helios-engine)
 - [API Documentation](https://docs.rs/helios-engine)
 
