@@ -10,6 +10,20 @@ The Forest of Agents is a multi-agent system where multiple AI agents collaborat
 - **Task Planning**: Automatic decomposition of complex tasks into subtasks
 - **Agent Communication**: Agents can pass messages and results to each other
 
+```mermaid
+graph TD
+    A[Task] --> B(Forest);
+    B -- Manages --> C{Coordinator};
+    B -- Manages --> D[Worker Agent 1];
+    B -- Manages --> E[Worker Agent 2];
+    B -- Manages --> F[Worker Agent N];
+    C -- Delegates To --> D;
+    C -- Delegates To --> E;
+    C -- Delegates To --> F;
+    D -- Communicates With --> E;
+    E -- Communicates With --> F;
+```
+
 ## Basic Usage
 
 ### Creating a Simple Forest
