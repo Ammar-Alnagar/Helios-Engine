@@ -2,7 +2,7 @@ name: Deploy mdBook
 on:
   push:
     branches:
-      - book
+      - master
 jobs:
   deploy:
     runs-on: ubuntu-latest
