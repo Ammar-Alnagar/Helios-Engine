@@ -12,7 +12,7 @@
 [![issues](https://img.shields.io/github/issues/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/issues)
 [![stars](https://img.shields.io/github/stars/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/stargazers)
 [![last commit](https://img.shields.io/github/last-commit/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/commits/main)
-[![Website](https://helios-engine.vercel.app/)
+[![Website](https://img.shields.io/badge/Website-Online-brightgreen.svg)](https://helios-engine.vercel.app/)
 ![Release](https://img.shields.io/github/release-date/Ammar-Alnagar/Helios-Engine.svg)
 
 **Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
