@@ -1,0 +1,1499 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Helios Engine</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Helios Engine</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="-helios-engine---llm-agent-framework"><a class="header" href="#-helios-engine---llm-agent-framework">🔥 Helios Engine - LLM Agent Framework</a></h1>
+<p align="center">
+  <img src="../../Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
+</p>
+<p><strong>Helios Engine</strong> is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.</p>
+<h2 id="-key-features"><a class="header" href="#-key-features">🚀 Key Features</a></h2>
+<ul>
+<li><strong>🆕 Forest of Agents</strong>: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context</li>
+<li><strong>Agent System</strong>: Create multiple agents with different personalities and capabilities</li>
+<li><strong>🆕 Tool Builder</strong>: Simplified tool creation with builder pattern - wrap any function as a tool without manual trait implementation</li>
+<li><strong>Tool Registry</strong>: Extensible tool system for adding custom functionality</li>
+<li><strong>Extensive Tool Suite</strong>: 16+ built-in tools including web scraping, JSON parsing, timestamp operations, file I/O, shell commands, HTTP requests, system info, and text processing</li>
+<li><strong>🆕 RAG System</strong>: Retrieval-Augmented Generation with vector stores (InMemory and Qdrant)</li>
+<li><strong>Streaming Support</strong>: True real-time response streaming for both remote and local models with immediate token delivery</li>
+<li><strong>Local Model Support</strong>: Run local models offline using llama.cpp with HuggingFace integration (optional <code>local</code> feature)</li>
+<li><strong>HTTP Server &amp; API</strong>: Expose OpenAI-compatible API endpoints with full parameter support</li>
+<li><strong>Dual Mode Support</strong>: Auto, online (remote API), and offline (local) modes</li>
+<li><strong>CLI &amp; Library</strong>: Use as both a command-line tool and a Rust library crate</li>
+<li><strong>🆕 Feature Flags</strong>: Optional <code>local</code> feature for offline model support - build only what you need!</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<p>You can install Helios Engine as a command-line tool or use it as a library in your own Rust projects.</p>
+<h2 id="as-a-cli-tool"><a class="header" href="#as-a-cli-tool">As a CLI Tool</a></h2>
+<h3 id="standard-installation"><a class="header" href="#standard-installation">Standard Installation</a></h3>
+<p>To install the CLI tool without local model support (which is lighter and faster to install), run the following command:</p>
+<pre><code class="language-bash">cargo install helios-engine
+</code></pre>
+<h3 id="with-local-model-support"><a class="header" href="#with-local-model-support">With Local Model Support</a></h3>
+<p>If you want to use Helios Engine with local models, you'll need to install it with the <code>local</code> feature enabled. This will also install <code>llama-cpp-2</code> and its dependencies.</p>
+<pre><code class="language-bash">cargo install helios-engine --features local
+</code></pre>
+<h2 id="as-a-library"><a class="header" href="#as-a-library">As a Library</a></h2>
+<p>To use Helios Engine as a library in your own project, add the following to your <code>Cargo.toml</code> file:</p>
+<pre><code class="language-toml">[dependencies]
+helios-engine = "0.4.3"
+tokio = { version = "1.35", features = ["full"] }
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>Before you can start using Helios Engine, you'll need to create a <code>config.toml</code> file to store your API keys and other settings.</p>
+<h2 id="initializing-configuration"><a class="header" href="#initializing-configuration">Initializing Configuration</a></h2>
+<p>The easiest way to get started is to use the <code>init</code> command:</p>
+<pre><code class="language-bash">helios-engine init
+</code></pre>
+<p>This will create a <code>config.toml</code> file in your current directory with the following content:</p>
+<pre><code class="language-toml">[llm]
+model_name = "gpt-3.5-turbo"
+base_url = "https://api.openai.com/v1"
+api_key = "your-api-key-here"
+temperature = 0.7
+max_tokens = 2048
+</code></pre>
+<p>You'll need to replace <code>"your-api-key-here"</code> with your actual API key.</p>
+<h2 id="common-providers"><a class="header" href="#common-providers">Common Providers</a></h2>
+<p>Here are some examples of how to configure Helios Engine for different LLM providers:</p>
+<h3 id="openai"><a class="header" href="#openai">OpenAI</a></h3>
+<pre><code class="language-toml">[llm]
+base_url = "https://api.openai.com/v1"
+model_name = "gpt-4"
+api_key = "sk-..."
+</code></pre>
+<h3 id="local-lm-studio"><a class="header" href="#local-lm-studio">Local (LM Studio)</a></h3>
+<pre><code class="language-toml">[llm]
+base_url = "http://localhost:1234/v1"
+model_name = "local-model"
+api_key = "not-needed"
+</code></pre>
+<h3 id="ollama"><a class="header" href="#ollama">Ollama</a></h3>
+<pre><code class="language-toml">[llm]
+base_url = "http://localhost:11434/v1"
+model_name = "llama2"
+api_key = "not-needed"
+</code></pre>
+<h3 id="anthropic"><a class="header" href="#anthropic">Anthropic</a></h3>
+<pre><code class="language-toml">[llm]
+base_url = "https://api.anthropic.com/v1"
+model_name = "claude-3-opus-20240229"
+api_key = "sk-ant-..."
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="building-your-first-agent"><a class="header" href="#building-your-first-agent">Building Your First Agent</a></h1>
+<p>Agents are the core of the Helios Engine. They are autonomous entities that can use tools to accomplish tasks. Here's how to build your first agent:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    // Load the configuration from a config.toml file
+    let config = Config::from_file("config.toml")?;
+
+    // Create a new agent using the AgentBuilder
+    let mut agent = Agent::builder("MathAgent")
+        .config(config)
+        .system_prompt("You are a helpful math assistant.")
+        .tool(Box::new(CalculatorTool))
+        .max_iterations(5)
+        .build()
+        .await?;
+
+    // Chat with the agent
+    let response = agent.chat("What is 15 * 8 + 42?").await?;
+    println!("Agent: {}", response);
+
+    Ok(())
+}</code></pre></pre>
+<p>In this example, we create an agent named "MathAgent" with a system prompt that tells it how to behave. We also give it a <code>CalculatorTool</code>, which allows it to perform mathematical calculations. When we ask the agent to solve a math problem, it will automatically use the calculator to find the answer.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="agents"><a class="header" href="#agents">Agents</a></h1>
+<p>At the heart of the Helios Engine is the <code>Agent</code>, an autonomous entity that can interact with users, use tools, and manage its own chat history. This chapter will cover the creation, configuration, and core functionalities of agents.</p>
+<h2 id="the-agent-struct"><a class="header" href="#the-agent-struct">The <code>Agent</code> Struct</a></h2>
+<p>The <code>Agent</code> struct is the main component of the Helios Engine. It encapsulates all the necessary components for an agent to function, including:</p>
+<ul>
+<li><strong><code>name</code></strong>: The name of the agent.</li>
+<li><strong><code>llm_client</code></strong>: The client for interacting with the Large Language Model.</li>
+<li><strong><code>tool_registry</code></strong>: The registry of tools available to the agent.</li>
+<li><strong><code>chat_session</code></strong>: The chat session, which stores the conversation history.</li>
+<li><strong><code>max_iterations</code></strong>: The maximum number of iterations for tool execution in a single turn.</li>
+</ul>
+<h2 id="the-agentbuilder"><a class="header" href="#the-agentbuilder">The <code>AgentBuilder</code></a></h2>
+<p>The <code>AgentBuilder</code> provides a convenient and flexible way to construct and configure agents. It uses the builder pattern to allow you to chain methods together to set the agent's properties.</p>
+<h3 id="creating-an-agent"><a class="header" href="#creating-an-agent">Creating an Agent</a></h3>
+<p>Here's a basic example of how to create an agent using the <code>AgentBuilder</code>:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("MyAgent")
+        .config(config)
+        .build()
+        .await?;
+
+    Ok(())
+}</code></pre></pre>
+<h3 id="configuring-an-agent"><a class="header" href="#configuring-an-agent">Configuring an Agent</a></h3>
+<p>The <code>AgentBuilder</code> provides several methods for configuring an agent:</p>
+<ul>
+<li><strong><code>config(config: Config)</code></strong>: Sets the configuration for the agent. This is a required method.</li>
+<li><strong><code>system_prompt(prompt: impl Into&lt;String&gt;)</code></strong>: Sets the system prompt for the agent. This tells the agent how to behave.</li>
+<li><strong><code>tool(tool: Box&lt;dyn crate::tools::Tool&gt;)</code></strong>: Adds a single tool to the agent.</li>
+<li><strong><code>tools(tools: Vec&lt;Box&lt;dyn crate::tools::Tool&gt;&gt;)</code></strong>: Adds multiple tools to the agent at once.</li>
+<li><strong><code>max_iterations(max: usize)</code></strong>: Sets the maximum number of iterations for tool execution in a single turn.</li>
+</ul>
+<p>Here's a more advanced example of how to create and configure an agent:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("MyAgent")
+        .config(config)
+        .system_prompt("You are a helpful assistant.")
+        .tools(vec![
+            Box::new(CalculatorTool),
+            Box::new(EchoTool),
+        ])
+        .max_iterations(5)
+        .build()
+        .await?;
+
+    Ok(())
+}</code></pre></pre>
+<h2 id="core-functionalities"><a class="header" href="#core-functionalities">Core Functionalities</a></h2>
+<p>Once you've created an agent, you can interact with it using the following methods:</p>
+<ul>
+<li><strong><code>chat(message: impl Into&lt;String&gt;)</code></strong>: Sends a message to the agent and gets a response.</li>
+<li><strong><code>send_message(message: impl Into&lt;String&gt;)</code></strong>: A more explicit way to send a message to the agent.</li>
+<li><strong><code>clear_history()</code></strong>: Clears the agent's chat history.</li>
+<li><strong><code>get_session_summary()</code></strong>: Returns a summary of the current chat session.</li>
+</ul>
+<p>The <code>Agent</code> also provides methods for managing its memory, which allows it to store and retrieve information between conversations. You can learn more about this in the <a href="core_concepts/./chat.html">Chat</a> chapter.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="llms"><a class="header" href="#llms">LLMs</a></h1>
+<p>The <code>LLMClient</code> is the primary interface for interacting with Large Language Models (LLMs) in the Helios Engine. It provides a unified API for both remote LLMs (like OpenAI) and local LLMs (via <code>llama.cpp</code>).</p>
+<h2 id="the-llmclient"><a class="header" href="#the-llmclient">The <code>LLMClient</code></a></h2>
+<p>The <code>LLMClient</code> is responsible for sending requests to the LLM and receiving responses. It can be created with either a <code>Remote</code> or <code>Local</code> provider type.</p>
+<h3 id="creating-an-llmclient"><a class="header" href="#creating-an-llmclient">Creating an <code>LLMClient</code></a></h3>
+<p>Here's how to create an <code>LLMClient</code> with a remote provider:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{llm::{LLMClient, LLMProviderType}, config::LLMConfig};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+
+    Ok(())
+}</code></pre></pre>
+<p>And here's how to create an <code>LLMClient</code> with a local provider:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#[cfg(feature = "local")]
+</span>use helios_engine::{llm::{LLMClient, LLMProviderType}, config::LocalConfig};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let local_config = LocalConfig {
+        huggingface_repo: "unsloth/Qwen3-0.6B-GGUF".to_string(),
+        model_file: "Qwen3-0.6B-Q4_K_M.gguf".to_string(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    let client = LLMClient::new(LLMProviderType::Local(local_config)).await?;
+
+    Ok(())
+}</code></pre></pre>
+<p><strong>Note:</strong> To use the local provider, you must install Helios Engine with the <code>local</code> feature enabled.</p>
+<h2 id="sending-requests"><a class="header" href="#sending-requests">Sending Requests</a></h2>
+<p>Once you have an <code>LLMClient</code>, you can send requests to the LLM using the <code>chat</code> method.</p>
+<h3 id="simple-chat"><a class="header" href="#simple-chat">Simple Chat</a></h3>
+<p>Here's a simple example of how to send a chat request:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{llm::{LLMClient, LLMProviderType}, config::LLMConfig, ChatMessage};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+
+    let messages = vec![ChatMessage::user("Hello, world!")];
+    let response = client.chat(messages, None, None, None, None).await?;
+
+    println!("Assistant: {}", response.content);
+
+    Ok(())
+}</code></pre></pre>
+<h3 id="streaming-responses"><a class="header" href="#streaming-responses">Streaming Responses</a></h3>
+<p>The <code>LLMClient</code> also supports streaming responses. Here's an example of how to use the <code>chat_stream</code> method:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{llm::{LLMClient, LLMProviderType}, config::LLMConfig, ChatMessage};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+
+    let messages = vec![ChatMessage::user("Hello, world!")];
+    let response = client.chat_stream(messages, None, None, None, None, |chunk| {
+        print!("{}", chunk);
+    }).await?;
+
+    Ok(())
+}</code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="chat"><a class="header" href="#chat">Chat</a></h1>
+<p>The Helios Engine provides a robust set of tools for managing chat conversations. At the core of this system are the <code>ChatMessage</code> and <code>ChatSession</code> structs, which allow you to create, manage, and persist conversations with agents.</p>
+<h2 id="chatmessage"><a class="header" href="#chatmessage"><code>ChatMessage</code></a></h2>
+<p>A <code>ChatMessage</code> represents a single message in a chat conversation. It has the following properties:</p>
+<ul>
+<li><strong><code>role</code></strong>: The role of the message sender. This can be <code>System</code>, <code>User</code>, <code>Assistant</code>, or <code>Tool</code>.</li>
+<li><strong><code>content</code></strong>: The content of the message.</li>
+<li><strong><code>name</code></strong>: The name of the message sender.</li>
+<li><strong><code>tool_calls</code></strong>: Any tool calls requested by the assistant.</li>
+<li><strong><code>tool_call_id</code></strong>: The ID of the tool call this message is a response to.</li>
+</ul>
+<h3 id="creating-chatmessages"><a class="header" href="#creating-chatmessages">Creating <code>ChatMessage</code>s</a></h3>
+<p>You can create <code>ChatMessage</code>s using the following constructor methods:</p>
+<ul>
+<li><strong><code>ChatMessage::system(content: impl Into&lt;String&gt;)</code></strong>: Creates a new system message.</li>
+<li><strong><code>ChatMessage::user(content: impl Into&lt;String&gt;)</code></strong>: Creates a new user message.</li>
+<li><strong><code>ChatMessage::assistant(content: impl Into&lt;String&gt;)</code></strong>: Creates a new assistant message.</li>
+<li><strong><code>ChatMessage::tool(content: impl Into&lt;String&gt;, tool_call_id: impl Into&lt;String&gt;)</code></strong>: Creates a new tool message.</li>
+</ul>
+<h2 id="chatsession"><a class="header" href="#chatsession"><code>ChatSession</code></a></h2>
+<p>A <code>ChatSession</code> represents a complete chat conversation. It stores the conversation history and any associated metadata.</p>
+<h3 id="creating-a-chatsession"><a class="header" href="#creating-a-chatsession">Creating a <code>ChatSession</code></a></h3>
+<p>You can create a new <code>ChatSession</code> using the <code>ChatSession::new()</code> method. You can also set a system prompt when you create the session:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::ChatSession;
+
+let mut session = ChatSession::new()
+    .with_system_prompt("You are a helpful coding assistant.");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="managing-messages"><a class="header" href="#managing-messages">Managing Messages</a></h3>
+<p>The <code>ChatSession</code> provides several methods for managing messages:</p>
+<ul>
+<li><strong><code>add_message(message: ChatMessage)</code></strong>: Adds a message to the chat session.</li>
+<li><strong><code>add_user_message(content: impl Into&lt;String&gt;)</code></strong>: Adds a user message to the chat session.</li>
+<li><strong><code>add_assistant_message(content: impl Into&lt;String&gt;)</code></strong>: Adds an assistant message to the chat session.</li>
+<li><strong><code>get_messages()</code></strong>: Returns all messages in the chat session, including the system prompt.</li>
+<li><strong><code>clear()</code></strong>: Clears all messages from the chat session.</li>
+</ul>
+<p>Here's an example of how to manage a conversation with a <code>ChatSession</code>:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{llm::{LLMClient, LLMProviderType}, config::LLMConfig, ChatMessage, ChatSession};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let llm_config = LLMConfig {
+        model_name: "gpt-3.5-turbo".to_string(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: std::env::var("OPENAI_API_KEY").unwrap(),
+        temperature: 0.7,
+        max_tokens: 2048,
+    };
+
+    let client = LLMClient::new(LLMProviderType::Remote(llm_config)).await?;
+
+    let mut session = ChatSession::new()
+        .with_system_prompt("You are a helpful coding assistant.");
+
+    session.add_user_message("Explain async/await in Rust");
+    let response = client.chat(session.get_messages(), None, None, None, None).await?;
+    session.add_assistant_message(&amp;response.content);
+
+    // Continue the conversation
+    session.add_user_message("Can you give an example?");
+    let response2 = client.chat(session.get_messages(), None, None, None, None).await?;
+    session.add_assistant_message(&amp;response2.content);
+
+    Ok(())
+}</code></pre></pre>
+<h3 id="metadata"><a class="header" href="#metadata">Metadata</a></h3>
+<p>The <code>ChatSession</code> also allows you to store and retrieve metadata associated with the conversation. This can be useful for storing information like the user's name, the current topic, or any other relevant data.</p>
+<ul>
+<li><strong><code>set_metadata(key: impl Into&lt;String&gt;, value: impl Into&lt;String&gt;)</code></strong>: Sets a metadata key-value pair for the session.</li>
+<li><strong><code>get_metadata(key: &amp;str)</code></strong>: Gets a metadata value by key.</li>
+<li><strong><code>remove_metadata(key: &amp;str)</code></strong>: Removes a metadata key-value pair.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
+<p>The Helios Engine uses a custom error type called <code>HeliosError</code> to represent all possible errors that can occur within the framework. This chapter will cover the different types of errors and how to handle them.</p>
+<h2 id="helioserror"><a class="header" href="#helioserror"><code>HeliosError</code></a></h2>
+<p>The <code>HeliosError</code> enum is the single error type used throughout the Helios Engine. It has the following variants:</p>
+<ul>
+<li><strong><code>ConfigError(String)</code></strong>: An error related to configuration.</li>
+<li><strong><code>LLMError(String)</code></strong>: An error related to the Language Model (LLM).</li>
+<li><strong><code>ToolError(String)</code></strong>: An error related to a tool.</li>
+<li><strong><code>AgentError(String)</code></strong>: An error related to an agent.</li>
+<li><strong><code>NetworkError(#[from] reqwest::Error)</code></strong>: An error related to a network request.</li>
+<li><strong><code>SerializationError(#[from] serde_json::Error)</code></strong>: An error related to serialization or deserialization.</li>
+<li><strong><code>IoError(#[from] std::io::Error)</code></strong>: An I/O error.</li>
+<li><strong><code>TomlError(#[from] toml::de::Error)</code></strong>: An error related to parsing TOML.</li>
+<li><strong><code>LlamaCppError(String)</code></strong>: An error from the Llama C++ backend (only available with the <code>local</code> feature).</li>
+</ul>
+<h2 id="resultt"><a class="header" href="#resultt"><code>Result&lt;T&gt;</code></a></h2>
+<p>The Helios Engine also provides a convenient <code>Result</code> type alias that uses the <code>HeliosError</code> as the error type:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub type Result&lt;T&gt; = std::result::Result&lt;T, HeliosError&gt;;
+<span class="boring">}</span></code></pre></pre>
+<p>This means that you can use the <code>?</code> operator to propagate errors in your code, just like you would with a standard <code>std::result::Result</code>.</p>
+<h2 id="handling-errors"><a class="header" href="#handling-errors">Handling Errors</a></h2>
+<p>Here's an example of how to handle errors in the Helios Engine:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, Result};
+
+#[tokio::main]
+async fn main() {
+    if let Err(e) = run().await {
+        eprintln!("Error: {}", e);
+    }
+}
+
+async fn run() -&gt; Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("MathAgent")
+        .config(config)
+        .system_prompt("You are a helpful math assistant.")
+        .tool(Box::new(CalculatorTool))
+        .max_iterations(5)
+        .build()
+        .await?;
+
+    let response = agent.chat("What is 15 * 8 + 42?").await?;
+    println!("Agent: {}", response);
+
+    Ok(())
+}</code></pre></pre>
+<p>In this example, the <code>run</code> function returns a <code>Result&lt;()&gt;</code>. If any of the operations within the function fail, the error will be propagated up to the <code>main</code> function, where it will be printed to the console.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="using-tools"><a class="header" href="#using-tools">Using Tools</a></h1>
+<p>Tools allow agents to perform actions beyond just text generation, enabling them to interact with files, execute commands, access web resources, and manipulate data. This chapter will cover the built-in tools and how to use them.</p>
+<h2 id="built-in-tools"><a class="header" href="#built-in-tools">Built-in Tools</a></h2>
+<p>Helios Engine includes 16+ built-in tools for common tasks. Here's an overview of the most common ones:</p>
+<h3 id="core-tools"><a class="header" href="#core-tools">Core Tools</a></h3>
+<h4 id="calculatortool"><a class="header" href="#calculatortool">CalculatorTool</a></h4>
+<p>Performs mathematical calculations and evaluations.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::CalculatorTool;
+
+let mut agent = Agent::builder("MathAgent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>expression</code> (string, required): Mathematical expression to evaluate</li>
+</ul>
+<p><strong>Example Usage:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let result = agent.chat("Calculate 15 * 7 + 3").await?;
+<span class="boring">}</span></code></pre></pre>
+<h4 id="echotool"><a class="header" href="#echotool">EchoTool</a></h4>
+<p>Simply echoes back the input message (useful for testing).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::EchoTool;
+
+agent.tool(Box::new(EchoTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>message</code> (string, required): Message to echo back</li>
+</ul>
+<h3 id="file-management-tools"><a class="header" href="#file-management-tools">File Management Tools</a></h3>
+<h4 id="filesearchtool"><a class="header" href="#filesearchtool">FileSearchTool</a></h4>
+<p>Search for files by name pattern or content within files.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::FileSearchTool;
+
+agent.tool(Box::new(FileSearchTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>path</code> (string, optional): Directory path to search (default: current directory)</li>
+<li><code>pattern</code> (string, optional): File name pattern with wildcards (e.g., <code>*.rs</code>)</li>
+<li><code>content</code> (string, optional): Text content to search for within files</li>
+<li><code>max_results</code> (number, optional): Maximum number of results (default: 50)</li>
+</ul>
+<h4 id="filereadtool"><a class="header" href="#filereadtool">FileReadTool</a></h4>
+<p>Read the contents of a file with optional line range selection.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::FileReadTool;
+
+agent.tool(Box::new(FileReadTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>path</code> (string, required): File path to read</li>
+<li><code>start_line</code> (number, optional): Starting line number (1-indexed)</li>
+<li><code>end_line</code> (number, optional): Ending line number (1-indexed)</li>
+</ul>
+<h4 id="filewritetool"><a class="header" href="#filewritetool">FileWriteTool</a></h4>
+<p>Write content to a file (creates new or overwrites existing).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::FileWriteTool;
+
+agent.tool(Box::new(FileWriteTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>path</code> (string, required): File path to write to</li>
+<li><code>content</code> (string, required): Content to write</li>
+</ul>
+<h4 id="fileedittool"><a class="header" href="#fileedittool">FileEditTool</a></h4>
+<p>Edit a file by replacing specific text (find and replace).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::FileEditTool;
+
+agent.tool(Box::new(FileEditTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>path</code> (string, required): File path to edit</li>
+<li><code>find</code> (string, required): Text to find</li>
+<li><code>replace</code> (string, required): Replacement text</li>
+</ul>
+<h3 id="web--api-tools"><a class="header" href="#web--api-tools">Web &amp; API Tools</a></h3>
+<h4 id="webscrapertool"><a class="header" href="#webscrapertool">WebScraperTool</a></h4>
+<p>Fetch and extract content from web URLs.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::WebScraperTool;
+
+agent.tool(Box::new(WebScraperTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>url</code> (string, required): URL to scrape</li>
+<li><code>extract_text</code> (boolean, optional): Extract readable text from HTML</li>
+<li><code>timeout_seconds</code> (number, optional): Request timeout</li>
+</ul>
+<h4 id="httprequesttool"><a class="header" href="#httprequesttool">HttpRequestTool</a></h4>
+<p>Make HTTP requests with various methods.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::HttpRequestTool;
+
+agent.tool(Box::new(HttpRequestTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>method</code> (string, required): HTTP method (GET, POST, PUT, DELETE, etc.)</li>
+<li><code>url</code> (string, required): Request URL</li>
+<li><code>headers</code> (object, optional): Request headers</li>
+<li><code>body</code> (string, optional): Request body</li>
+<li><code>timeout_seconds</code> (number, optional): Request timeout</li>
+</ul>
+<h3 id="system--utility-tools"><a class="header" href="#system--utility-tools">System &amp; Utility Tools</a></h3>
+<h4 id="shellcommandtool"><a class="header" href="#shellcommandtool">ShellCommandTool</a></h4>
+<p>Execute shell commands safely with security restrictions.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::ShellCommandTool;
+
+agent.tool(Box::new(ShellCommandTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>command</code> (string, required): Shell command to execute</li>
+<li><code>timeout_seconds</code> (number, optional): Command timeout</li>
+</ul>
+<h4 id="systeminfotool"><a class="header" href="#systeminfotool">SystemInfoTool</a></h4>
+<p>Retrieve system information (OS, CPU, memory, disk, network).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::SystemInfoTool;
+
+agent.tool(Box::new(SystemInfoTool));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>category</code> (string, optional): Info category (all, os, cpu, memory, disk, network)</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-custom-tools"><a class="header" href="#creating-custom-tools">Creating Custom Tools</a></h1>
+<p>Helios Engine provides a flexible system for creating custom tools. This chapter will cover the two main ways to create custom tools: using the <code>ToolBuilder</code> (the easy way) and implementing the <code>Tool</code> trait directly (the advanced way).</p>
+<h2 id="using-toolbuilder-recommended"><a class="header" href="#using-toolbuilder-recommended">Using <code>ToolBuilder</code> (Recommended)</a></h2>
+<p>The <code>ToolBuilder</code> provides a simplified way to create custom tools without implementing the <code>Tool</code> trait manually. This is the recommended approach for most use cases.</p>
+<h3 id="quick_tool-macro"><a class="header" href="#quick_tool-macro"><code>quick_tool!</code> Macro</a></h3>
+<p>The easiest way to create a tool is with the <code>quick_tool!</code> macro. It handles all the boilerplate for you, including parameter extraction and type conversion.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::quick_tool;
+
+// Create a tool in ONE expression!
+let volume_tool = quick_tool! {
+    name: calculate_volume,
+    description: "Calculate the volume of a box",
+    params: (width: f64, height: f64, depth: f64),
+    execute: |width, height, depth| {
+        format!("Volume: {:.2} cubic meters", width * height * depth)
+    }
+};
+<span class="boring">}</span></code></pre></pre>
+<h3 id="toolbuilder-api"><a class="header" href="#toolbuilder-api"><code>ToolBuilder</code> API</a></h3>
+<p>If you need more control, you can use the <code>ToolBuilder</code> API directly.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::{ToolBuilder, ToolResult};
+use serde_json::Value;
+
+let tool = ToolBuilder::new("my_tool")
+    .description("Does something useful")
+    .required_parameter("input", "string", "The input value")
+    .sync_function(|args: Value| {
+        let input = args.get("input").and_then(|v| v.as_str())
+            .ok_or_else(|| helios_engine::HeliosError::ToolError(
+                "Missing input parameter".to_string()
+            ))?;
+
+        Ok(ToolResult::success(format!("Processed: {}", input)))
+    })
+    .build();
+<span class="boring">}</span></code></pre></pre>
+<h2 id="implementing-the-tool-trait-advanced"><a class="header" href="#implementing-the-tool-trait-advanced">Implementing the <code>Tool</code> Trait (Advanced)</a></h2>
+<p>For advanced use cases or when you need more control, you can implement the <code>Tool</code> trait directly.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_trait::async_trait;
+use helios_engine::{Tool, ToolParameter, ToolResult};
+use serde_json::Value;
+use std::collections::HashMap;
+
+struct WeatherTool;
+
+#[async_trait]
+impl Tool for WeatherTool {
+    fn name(&amp;self) -&gt; &amp;str {
+        "get_weather"
+    }
+
+    fn description(&amp;self) -&gt; &amp;str {
+        "Get the current weather for a location"
+    }
+
+    fn parameters(&amp;self) -&gt; HashMap&lt;String, ToolParameter&gt; {
+        let mut params = HashMap::new();
+        params.insert(
+            "location".to_string(),
+            ToolParameter {
+                param_type: "string".to_string(),
+                description: "City name or location".to_string(),
+                required: Some(true),
+            },
+        );
+        params
+    }
+
+    async fn execute(&amp;self, args: Value) -&gt; helios_engine::Result&lt;ToolResult&gt; {
+        let location = args["location"]
+            .as_str()
+            .ok_or_else(|| helios_engine::HeliosError::ToolError("location is required".to_string()))?;
+
+        // Your weather API logic here
+        let weather_data = format!("The weather in {} is sunny, 72°F", location);
+
+        Ok(ToolResult::success(weather_data))
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="tool-builder"><a class="header" href="#tool-builder">Tool Builder</a></h1>
+<p>The <code>ToolBuilder</code> provides a simplified way to create custom tools without implementing the <code>Tool</code> trait manually. This is the recommended approach for most use cases.</p>
+<h2 id="quick_tool-macro-1"><a class="header" href="#quick_tool-macro-1"><code>quick_tool!</code> Macro</a></h2>
+<p>The easiest way to create a tool is with the <code>quick_tool!</code> macro. It handles all the boilerplate for you, including parameter extraction and type conversion.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::quick_tool;
+
+// Create a tool in ONE expression!
+let volume_tool = quick_tool! {
+    name: calculate_volume,
+    description: "Calculate the volume of a box",
+    params: (width: f64, height: f64, depth: f64),
+    execute: |width, height, depth| {
+        format!("Volume: {:.2} cubic meters", width * height * depth)
+    }
+};
+<span class="boring">}</span></code></pre></pre>
+<h2 id="toolbuilder-api-1"><a class="header" href="#toolbuilder-api-1"><code>ToolBuilder</code> API</a></h2>
+<p>If you need more control, you can use the <code>ToolBuilder</code> API directly.</p>
+<h3 id="creating-a-toolbuilder"><a class="header" href="#creating-a-toolbuilder">Creating a <code>ToolBuilder</code></a></h3>
+<p>You can create a new <code>ToolBuilder</code> using the <code>ToolBuilder::new()</code> method.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::ToolBuilder;
+
+let tool_builder = ToolBuilder::new("my_tool");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="configuring-a-toolbuilder"><a class="header" href="#configuring-a-toolbuilder">Configuring a <code>ToolBuilder</code></a></h3>
+<p>The <code>ToolBuilder</code> provides several methods for configuring a tool:</p>
+<ul>
+<li><strong><code>description(description: impl Into&lt;String&gt;)</code></strong>: Sets the description of the tool.</li>
+<li><strong><code>parameter(name: impl Into&lt;String&gt;, param_type: impl Into&lt;String&gt;, description: impl Into&lt;String&gt;, required: bool)</code></strong>: Adds a parameter to the tool.</li>
+<li><strong><code>optional_parameter(name: impl Into&lt;String&gt;, param_type: impl Into&lt;String&gt;, description: impl Into&lt;String&gt;)</code></strong>: Adds an optional parameter to the tool.</li>
+<li><strong><code>required_parameter(name: impl Into&lt;String&gt;, param_type: impl Into&lt;String&gt;, description: impl Into&lt;String&gt;)</code></strong>: Adds a required parameter to the tool.</li>
+<li><strong><code>parameters(params: impl Into&lt;String&gt;)</code></strong>: Adds multiple parameters at once using a compact format.</li>
+<li><strong><code>function&lt;F, Fut&gt;(f: F)</code></strong>: Sets the function to execute when the tool is called.</li>
+<li><strong><code>sync_function&lt;F&gt;(f: F)</code></strong>: Sets the function using a synchronous closure.</li>
+<li><strong><code>ftool&lt;F, T1, T2, R&gt;(f: F)</code></strong>: Ultra-simple API: Pass a function directly with automatic type inference.</li>
+<li><strong><code>ftool3&lt;F, T1, T2, T3, R&gt;(f: F)</code></strong>: Ultra-simple API: Pass a 3-parameter function directly with automatic type inference.</li>
+<li><strong><code>ftool4&lt;F, T1, T2, T3, T4, R&gt;(f: F)</code></strong>: Ultra-simple API: Pass a 4-parameter function directly with automatic type inference.</li>
+</ul>
+<h3 id="building-a-tool"><a class="header" href="#building-a-tool">Building a Tool</a></h3>
+<p>Once you've configured your tool, you can build it using the <code>build()</code> method.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::{ToolBuilder, ToolResult};
+use serde_json::Value;
+
+let tool = ToolBuilder::new("my_tool")
+    .description("Does something useful")
+    .required_parameter("input", "string", "The input value")
+    .sync_function(|args: Value| {
+        let input = args.get("input").and_then(|v| v.as_str())
+            .ok_or_else(|| helios_engine::HeliosError::ToolError(
+                "Missing input parameter".to_string()
+            ))?;
+
+        Ok(ToolResult::success(format!("Processed: {}", input)))
+    })
+    .build();
+<span class="boring">}</span></code></pre></pre>
+<p>You can also use the <code>try_build()</code> method, which returns a <code>Result</code> instead of panicking if the tool is not configured correctly.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="introduction-to-the-forest-of-agents"><a class="header" href="#introduction-to-the-forest-of-agents">Introduction to the Forest of Agents</a></h1>
+<p>The Forest of Agents is a multi-agent system where multiple AI agents collaborate to solve complex tasks. Each agent can have specialized roles, tools, and prompts, enabling sophisticated workflows.</p>
+<h2 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h2>
+<ul>
+<li><strong>Forest</strong>: The container that manages multiple agents</li>
+<li><strong>Coordinator</strong>: An optional special agent that plans and delegates tasks</li>
+<li><strong>Worker Agents</strong>: Specialized agents that execute specific tasks</li>
+<li><strong>Task Planning</strong>: Automatic decomposition of complex tasks into subtasks</li>
+<li><strong>Agent Communication</strong>: Agents can pass messages and results to each other</li>
+</ul>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<h3 id="creating-a-simple-forest"><a class="header" href="#creating-a-simple-forest">Creating a Simple Forest</a></h3>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, ForestBuilder};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut forest = ForestBuilder::new()
+        .config(config)
+        .agent("worker1".to_string(),
+            Agent::builder("worker1")
+                .system_prompt("You are a data analyst."))
+        .agent("worker2".to_string(),
+            Agent::builder("worker2")
+                .system_prompt("You are a report writer."))
+        .max_iterations(15)
+        .build()
+        .await?;
+
+    // Execute a task
+    let result = forest.execute("Analyze sales data and write a report").await?;
+    println!("Result: {}", result);
+
+    Ok(())
+}</code></pre></pre>
+<h3 id="adding-multiple-agents-at-once"><a class="header" href="#adding-multiple-agents-at-once">Adding Multiple Agents at Once</a></h3>
+<p>Instead of chaining multiple <code>.agent()</code> calls, you can use the <code>.agents()</code> method:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut forest = ForestBuilder::new()
+    .config(config)
+    .agents(vec![
+        ("coordinator".to_string(), Agent::builder("coordinator")
+            .system_prompt("You coordinate and plan tasks.")),
+        ("researcher".to_string(), Agent::builder("researcher")
+            .system_prompt("You research information.")),
+        ("analyst".to_string(), Agent::builder("analyst")
+            .system_prompt("You analyze data.")),
+        ("writer".to_string(), Agent::builder("writer")
+            .system_prompt("You write clear documentation.")),
+    ])
+    .max_iterations(25)
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="agent-communication"><a class="header" href="#agent-communication">Agent Communication</a></h1>
+<p>Agents in a Forest of Agents can communicate with each other to share information, delegate tasks, and collaborate on complex problems.</p>
+<h2 id="sendmessagetool"><a class="header" href="#sendmessagetool"><code>SendMessageTool</code></a></h2>
+<p>The primary mechanism for agent communication is the <code>SendMessageTool</code>. This tool allows an agent to send a message to another agent in the same forest.</p>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<p>To use the <code>SendMessageTool</code>, you must first register it with an agent.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::{Agent, SendMessageTool, ForestBuilder};
+
+let forest = ForestBuilder::new()
+    .config(config)
+    .agent("agent1".to_string(),
+        Agent::builder("agent1")
+            .tool(Box::new(SendMessageTool::new(forest_handle.clone()))))
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<p>Once the tool is registered, the agent can use it to send messages to other agents. The agent will typically do this automatically when it determines that it needs to communicate with another agent to complete its task.</p>
+<p>The <code>SendMessageTool</code> takes the following parameters:</p>
+<ul>
+<li><strong><code>to_agent</code></strong>: The ID of the agent to send the message to.</li>
+<li><strong><code>message</code></strong>: The message to send.</li>
+</ul>
+<p>Here's an example of the JSON that an agent might generate to use the <code>SendMessageTool</code>:</p>
+<pre><code class="language-json">{
+  "to_agent": "agent2",
+  "message": "Please analyze this data: [1, 2, 3, 4, 5]"
+}
+</code></pre>
+<h2 id="accessing-agent-results"><a class="header" href="#accessing-agent-results">Accessing Agent Results</a></h2>
+<p>You can also access the results of an agent's work by getting the agent from the forest and inspecting its chat history.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Get a specific agent's last response
+if let Some(agent) = forest.get_agent("researcher") {
+    let history = agent.chat_session().get_messages();
+    // Process history...
+}
+
+// List all agents
+let agent_ids = forest.list_agents();
+for id in agent_ids {
+    println!("Agent: {}", id);
+}
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="coordinator-based-planning"><a class="header" href="#coordinator-based-planning">Coordinator-Based Planning</a></h1>
+<p>The coordinator-based planning system enables automatic task decomposition and delegation. This is a powerful feature that allows you to create sophisticated multi-agent workflows with minimal effort.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<ol>
+<li><strong>Task Analysis</strong>: The coordinator analyzes the incoming task.</li>
+<li><strong>Plan Creation</strong>: The coordinator creates a structured plan with subtasks.</li>
+<li><strong>Agent Selection</strong>: The coordinator assigns subtasks to the most appropriate worker agents.</li>
+<li><strong>Execution</strong>: The worker agents execute their assigned subtasks.</li>
+<li><strong>Result Aggregation</strong>: The coordinator combines the results from the worker agents into a final output.</li>
+</ol>
+<h2 id="enabling-coordinator-planning"><a class="header" href="#enabling-coordinator-planning">Enabling Coordinator Planning</a></h2>
+<p>To enable coordinator-based planning, you must do two things:</p>
+<ol>
+<li>Call the <code>enable_coordinator_planning()</code> method on the <code>ForestBuilder</code>.</li>
+<li>Designate one of your agents as the coordinator using the <code>coordinator_agent()</code> method.</li>
+</ol>
+<p>Here's an example:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let forest = ForestBuilder::new()
+    .config(config)
+    .enable_coordinator_planning()
+    .coordinator_agent("coordinator".to_string(),
+        Agent::builder("coordinator")
+            .system_prompt("You are a master coordinator who creates plans."))
+    .agents(vec![
+        ("researcher".to_string(), Agent::builder("researcher")
+            .system_prompt("You research topics thoroughly.")),
+        ("coder".to_string(), Agent::builder("coder")
+            .system_prompt("You write clean, efficient code.")),
+        ("tester".to_string(), Agent::builder("tester")
+            .system_prompt("You test code for bugs and issues.")),
+    ])
+    .max_iterations(30)
+    .build()
+    .await?;
+
+let result = forest.execute("Research, implement, and test a binary search algorithm").await?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="plan-structure"><a class="header" href="#plan-structure">Plan Structure</a></h2>
+<p>The coordinator creates plans in a JSON format that looks like this:</p>
+<pre><code class="language-json">{
+  "task": "Research, implement, and test a binary search algorithm",
+  "plan": [
+    {
+      "step": 1,
+      "agent": "researcher",
+      "action": "Research binary search algorithm and best practices",
+      "expected_output": "Detailed explanation and pseudocode"
+    },
+    {
+      "step": 2,
+      "agent": "coder",
+      "action": "Implement binary search in Rust based on research",
+      "expected_output": "Working Rust implementation"
+    },
+    {
+      "step": 3,
+      "agent": "tester",
+      "action": "Test the implementation with various test cases",
+      "expected_output": "Test results and bug report"
+    }
+  ]
+}
+</code></pre>
+<h2 id="custom-coordinator-prompts"><a class="header" href="#custom-coordinator-prompts">Custom Coordinator Prompts</a></h2>
+<p>You can customize how the coordinator creates plans by providing a custom system prompt. This allows you to tailor the planning process to your specific needs.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let coordinator_prompt = r#"You are an expert project coordinator.
+
+Your role is to:
+1. Analyze complex tasks and break them into clear subtasks
+2. Assign subtasks to the most appropriate agent
+3. Ensure dependencies between tasks are respected
+4. Create comprehensive plans in JSON format
+
+Available agents:
+- researcher: Gathers information and does analysis
+- developer: Writes code and implements features
+- reviewer: Reviews code quality and suggests improvements
+
+Always create plans that are specific, measurable, and achievable."#;
+
+let forest = ForestBuilder::new()
+    .config(config)
+    .enable_coordinator_planning()
+    .coordinator_agent("coordinator".to_string(),
+        Agent::builder("coordinator")
+            .system_prompt(coordinator_prompt))
+    .agents(vec![
+        ("researcher".to_string(), Agent::builder("researcher")),
+        ("developer".to_string(), Agent::builder("developer")),
+        ("reviewer".to_string(), Agent::builder("reviewer")),
+    ])
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="introduction-to-retrieval-augmented-generation-rag"><a class="header" href="#introduction-to-retrieval-augmented-generation-rag">Introduction to Retrieval-Augmented Generation (RAG)</a></h1>
+<p>Helios Engine provides a powerful and flexible RAG (Retrieval-Augmented Generation) system that allows agents to store and retrieve documents using semantic search. The system supports multiple backends and embedding providers, making it suitable for both development and production use.</p>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<p>The RAG system consists of three main components:</p>
+<ol>
+<li><strong>Embedding Provider</strong>: Generates vector embeddings from text</li>
+<li><strong>Vector Store</strong>: Stores and retrieves document embeddings</li>
+<li><strong>RAG System</strong>: Coordinates embedding and storage operations</li>
+</ol>
+<pre><code>┌─────────────────┐
+│   RAG System    │
+├─────────────────┤
+│  • add_document │
+│  • search       │
+│  • delete       │
+│  • clear        │
+│  • count        │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+┌───▼──────┐  ┌──▼───────────┐
+│Embedding │  │Vector Store  │
+│Provider  │  │              │
+├──────────┤  ├──────────────┤
+│ OpenAI   │  │ In-Memory    │
+│ (custom) │  │ Qdrant       │
+└──────────┘  └──────────────┘
+</code></pre>
+<h2 id="usage-with-agents"><a class="header" href="#usage-with-agents">Usage with Agents</a></h2>
+<p>The simplest way to use RAG is through the <code>RAGTool</code> with an agent.</p>
+<h3 id="in-memory-rag"><a class="header" href="#in-memory-rag">In-Memory RAG</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::{Agent, Config, RAGTool};
+
+let config = Config::from_file("config.toml").unwrap_or_default();
+let rag_tool = RAGTool::new_in_memory(
+    "https://api.openai.com/v1/embeddings",
+    std::env::var("OPENAI_API_KEY").unwrap()
+);
+
+let mut agent = Agent::builder("KnowledgeAgent")
+    .config(config)
+    .tool(Box::new(rag_tool))
+    .build()
+    .await?;
+
+// Add documents
+agent.chat("Store this: Rust is a systems programming language.").await?;
+
+// Search
+let response = agent.chat("What do you know about Rust?").await?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="qdrant-rag"><a class="header" href="#qdrant-rag">Qdrant RAG</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = Config::from_file("config.toml").unwrap_or_default();
+let rag_tool = RAGTool::new_qdrant(
+    "http://localhost:6333",
+    "my_collection",
+    "https://api.openai.com/v1/embeddings",
+    std::env::var("OPENAI_API_KEY").unwrap()
+);
+
+let mut agent = Agent::builder("KnowledgeAgent")
+    .config(config)
+    .tool(Box::new(rag_tool))
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="vector-stores"><a class="header" href="#vector-stores">Vector Stores</a></h1>
+<p>Vector stores are responsible for storing and retrieving document embeddings. Helios Engine supports two vector stores out of the box: an in-memory store and a Qdrant store.</p>
+<h2 id="in-memory-vector-store"><a class="header" href="#in-memory-vector-store">In-Memory Vector Store</a></h2>
+<p>A fast, lightweight vector store that keeps all data in memory.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::InMemoryVectorStore;
+
+let vector_store = InMemoryVectorStore::new();
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>✓ No external dependencies</li>
+<li>✓ Fast performance</li>
+<li>✓ Simple setup</li>
+<li>✓ Perfect for development and testing</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>✗ No persistence (data lost on restart)</li>
+<li>✗ Limited by available memory</li>
+<li>✗ Not suitable for large datasets</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Development and testing</li>
+<li>Demos and examples</li>
+<li>Short-lived sessions</li>
+<li>Prototyping</li>
+</ul>
+<h2 id="qdrant-vector-store"><a class="header" href="#qdrant-vector-store">Qdrant Vector Store</a></h2>
+<p>A production-ready vector store using the <a href="https://qdrant.tech/">Qdrant</a> vector database.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::QdrantVectorStore;
+
+let vector_store = QdrantVectorStore::new(
+    "http://localhost:6333",
+    "my_collection"
+);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Advantages:</strong></p>
+<ul>
+<li>✓ Persistent storage</li>
+<li>✓ Highly scalable</li>
+<li>✓ Production-ready</li>
+<li>✓ Advanced features (filtering, etc.)</li>
+</ul>
+<p><strong>Disadvantages:</strong></p>
+<ul>
+<li>✗ Requires Qdrant service</li>
+<li>✗ More complex setup</li>
+</ul>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Production applications</li>
+<li>Large datasets</li>
+<li>Multi-user systems</li>
+<li>When persistence is required</li>
+</ul>
+<h3 id="setting-up-qdrant"><a class="header" href="#setting-up-qdrant">Setting up Qdrant</a></h3>
+<p>You can run Qdrant using Docker:</p>
+<pre><code class="language-bash">docker run -p 6333:6333 qdrant/qdrant
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="embedding-providers"><a class="header" href="#embedding-providers">Embedding Providers</a></h1>
+<p>Embedding providers are responsible for generating vector embeddings from text. Helios Engine supports OpenAI's embedding API out of the box.</p>
+<h2 id="openai-embeddings"><a class="header" href="#openai-embeddings">OpenAI Embeddings</a></h2>
+<p>Uses OpenAI's embedding API (e.g., <code>text-embedding-ada-002</code> or <code>text-embedding-3-small</code>).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use helios_engine::OpenAIEmbeddings;
+
+let embeddings = OpenAIEmbeddings::new(
+    "https://api.openai.com/v1/embeddings",
+    std::env::var("OPENAI_API_KEY").unwrap()
+);
+
+// Or with a specific model
+let embeddings = OpenAIEmbeddings::with_model(
+    "https://api.openai.com/v1/embeddings",
+    std::env::var("OPENAI_API_KEY").unwrap(),
+    "text-embedding-3-small"
+);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Features:</strong></p>
+<ul>
+<li>High-quality embeddings</li>
+<li>1536 dimensions (for <code>text-embedding-ada-002</code> and <code>text-embedding-3-small</code>)</li>
+<li>Excellent for semantic search</li>
+<li>Requires an API key and an internet connection</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="serve-module"><a class="header" href="#serve-module">Serve Module</a></h1>
+<p>The <code>serve</code> module provides functionality to serve fully OpenAI-compatible API endpoints with real-time streaming and parameter control, allowing you to expose your agents or LLM clients via HTTP.</p>
+<h2 id="starting-the-server"><a class="header" href="#starting-the-server">Starting the Server</a></h2>
+<p>The <code>serve</code> module provides several functions for starting the server:</p>
+<ul>
+<li><strong><code>start_server(config: Config, address: &amp;str)</code></strong>: Starts the HTTP server with the given configuration.</li>
+<li><strong><code>start_server_with_agent(agent: Agent, model_name: String, address: &amp;str)</code></strong>: Starts the HTTP server with an agent.</li>
+<li><strong><code>start_server_with_custom_endpoints(config: Config, address: &amp;str, custom_endpoints: Option&lt;CustomEndpointsConfig&gt;)</code></strong>: Starts the HTTP server with custom endpoints.</li>
+<li><strong><code>start_server_with_agent_and_custom_endpoints(agent: Agent, model_name: String, address: &amp;str, custom_endpoints: Option&lt;CustomEndpointsConfig&gt;)</code></strong>: Starts the HTTP server with an agent and custom endpoints.</li>
+</ul>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<p>Here's an example of how to start the server with an agent:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, serve};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let agent = Agent::builder("API Agent")
+        .config(config)
+        .system_prompt("You are a helpful AI assistant with access to a calculator tool.")
+        .tool(Box::new(CalculatorTool))
+        .max_iterations(5)
+        .build()
+        .await?;
+
+    println!("Starting server on http://127.0.0.1:8000");
+    println!("Try: curl http://127.0.0.1:8000/v1/chat/completions \\");
+    println!("  -H 'Content-Type: application/json' \\");
+    println!("  -d '{{\"model\": \"local-model\", \"messages\": [{{\"role\": \"user\", \"content\": \"What is 15 * 7?\"}}]}}'");
+
+    serve::start_server_with_agent(agent, "local-model".to_string(), "127.0.0.1:8000").await?;
+
+    Ok(())
+}</code></pre></pre>
+<h2 id="api-endpoints"><a class="header" href="#api-endpoints">API Endpoints</a></h2>
+<p>The <code>serve</code> module exposes the following OpenAI-compatible API endpoints:</p>
+<ul>
+<li><strong><code>POST /v1/chat/completions</code></strong>: Handles chat completion requests.</li>
+<li><strong><code>GET /v1/models</code></strong>: Lists the available models.</li>
+<li><strong><code>GET /health</code></strong>: A health check endpoint.</li>
+</ul>
+<h2 id="custom-endpoints"><a class="header" href="#custom-endpoints">Custom Endpoints</a></h2>
+<p>You can also define your own custom endpoints by creating a <code>custom_endpoints.toml</code> file and loading it when you start the server.</p>
+<h3 id="custom_endpointstoml"><a class="header" href="#custom_endpointstoml"><code>custom_endpoints.toml</code></a></h3>
+<p>Here's an example of a <code>custom_endpoints.toml</code> file:</p>
+<pre><code class="language-toml">[[endpoints]]
+method = "GET"
+path = "/custom"
+response = { message = "This is a custom endpoint" }
+status_code = 200
+</code></pre>
+<h3 id="loading-custom-endpoints"><a class="header" href="#loading-custom-endpoints">Loading Custom Endpoints</a></h3>
+<p>You can load the custom endpoints configuration using the <code>load_custom_endpoints_config()</code> function:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let custom_endpoints = serve::load_custom_endpoints_config("custom_endpoints.toml")?;
+<span class="boring">}</span></code></pre></pre>
+<p>You can then pass the <code>custom_endpoints</code> to the <code>start_server_with_custom_endpoints()</code> or <code>start_server_with_agent_and_custom_endpoints()</code> function.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="examples-overview"><a class="header" href="#examples-overview">Examples Overview</a></h1>
+<p>This directory contains comprehensive examples demonstrating various features of the Helios Engine framework.</p>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="examples/overview.html#running-examples">Running Examples</a></li>
+<li><a href="examples/overview.html#basic-examples">Basic Examples</a></li>
+<li><a href="examples/overview.html#agent-examples">Agent Examples</a></li>
+<li><a href="examples/overview.html#advanced-examples">Advanced Examples</a></li>
+<li><a href="examples/overview.html#rag-examples">RAG Examples</a></li>
+<li><a href="examples/overview.html#api-examples">API Examples</a></li>
+</ul>
+<h2 id="running-examples"><a class="header" href="#running-examples">Running Examples</a></h2>
+<p>All examples can be run using Cargo:</p>
+<pre><code class="language-bash"># Run a specific example
+cargo run --example basic_chat
+
+# List all available examples
+cargo run --example --list
+</code></pre>
+<h3 id="individual-example-commands"><a class="header" href="#individual-example-commands">Individual Example Commands</a></h3>
+<pre><code class="language-bash"># Basic chat example
+cargo run --example basic_chat
+
+# Agent with built-in tools (Calculator, Echo)
+cargo run --example agent_with_tools
+
+# Agent with file management tools
+cargo run --example agent_with_file_tools
+
+# Agent with in-memory database tool
+cargo run --example agent_with_memory_db
+
+# Custom tool implementation
+cargo run --example custom_tool
+
+# Multiple agents with different personalities
+cargo run --example multiple_agents
+
+# Forest of Agents - collaborative multi-agent system
+cargo run --example forest_of_agents
+
+# Forest with Coordinator - enhanced planning system
+cargo run --example forest_with_coordinator
+
+# Forest Simple Demo - simple reliable demo of planning system
+cargo run --example forest_simple_demo
+
+# Direct LLM usage without agents
+cargo run --example direct_llm_usage
+
+# Streaming chat with remote models
+cargo run --example streaming_chat
+
+# Local model streaming example
+cargo run --example local_streaming
+
+# Serve an agent via HTTP API
+cargo run --example serve_agent
+
+# Serve with custom endpoints
+cargo run --example serve_with_custom_endpoints
+
+# SendMessageTool demo - test messaging functionality
+cargo run --example send_message_tool_demo
+
+# Agent with RAG capabilities
+cargo run --example agent_with_rag
+
+# RAG with in-memory vector store
+cargo run --example rag_in_memory
+
+# Compare RAG implementations (Qdrant vs InMemory)
+cargo run --example rag_qdrant_comparison
+
+# Complete demo with all features
+cargo run --example complete_demo
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="how-to-contribute"><a class="header" href="#how-to-contribute">How to Contribute</a></h1>
+<p>Thank you for your interest in contributing to Helios Engine! This document provides guidelines and information for contributors.</p>
+<h2 id="-quick-start-for-contributors"><a class="header" href="#-quick-start-for-contributors">🚀 Quick Start for Contributors</a></h2>
+<h3 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h3>
+<ol>
+<li>
+<p><strong>Clone the repository:</strong></p>
+<pre><code class="language-bash">git clone https://github.com/Ammar-Alnagar/Helios-Engine.git
+cd Helios-Engine
+</code></pre>
+</li>
+<li>
+<p><strong>Build the project:</strong></p>
+<pre><code class="language-bash">cargo build
+</code></pre>
+</li>
+<li>
+<p><strong>Run tests:</strong></p>
+<pre><code class="language-bash">cargo test
+</code></pre>
+</li>
+<li>
+<p><strong>Format code:</strong></p>
+<pre><code class="language-bash">cargo fmt
+</code></pre>
+</li>
+<li>
+<p><strong>Check for issues:</strong></p>
+<pre><code class="language-bash">cargo clippy
+</code></pre>
+</li>
+</ol>
+<h3 id="first-contribution"><a class="header" href="#first-contribution">First Contribution</a></h3>
+<ol>
+<li>Fork the repository on GitHub</li>
+<li>Create a feature branch: <code>git checkout -b feature/your-feature-name</code></li>
+<li>Make your changes</li>
+<li>Run tests: <code>cargo test</code></li>
+<li>Format code: <code>cargo fmt</code></li>
+<li>Check for issues: <code>cargo clippy</code></li>
+<li>Commit your changes: <code>git commit -m "Add your feature"</code></li>
+<li>Push to your fork: <code>git push origin feature/your-feature-name</code></li>
+<li>Create a Pull Request</li>
+</ol>
+<h2 id="-development-workflow"><a class="header" href="#-development-workflow">🏗️ Development Workflow</a></h2>
+<h3 id="branching-strategy"><a class="header" href="#branching-strategy">Branching Strategy</a></h3>
+<ul>
+<li><code>main</code>: Production-ready code</li>
+<li><code>develop</code>: Integration branch for features</li>
+<li><code>feature/*</code>: New features</li>
+<li><code>bugfix/*</code>: Bug fixes</li>
+<li><code>hotfix/*</code>: Critical fixes for production</li>
+</ul>
+<h3 id="commit-messages"><a class="header" href="#commit-messages">Commit Messages</a></h3>
+<p>Follow conventional commit format:</p>
+<pre><code>type(scope): description
+
+[optional body]
+
+[optional footer]
+</code></pre>
+<h2 id="-testing"><a class="header" href="#-testing">🧪 Testing</a></h2>
+<h3 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h3>
+<pre><code class="language-bash"># Run all tests
+cargo test
+
+# Run specific test
+cargo test test_name
+</code></pre>
+<h2 id="-documentation"><a class="header" href="#-documentation">📚 Documentation</a></h2>
+<h3 id="documentation-standards"><a class="header" href="#documentation-standards">Documentation Standards</a></h3>
+<ul>
+<li>Use Markdown for all documentation</li>
+<li>Include code examples where relevant</li>
+<li>Provide both conceptual and practical information</li>
+<li>Keep documentation up-to-date with code changes</li>
+<li>Use clear, concise language accessible to different experience levels</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
