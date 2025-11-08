@@ -12,6 +12,22 @@ The `Agent` struct is the main component of the Helios Engine. It encapsulates a
 - **`chat_session`**: The chat session, which stores the conversation history.
 - **`max_iterations`**: The maximum number of iterations for tool execution in a single turn.
 
+```mermaid
+graph TD
+    A[Start] --> B{AgentBuilder};
+    B -- .config() --> B;
+    B -- .system_prompt() --> B;
+    B -- .tool() --> B;
+    B -- .max_iterations() --> B;
+    B -- .build() --> C[Agent];
+    C -- .chat() --> D{LLM};
+    D -- Response --> C;
+    C -- .send_message() --> D;
+    C -- Tool Execution --> E[Tool];
+    E -- Result --> C;
+    C --> F[End];
+```
+
 ## The `AgentBuilder`
 
 The `AgentBuilder` provides a convenient and flexible way to construct and configure agents. It uses the builder pattern to allow you to chain methods together to set the agent's properties.

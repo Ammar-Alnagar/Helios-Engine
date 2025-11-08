@@ -10,26 +10,15 @@ The RAG system consists of three main components:
 2. **Vector Store**: Stores and retrieves document embeddings
 3. **RAG System**: Coordinates embedding and storage operations
 
-```
-┌─────────────────┐
-│   RAG System    │
-├─────────────────┤
-│  • add_document │
-│  • search       │
-│  • delete       │
-│  • clear        │
-│  • count        │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    │         │
-┌───▼──────┐  ┌──▼───────────┐
-│Embedding │  │Vector Store  │
-│Provider  │  │              │
-├──────────┤  ├──────────────┤
-│ OpenAI   │  │ In-Memory    │
-│ (custom) │  │ Qdrant       │
-└──────────┘  └──────────────┘
+```mermaid
+graph TD
+    A[User Query] --> B(RAG System);
+    B -- Embeds Query --> C{Embedding Provider};
+    B -- Searches --> D[Vector Store];
+    C --> D;
+    D -- Returns Relevant Documents --> B;
+    B -- Augments Prompt with Documents --> E{LLM};
+    E -- Generates Response --> F[Final Answer];
 ```
 
 ## Usage with Agents
