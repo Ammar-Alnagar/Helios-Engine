@@ -185,6 +185,18 @@
 <li><strong>Task Planning</strong>: Automatic decomposition of complex tasks into subtasks</li>
 <li><strong>Agent Communication</strong>: Agents can pass messages and results to each other</li>
 </ul>
+<pre><code class="language-mermaid">graph TD
+    A[Task] --&gt; B(Forest);
+    B -- Manages --&gt; C{Coordinator};
+    B -- Manages --&gt; D[Worker Agent 1];
+    B -- Manages --&gt; E[Worker Agent 2];
+    B -- Manages --&gt; F[Worker Agent N];
+    C -- Delegates To --&gt; D;
+    C -- Delegates To --&gt; E;
+    C -- Delegates To --&gt; F;
+    D -- Communicates With --&gt; E;
+    E -- Communicates With --&gt; F;
+</code></pre>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <h3 id="creating-a-simple-forest"><a class="header" href="#creating-a-simple-forest">Creating a Simple Forest</a></h3>
 <pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, ForestBuilder};
