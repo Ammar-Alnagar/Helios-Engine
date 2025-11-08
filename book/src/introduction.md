@@ -1,7 +1,7 @@
 # 🔥 Helios Engine - LLM Agent Framework
 
 <p align="center">
-  <img src="../../Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
+  <img src="Helios_Engine_Logo.png" alt="Helios Engine Logo" width="350"/>
 </p>
 
 **Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
