@@ -163,8 +163,7 @@ Provide your reasoning in a clear, structured way."#;
     async fn generate_reasoning(&mut self) -> Result<String> {
         let reasoning_prompt = self
             .react_prompt
-            .as_ref()
-            .map(|s| s.as_str())
+            .as_deref()
             .unwrap_or(Self::DEFAULT_REASONING_PROMPT);
 
         // Create a temporary reasoning message
