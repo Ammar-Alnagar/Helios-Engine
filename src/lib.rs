@@ -94,6 +94,9 @@ pub mod tool_macro;
 /// Provides HTTP server functionality for exposing OpenAI-compatible API endpoints.
 pub mod serve;
 
+/// Simplified endpoint creation with the builder pattern for custom HTTP endpoints.
+pub mod endpoint_builder;
+
 /// RAG (Retrieval-Augmented Generation) system with vector stores and embeddings.
 pub mod rag;
 
@@ -151,7 +154,12 @@ pub use rag_tool::RAGTool;
 pub use serve::{
     load_custom_endpoints_config, start_server, start_server_with_agent,
     start_server_with_agent_and_custom_endpoints, start_server_with_custom_endpoints,
-    CustomEndpoint, CustomEndpointsConfig, ServerState,
+    CustomEndpoint, CustomEndpointsConfig, ServerBuilder, ServerState,
+};
+
+/// Re-export of endpoint builder for simplified custom endpoint creation.
+pub use endpoint_builder::{
+    delete, get, patch, post, put, EndpointBuilder, EndpointRequest, EndpointResponse, HttpMethod,
 };
 
 /// Re-export of Forest of Agents functionality.
