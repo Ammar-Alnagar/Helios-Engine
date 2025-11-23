@@ -26,6 +26,7 @@
 - **Tool Registry**: Extensible tool system for adding custom functionality
 - **Extensive Tool Suite**: 16+ built-in tools including web scraping, JSON parsing, timestamp operations, file I/O, shell commands, HTTP requests, system info, and text processing
 - **🆕 RAG System**: Retrieval-Augmented Generation with vector stores (InMemory and Qdrant)
+- **🆕 Custom Endpoints**: Ultra-simple API for adding custom HTTP endpoints to your agent server - ~70% less code than before!
 - **Streaming Support**: True real-time response streaming for both remote and local models with immediate token delivery
 - **Local Model Support**: Run local models offline using llama.cpp with HuggingFace integration (optional `local` feature)
 - **HTTP Server & API**: Expose OpenAI-compatible API endpoints with full parameter support
@@ -123,7 +124,35 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-See **[📖 Getting Started Guide](docs/GETTING_STARTED.md)** or visit the **[Official Book](https://helios-engine.vercel.app/)** for detailed examples and comprehensive tutorials!
+See **[ Getting Started Guide](docs/GETTING_STARTED.md)** or visit the **[Official Book](https://helios-engine.vercel.app/)** for detailed examples and comprehensive tutorials!
+
+### Custom Endpoints Made Simple
+
+Create custom HTTP endpoints with minimal code:
+
+```rust
+use helios_engine::{ServerBuilder, get, EndpointBuilder, EndpointResponse};
+
+let endpoints = vec![
+    // Simple static endpoint
+    get("/api/version", serde_json::json!({"version": "1.0"})),
+    
+    // Dynamic endpoint with request handling
+    EndpointBuilder::post("/api/echo")
+        .handle(|req| {
+            let msg = req.and_then(|r| r.body).unwrap_or_default();
+            EndpointResponse::ok(serde_json::json!({"echo": msg}))
+        })
+        .build(),
+];
+
+ServerBuilder::with_agent(agent, "model")
+    .endpoints(endpoints)
+    .serve()
+    .await?;
+```
+
+**70% less code** than the old API! See **[Custom Endpoints Guide](docs/CUSTOM_ENDPOINTS.md)** for details.
 
 ##  Use Cases
 

@@ -177,7 +177,7 @@ async fn main() -> helios_engine::Result<()> {
     }
 
     println!();
-    println!("✅ SendMessageTool demo completed successfully!");
+    println!(" SendMessageTool demo completed successfully!");
     println!();
     println!("Key features tested:");
     println!("  • Direct messaging between agents");

@@ -159,7 +159,7 @@ async fn main() -> helios_engine::Result<()> {
         })
         .await?;
 
-    println!("\n\n✅ Streaming examples completed!");
+    println!("\n\n Streaming examples completed!");
     println!("\nKey benefits of streaming:");
     println!("  • Real-time response display");
     println!("  • Better user experience for long responses");

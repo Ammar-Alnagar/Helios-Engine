@@ -131,7 +131,7 @@ Use rigorous scientific thinking."#;
     println!("\nAgent: {}\n", response);
 
     println!("═══════════════════════════════════════════════════════════");
-    println!("✅ Custom Prompt Demo Complete!");
+    println!(" Custom Prompt Demo Complete!");
     println!("═══════════════════════════════════════════════════════════");
     println!("\nKey Takeaways:");
     println!("  • Custom prompts tailor reasoning to specific domains");

@@ -130,7 +130,7 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✅ Forest created with 5 specialized agents\n");
+    println!(" Forest created with 5 specialized agents\n");
 
     let task1 = "Create a comprehensive guide about the benefits of renewable energy. \
                  Include research-backed information, clear explanations, data analysis, \
@@ -171,7 +171,7 @@ async fn main() -> helios_engine::Result<()> {
         println!("\n  Task Breakdown:");
         for task in plan.tasks_in_order() {
             let status_icon = match task.status {
-                helios_engine::forest::TaskStatus::Completed => "✅",
+                helios_engine::forest::TaskStatus::Completed => "",
                 helios_engine::forest::TaskStatus::InProgress => "🔄",
                 helios_engine::forest::TaskStatus::Pending => "⏳",
                 helios_engine::forest::TaskStatus::Failed => "❌",
@@ -201,7 +201,7 @@ async fn main() -> helios_engine::Result<()> {
         }
     }
 
-    println!("\n✅ Demo completed successfully!");
+    println!("\n Demo completed successfully!");
 
     Ok(())
 }

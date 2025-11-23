@@ -98,7 +98,7 @@ async fn main() -> helios_engine::Result<()> {
         println!("\n");
     }
 
-    println!("✅ Local model streaming completed successfully!");
+    println!(" Local model streaming completed successfully!");
     println!("\n💡 Features:");
     println!("  • Token-by-token streaming for local models");
     println!("  • Real-time response display (no more instant full responses)");

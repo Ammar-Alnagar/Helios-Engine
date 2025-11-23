@@ -392,14 +392,14 @@ ServerBuilder::with_agent(agent, "local-model")
 
 ### Benefits of the New API
 
-1. ✅ **Simpler syntax** - Less boilerplate code
-2. ✅ **Builder pattern** - Consistent with Agent API
-3. ✅ **Dynamic handlers** - Process request data and return dynamic responses
-4. ✅ **Type safety** - Better compile-time guarantees
-5. ✅ **Helper functions** - Quick creation with `get()`, `post()`, etc.
-6. ✅ **Response helpers** - Easy status code management
-7. ✅ **Descriptions** - Document your endpoints inline
-8. ✅ **Cleaner** - Vector-based endpoint management
+1.  **Simpler syntax** - Less boilerplate code
+2.  **Builder pattern** - Consistent with Agent API
+3.  **Dynamic handlers** - Process request data and return dynamic responses
+4.  **Type safety** - Better compile-time guarantees
+5.  **Helper functions** - Quick creation with `get()`, `post()`, etc.
+6.  **Response helpers** - Easy status code management
+7.  **Descriptions** - Document your endpoints inline
+8.  **Cleaner** - Vector-based endpoint management
 
 ## Best Practices
 

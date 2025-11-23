@@ -42,7 +42,7 @@ async fn main() -> helios_engine::Result<()> {
     let _response = agent.chat("What can you help me with?").await?;
     println!();
 
-    println!("\n✅ Demo completed! Notice how responses streamed in real-time.");
+    println!("\n Demo completed! Notice how responses streamed in real-time.");
 
     Ok(())
 }

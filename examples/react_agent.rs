@@ -60,7 +60,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("\nAgent: {}\n", response);
 
     println!("═══════════════════════════════════════════════════════════");
-    println!("✅ ReAct Demo Complete!");
+    println!(" ReAct Demo Complete!");
     println!("═══════════════════════════════════════════════════════════");
     println!("\nNotice how the agent:");
     println!("  1. 💭 First reasons about the task");

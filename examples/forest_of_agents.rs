@@ -94,12 +94,12 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✅ Created Forest of Agents with 5 specialized agents:");
+    println!(" Created Forest of Agents with 5 specialized agents:");
     println!("  • 🎯 Coordinator: Manages projects and delegates tasks");
     println!("  • 🔬 Researcher: Gathers and analyzes information");
     println!("  • ✍️  Writer: Creates content and documentation");
     println!("  • 📝 Editor: Reviews and improves content quality");
-    println!("  • ✅ QA: Validates requirements and final output");
+    println!("  •  QA: Validates requirements and final output");
     println!();
 
     // Demonstrate collaborative task execution with streaming
@@ -208,7 +208,7 @@ async fn main() -> helios_engine::Result<()> {
     println!();
 
     println!("{}", "=".repeat(70));
-    println!("✅ Forest of Agents Demo Completed Successfully!");
+    println!(" Forest of Agents Demo Completed Successfully!");
     println!("{}", "=".repeat(70));
     println!();
     println!("🎉 Key Features Demonstrated:");

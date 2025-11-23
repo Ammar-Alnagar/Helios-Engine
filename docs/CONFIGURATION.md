@@ -396,7 +396,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test config loading
     let config = Config::from_file("config.toml")?;
-    println!("✅ Configuration file loaded successfully");
+    println!(" Configuration file loaded successfully");
 
     // Test LLM client creation
     let _client = helios_engine::LLMClient::new(config.llm_provider()).await?;

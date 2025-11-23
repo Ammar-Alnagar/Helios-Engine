@@ -94,7 +94,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    println!("\n✅ Example completed successfully!");
+    println!("\n Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");
     println!("  • Setting key-value pairs in memory database");
     println!("  • Retrieving stored values");
