@@ -51,6 +51,86 @@ Helios Engine comes with 18+ built-in tools for various tasks:
   - DelegateTaskTool: Assign tasks to other specialized agents
   - ShareContextTool: Share information in the shared context accessible to all agents
 
+### ReAct (Reasoning and Acting)
+
+Helios Engine supports the ReAct pattern, which enables agents to reason about tasks before taking actions. This leads to more thoughtful and systematic problem-solving.
+
+**Key Features:**
+- **Simple API**: Just add `.react()` to your agent builder
+- **Automatic Reasoning**: Agent thinks through the problem before acting
+- **Structured Planning**: Creates a clear plan before execution
+- **Tool Integration**: Works seamlessly with all tools
+- **Transparent Process**: Shows reasoning in output for debugging
+
+**Basic Usage:**
+
+```rust
+use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+    
+    // Enable ReAct mode with a simple .react() call!
+    let mut agent = Agent::builder("ReActAgent")
+        .config(config)
+        .system_prompt("You are a helpful assistant.")
+        .tool(Box::new(CalculatorTool))
+        .react()  // Enable ReAct mode
+        .build()
+        .await?;
+    
+    let response = agent.chat("Calculate (25 * 4) + (100 / 5)").await?;
+    println!("{}", response);
+    
+    Ok(())
+}
+```
+
+**How It Works:**
+
+1. **User Query**: Agent receives the task
+2. **Reasoning Phase**: Agent thinks through:
+   - What is being asked?
+   - What tools/information are needed?
+   - What's the step-by-step plan?
+3. **Action Phase**: Agent executes the plan with tools
+4. **Response**: Agent provides the final answer
+
+**When to Use ReAct:**
+
+- ✅ Complex multi-step tasks
+- ✅ Tasks requiring planning and coordination
+- ✅ When you want to see the agent's thought process
+- ✅ Problems that benefit from systematic approaches
+- ❌ Simple, straightforward queries (adds overhead)
+- ❌ When speed is more important than reasoning
+
+**Example Output:**
+
+```
+💭 ReAct Reasoning:
+Let me think through this step by step:
+
+1. The user wants to calculate (25 * 4) + (100 / 5)
+2. I need to use the calculator tool for both operations
+3. My plan:
+   - First calculate 25 * 4 = 100
+   - Then calculate 100 / 5 = 20
+   - Finally add the results: 100 + 20 = 120
+
+[Agent proceeds to execute the plan]
+```
+
+**Benefits:**
+
+- **Better Accuracy**: Thinking before acting reduces errors
+- **Explainability**: See how the agent approaches problems
+- **Complex Tasks**: Handles multi-step problems more effectively
+- **Debuggability**: Easier to identify where reasoning goes wrong
+
+See `examples/react_agent.rs` for a complete working example!
+
 ### Multi-Agent Collaboration (Forest of Agents)
 - **Agent Communication**: Agents can send messages to each other and broadcast to all agents
 - **Task Delegation**: Agents can delegate tasks to other specialized agents

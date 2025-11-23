@@ -13,6 +13,12 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
   - CLI reference
 
 ### Core Features
+- **[REACT.md](REACT.md)** - ReAct (Reasoning and Acting) guide 🆕
+  - How ReAct works
+  - When to use it
+  - Examples and best practices
+  - Performance considerations
+
 - **[TOOLS.md](TOOLS.md)** - Complete tools guide
   - Using built-in tools
   - Creating custom tools
@@ -41,6 +47,9 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
 
 **New to Helios Engine?**  
 → Start with [GETTING_STARTED.md](GETTING_STARTED.md)
+
+**Want reasoning agents?** 🆕  
+→ See [REACT.md](REACT.md)
 
 **Want to use tools?**  
 → See [TOOLS.md](TOOLS.md)
@@ -83,6 +92,26 @@ async fn main() -> helios_engine::Result<()> {
 ```
 
 ## 🆕 What's New
+
+### ReAct Feature (v0.4.5+)
+
+**Enable reasoning before acting with a simple `.react()` call:**
+
+```rust
+let mut agent = Agent::builder("MyAgent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .react()  // Agent now reasons before acting!
+    .build()
+    .await?;
+```
+
+The agent will now:
+1. 💭 **Reason** about the task
+2. 📋 **Plan** the approach
+3. ⚡ **Execute** with tools
+
+See `examples/react_agent.rs` for details!
 
 ### Improved Syntax (v0.4.3+)
 
@@ -136,6 +165,7 @@ Check out the `examples/` directory for working code:
 
 - `basic_chat.rs` - Simple chat example
 - `agent_with_tools.rs` - Agent with tools (uses new syntax!)
+- `react_agent.rs` - ReAct (Reasoning and Acting) example 🆕
 - `forest_of_agents.rs` - Multi-agent system (uses new syntax!)
 - `forest_with_coordinator.rs` - Coordinator-based planning
 - `streaming_chat.rs` - Streaming responses

@@ -17,8 +17,9 @@
 
 **Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
 
-## 🚀 Key Features
+##  Key Features
 
+- **🆕 ReAct Mode**: Enable agents to reason and plan before taking actions with a simple `.react()` call
 - **🆕 Forest of Agents**: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context
 - **Agent System**: Create multiple agents with different personalities and capabilities
 - **🆕 Tool Builder**: Simplified tool creation with builder pattern - wrap any function as a tool without manual trait implementation
@@ -32,14 +33,14 @@
 - **CLI & Library**: Use as both a command-line tool and a Rust library crate
 - **🆕 Feature Flags**: Optional `local` feature for offline model support - build only what you need!
 
-## 📚 Documentation
+## Documentation
 
-### 🌐 Online Resources
+###  Online Resources
 - **[Official Website](https://helios-engine.vercel.app/)** - Complete interactive documentation with tutorials, guides, and examples
 - **[Official Book ](https://ammar-alnagar.github.io/Helios-Engine/)** - Comprehensive guide to Helios Engine
-- **[🔧 API Reference](https://docs.rs/helios-engine)** - Detailed API documentation on docs.rs
+- **[ API Reference](https://docs.rs/helios-engine)** - Detailed API documentation on docs.rs
 
-### 🎯 Quick Links
+###  Quick Links
 - **[Getting Started](https://helios-engine.vercel.app/getting_started/installation.html)** - Installation and first steps
 - **[Core Concepts](https://helios-engine.vercel.app/core_concepts/agents.html)** - Agents, LLMs, chat, and error handling
 - **[Tools](https://helios-engine.vercel.app/tools/using_tools.html)** - Using and creating tools
@@ -47,18 +48,18 @@
 - **[RAG System](https://helios-engine.vercel.app/rag/introduction.html)** - Retrieval-Augmented Generation
 - **[Examples](https://helios-engine.vercel.app/examples/overview.html)** - Code examples and use cases
 
-### 📂 Local Documentation
-- **[📖 Getting Started](docs/GETTING_STARTED.md)** - Comprehensive guide: installation, configuration, first agent, tools, and CLI
-- **[🛠️ Tools Guide](docs/TOOLS.md)** - Built-in tools, custom tool creation, and Tool Builder
-- **[🌲 Forest of Agents](docs/FOREST.md)** - Multi-agent systems, coordination, and communication
-- **[🔍 RAG System](docs/RAG.md)** - Retrieval-Augmented Generation with vector stores
-- **[📋 API Reference](docs/API.md)** - Complete API documentation
-- **[⚙️ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
-- **[📦 Using as Crate](docs/USING_AS_CRATE.md)** - Library usage guide
+### Local Documentation
+- **[ Getting Started](docs/GETTING_STARTED.md)** - Comprehensive guide: installation, configuration, first agent, tools, and CLI
+- **[ Tools Guide](docs/TOOLS.md)** - Built-in tools, custom tool creation, and Tool Builder
+- **[ Forest of Agents](docs/FOREST.md)** - Multi-agent systems, coordination, and communication
+- **[ RAG System](docs/RAG.md)** - Retrieval-Augmented Generation with vector stores
+- **[ API Reference](docs/API.md)** - Complete API documentation
+- **[ Configuration](docs/CONFIGURATION.md)** - Configuration options and local inference setup
+- **[ Using as Crate](docs/USING_AS_CRATE.md)** - Library usage guide
 
-📚 **[Full Documentation Index](docs/README.md)** - Complete navigation and updated structure
+ **[Full Documentation Index](docs/README.md)** - Complete navigation and updated structure
 
-## 🏃‍♂️ Quick Start
+## Quick Start
 
 ### Version 0.4.4
 
@@ -101,7 +102,7 @@ tokio = { version = "1.35", features = ["full"] }
 ### Simple Example
 
 ```rust
-use helios_engine::{Agent, Config};
+use helios_engine::{Agent, Config, CalculatorTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -110,10 +111,12 @@ async fn main() -> helios_engine::Result<()> {
     let mut agent = Agent::builder("MyAssistant")
         .config(config)
         .system_prompt("You are a helpful AI assistant.")
+        .tool(Box::new(CalculatorTool))
+        .react()  // Enable ReAct mode for reasoning before acting! 🧠
         .build()
         .await?;
 
-    let response = agent.chat("Hello! How are you?").await?;
+    let response = agent.chat("What is 15 * 8?").await?;
     println!("{}", response);
 
     Ok(())
@@ -122,17 +125,17 @@ async fn main() -> helios_engine::Result<()> {
 
 See **[📖 Getting Started Guide](docs/GETTING_STARTED.md)** or visit the **[Official Book](https://helios-engine.vercel.app/)** for detailed examples and comprehensive tutorials!
 
-## 🎯 Use Cases
+##  Use Cases
 
-- **💬 Chatbots & Virtual Assistants**: Build conversational AI with tool access and memory
-- **🌲 Multi-Agent Systems**: Coordinate multiple specialized agents for complex workflows
-- **📊 Data Analysis**: Agents that can read files, process data, and generate reports
-- **🌐 Web Automation**: Scrape websites, make API calls, and process responses
-- **📚 Knowledge Management**: Build RAG systems for semantic search and Q&A
-- **🔌 API Services**: Expose your agents via OpenAI-compatible HTTP endpoints
-- **🔒 Local AI**: Run models completely offline for privacy and security
+- **Chatbots & Virtual Assistants**: Build conversational AI with tool access and memory
+- **Multi-Agent Systems**: Coordinate multiple specialized agents for complex workflows
+- **Data Analysis**: Agents that can read files, process data, and generate reports
+- **Web Automation**: Scrape websites, make API calls, and process responses
+- **Knowledge Management**: Build RAG systems for semantic search and Q&A
+- **API Services**: Expose your agents via OpenAI-compatible HTTP endpoints
+- **Local AI**: Run models completely offline for privacy and security
 
-## 🛠️ Built-in Tools (16+)
+##  Built-in Tools (16+)
 
 Helios Engine includes a comprehensive suite of production-ready tools:
 
@@ -145,7 +148,7 @@ Helios Engine includes a comprehensive suite of production-ready tools:
 
 Learn more in the [Tools Guide](https://helios-engine.vercel.app/tools/using_tools.html).
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 helios-engine/
@@ -158,7 +161,7 @@ helios-engine/
 └── README.md              # This file
 ```
 
-## 🤝 Contributing
+##  Contributing
 
 We welcome contributions! See our **[Contributing Guide](https://helios-engine.vercel.app/contributing/how_to_contribute.html)** for details on:
 - Development setup
@@ -166,7 +169,7 @@ We welcome contributions! See our **[Contributing Guide](https://helios-engine.v
 - Documentation guidelines
 - Testing procedures
 
-## 🔗 Links
+##  Links
 
 - **[Official Website & Book](https://helios-engine.vercel.app/)** - Complete documentation and guides
 - **[Crates.io](https://crates.io/crates/helios-engine)** - Package registry
@@ -174,7 +177,7 @@ We welcome contributions! See our **[Contributing Guide](https://helios-engine.v
 - **[GitHub Repository](https://github.com/Ammar-Alnagar/helios-engine)** - Source code
 - **[Examples](examples/)** - Code examples
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

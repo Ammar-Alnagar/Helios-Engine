@@ -29,6 +29,8 @@ pub struct Agent {
     chat_session: ChatSession,
     /// The maximum number of iterations for tool execution in a single turn.
     max_iterations: usize,
+    /// Whether the agent uses ReAct mode (Reasoning and Acting).
+    react_mode: bool,
 }
 
 impl Agent {
@@ -61,6 +63,7 @@ impl Agent {
             tool_registry: ToolRegistry::new(),
             chat_session: ChatSession::new(),
             max_iterations: 10,
+            react_mode: false,
         })
     }
 
@@ -140,6 +143,38 @@ impl Agent {
         Ok(response)
     }
 
+    /// Generates reasoning for the current task in ReAct mode.
+    async fn generate_reasoning(&mut self) -> Result<String> {
+        let reasoning_prompt = r#"Before taking any action, think through this step by step:
+
+1. What is the user asking for?
+2. What information or tools do I need to answer this?
+3. What is my plan to solve this problem?
+
+Provide your reasoning in a clear, structured way."#;
+
+        // Create a temporary reasoning message
+        let mut reasoning_messages = self.chat_session.get_messages();
+        reasoning_messages.push(ChatMessage::user(reasoning_prompt));
+
+        // Get reasoning from LLM without tools
+        let response = self
+            .llm_client
+            .chat(reasoning_messages, None, None, None, None)
+            .await?;
+
+        // Store reasoning in chat session as a system-like note
+        self.chat_session.add_message(ChatMessage::user(format!(
+            "[Internal Reasoning]\n{}",
+            response.content
+        )));
+        self.chat_session.add_message(ChatMessage::assistant(
+            "[Reasoning complete, proceeding with action]",
+        ));
+
+        Ok(response.content)
+    }
+
     /// Executes the agent's main loop, including tool calls.
     async fn execute_with_tools(&mut self) -> Result<String> {
         self.execute_with_tools_streaming().await
@@ -158,6 +193,12 @@ impl Agent {
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
     ) -> Result<String> {
+        // If ReAct mode is enabled, generate reasoning first
+        if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
+            let reasoning = self.generate_reasoning().await?;
+            println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
+        }
+
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
 
@@ -227,6 +268,12 @@ impl Agent {
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
     ) -> Result<String> {
+        // If ReAct mode is enabled, generate reasoning first
+        if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
+            let reasoning = self.generate_reasoning().await?;
+            println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
+        }
+
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
 
@@ -627,6 +674,7 @@ pub struct AgentBuilder {
     system_prompt: Option<String>,
     tools: Vec<Box<dyn crate::tools::Tool>>,
     max_iterations: usize,
+    react_mode: bool,
 }
 
 impl AgentBuilder {
@@ -637,6 +685,7 @@ impl AgentBuilder {
             system_prompt: None,
             tools: Vec::new(),
             max_iterations: 10,
+            react_mode: false,
         }
     }
 
@@ -685,6 +734,31 @@ impl AgentBuilder {
         self
     }
 
+    /// Enables ReAct mode for the agent.
+    ///
+    /// In ReAct mode, the agent will reason about the task and create a plan
+    /// before taking actions. This helps the agent think through problems
+    /// more systematically and make better decisions.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::{Agent, Config};
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// # let config = Config::new_default();
+    /// let agent = Agent::builder("MyAgent")
+    ///     .config(config)
+    ///     .react()
+    ///     .build()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn react(mut self) -> Self {
+        self.react_mode = true;
+        self
+    }
+
     pub async fn build(self) -> Result<Agent> {
         let config = self
             .config
@@ -701,6 +775,7 @@ impl AgentBuilder {
         }
 
         agent.set_max_iterations(self.max_iterations);
+        agent.react_mode = self.react_mode;
 
         Ok(agent)
     }
