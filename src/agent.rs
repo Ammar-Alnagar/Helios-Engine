@@ -179,6 +179,30 @@ Provide your reasoning in a clear, structured way."#;
         Ok(response.content)
     }
 
+    /// Handles ReAct reasoning if enabled.
+    ///
+    /// This helper method generates reasoning, displays it to the user,
+    /// and adds it to the chat history as an assistant message.
+    /// It should be called at the beginning of tool execution methods.
+    async fn handle_react_reasoning(&mut self) -> Result<()> {
+        // If ReAct mode is enabled, generate reasoning first
+        if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
+            let reasoning = self.generate_reasoning().await?;
+
+            // Display reasoning to user
+            println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
+
+            // Add reasoning to chat history as an assistant message (not user)
+            // This represents the agent's internal thought process
+            self.chat_session
+                .add_message(ChatMessage::assistant(format!(
+                    "[Reasoning]: {}",
+                    reasoning
+                )));
+        }
+        Ok(())
+    }
+
     /// Executes the agent's main loop, including tool calls.
     async fn execute_with_tools(&mut self) -> Result<String> {
         self.execute_with_tools_streaming().await
@@ -197,21 +221,8 @@ Provide your reasoning in a clear, structured way."#;
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
     ) -> Result<String> {
-        // If ReAct mode is enabled, generate reasoning first
-        if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
-            let reasoning = self.generate_reasoning().await?;
-
-            // Display reasoning to user
-            println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
-
-            // Add reasoning to chat history as an assistant message (not user)
-            // This represents the agent's internal thought process
-            self.chat_session
-                .add_message(ChatMessage::assistant(format!(
-                    "[Reasoning]: {}",
-                    reasoning
-                )));
-        }
+        // Handle ReAct reasoning if enabled
+        self.handle_react_reasoning().await?;
 
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();
@@ -282,21 +293,8 @@ Provide your reasoning in a clear, structured way."#;
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
     ) -> Result<String> {
-        // If ReAct mode is enabled, generate reasoning first
-        if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
-            let reasoning = self.generate_reasoning().await?;
-
-            // Display reasoning to user
-            println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
-
-            // Add reasoning to chat history as an assistant message (not user)
-            // This represents the agent's internal thought process
-            self.chat_session
-                .add_message(ChatMessage::assistant(format!(
-                    "[Reasoning]: {}",
-                    reasoning
-                )));
-        }
+        // Handle ReAct reasoning if enabled
+        self.handle_react_reasoning().await?;
 
         let mut iterations = 0;
         let tool_definitions = self.tool_registry.get_definitions();

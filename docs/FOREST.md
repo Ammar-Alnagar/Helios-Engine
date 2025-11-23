@@ -324,7 +324,7 @@ for cycle in 1..=3 {
 
 Give each agent a specific, well-defined role:
 
-✅ **Good:**
+ **Good:**
 ```rust
 .system_prompt("You are a data analyst specializing in sales metrics. 
                 Analyze data and provide statistical insights.")
@@ -349,7 +349,7 @@ Give each agent a specific, well-defined role:
 
 When using coordinator planning, provide clear, decomposable tasks:
 
-✅ **Good:**
+ **Good:**
 ```rust
 forest.execute("Research Rust error handling, implement examples, 
                 and write documentation").await?

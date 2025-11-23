@@ -1,4 +1,4 @@
-# 🔥 Helios Engine - LLM Agent Framework
+# Helios Engine - LLM Agent Framework
 
 
 <p align="center">
@@ -112,7 +112,7 @@ async fn main() -> helios_engine::Result<()> {
         .config(config)
         .system_prompt("You are a helpful AI assistant.")
         .tool(Box::new(CalculatorTool))
-        .react()  // Enable ReAct mode for reasoning before acting! 🧠
+        .react()  // Enable ReAct mode for reasoning before acting!
         .build()
         .await?;
 
@@ -184,5 +184,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  Made with ❤️ in Rust by <a href="https://github.com/Ammar-Alnagar">Ammar Alnagar</a>
+  Made with love in Rust by <a href="https://github.com/Ammar-Alnagar">Ammar Alnagar</a>
 </p>

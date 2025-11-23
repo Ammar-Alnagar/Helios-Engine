@@ -116,15 +116,15 @@ cargo test --test integration_tests
 
 | Component | Test Coverage | Test Types |
 |-----------|---------------|------------|
-| **Agent System** | ✅ High | Unit, Integration |
-| **Tool Registry** | ✅ High | Unit, Integration |
-| **Built-in Tools** | ✅ High | Unit |
-| **LLM Clients** | ✅ Medium | Unit, Integration |
-| **Configuration** | ✅ High | Unit |
-| **Chat Sessions** | ✅ High | Unit |
-| **HTTP API** | ✅ Medium | Integration |
-| **RAG System** | ✅ High | Unit, Integration |
-| **Streaming** | ✅ Medium | Integration |
+| **Agent System** |  High | Unit, Integration |
+| **Tool Registry** |  High | Unit, Integration |
+| **Built-in Tools** |  High | Unit |
+| **LLM Clients** |  Medium | Unit, Integration |
+| **Configuration** |  High | Unit |
+| **Chat Sessions** |  High | Unit |
+| **HTTP API** |  Medium | Integration |
+| **RAG System** |  High | Unit, Integration |
+| **Streaming** |  Medium | Integration |
 
 ### Test Metrics
 

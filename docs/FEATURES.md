@@ -1,10 +1,10 @@
-# 🚀 Helios Engine Features
+# Helios Engine Features
 
-## 🎯 Overview
+## Overview
 
 Helios Engine is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
 
-## 🔧 Core Features
+## Core Features
 
 ### Agent System
 - **Multi-Agent Architecture**: Create multiple agents with different personalities, capabilities, and configurations
@@ -99,17 +99,17 @@ async fn main() -> helios_engine::Result<()> {
 
 **When to Use ReAct:**
 
-- ✅ Complex multi-step tasks
-- ✅ Tasks requiring planning and coordination
-- ✅ When you want to see the agent's thought process
-- ✅ Problems that benefit from systematic approaches
-- ❌ Simple, straightforward queries (adds overhead)
-- ❌ When speed is more important than reasoning
+- Complex multi-step tasks
+- Tasks requiring planning and coordination
+- When you want to see the agent's thought process
+- Problems that benefit from systematic approaches
+- Simple, straightforward queries (adds overhead)
+- When speed is more important than reasoning
 
 **Example Output:**
 
 ```
-💭 ReAct Reasoning:
+ReAct Reasoning:
 Let me think through this step by step:
 
 1. The user wants to calculate (25 * 4) + (100 / 5)
@@ -256,7 +256,7 @@ See `examples/react_agent.rs` for a complete working example!
 - **Usage Examples**: Multiple usage examples for different scenarios
 - **Configuration Documentation**: Detailed configuration options and examples
 
-## 🚀 Usage Modes
+## Usage Modes
 
 ### Online Mode
 - **Remote API Support**: Connect to OpenAI, Azure OpenAI, and other compatible APIs
@@ -313,7 +313,7 @@ See `examples/react_agent.rs` for a complete working example!
 - **Asynchronous Operations**: Non-blocking operations for maximum throughput
 - **Resource Management**: Proper cleanup of resources to prevent leaks
 
-## 🧩 Extensibility
+## Extensibility
 
 ### Tool System
 - **Custom Tool Creation**: Easy creation of new tools by implementing the Tool trait

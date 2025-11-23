@@ -2,7 +2,7 @@
 
 Welcome to the Helios Engine documentation! This guide has been reorganized and streamlined for clarity and ease of use.
 
-## 📚 Documentation Structure
+## Documentation Structure
 
 ### Getting Started
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** - Complete guide to get up and running quickly
@@ -13,7 +13,7 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
   - CLI reference
 
 ### Core Features
-- **[REACT.md](REACT.md)** - ReAct (Reasoning and Acting) guide 🆕
+- **[REACT.md](REACT.md)** - ReAct (Reasoning and Acting) guide
   - How ReAct works
   - When to use it
   - Examples and best practices
@@ -43,12 +43,12 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
 - **[USING_AS_CRATE.md](USING_AS_CRATE.md)** - Library usage guide
 
-## 🚀 Quick Navigation
+## Quick Navigation
 
 **New to Helios Engine?**  
 → Start with [GETTING_STARTED.md](GETTING_STARTED.md)
 
-**Want reasoning agents?** 🆕  
+**Want reasoning agents?**
 → See [REACT.md](REACT.md)
 
 **Want to use tools?**  
@@ -63,7 +63,7 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
 **Looking for API details?**  
 → See [API.md](API.md)
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Installation
 ```bash
@@ -91,7 +91,7 @@ async fn main() -> helios_engine::Result<()> {
 }
 ```
 
-## 🆕 What's New
+## What's New
 
 ### ReAct Feature (v0.4.5+)
 
@@ -107,9 +107,9 @@ let mut agent = Agent::builder("MyAgent")
 ```
 
 The agent will now:
-1. 💭 **Reason** about the task
-2. 📋 **Plan** the approach
-3. ⚡ **Execute** with tools
+1. **Reason** about the task
+2. **Plan** the approach
+3. **Execute** with tools
 
 See `examples/react_agent.rs` for details!
 
@@ -143,7 +143,7 @@ See `examples/react_agent.rs` for details!
 ])
 ```
 
-## 📖 Documentation Philosophy
+## Documentation Philosophy
 
 This documentation follows these principles:
 
@@ -153,33 +153,33 @@ This documentation follows these principles:
 4. **Consistency** - Consistent style and formatting
 5. **Currency** - Up-to-date with latest features
 
-## 🔗 External Resources
+## External Resources
 
 - [GitHub Repository](https://github.com/Ammar-Alnagar/Helios-Engine)
 - [Crates.io](https://crates.io/crates/helios-engine)
 - [API Documentation](https://docs.rs/helios-engine)
 
-## 💡 Examples
+## Examples
 
 Check out the `examples/` directory for working code:
 
 - `basic_chat.rs` - Simple chat example
 - `agent_with_tools.rs` - Agent with tools (uses new syntax!)
-- `react_agent.rs` - ReAct (Reasoning and Acting) example 🆕
-- `react_custom_prompt.rs` - Custom reasoning prompts for different domains 🆕
-- `react_comparison.rs` - Compare standard vs ReAct agents 🆕
-- `react_debugging.rs` - Using ReAct for debugging 🆕
+- `react_agent.rs` - ReAct (Reasoning and Acting) example
+- `react_custom_prompt.rs` - Custom reasoning prompts for different domains
+- `react_comparison.rs` - Compare standard vs ReAct agents
+- `react_debugging.rs` - Using ReAct for debugging
 - `forest_of_agents.rs` - Multi-agent system (uses new syntax!)
 - `forest_with_coordinator.rs` - Coordinator-based planning
 - `streaming_chat.rs` - Streaming responses
 - `rag_advanced.rs` - RAG implementation
 - And many more!
 
-## 🤝 Contributing
+##  Contributing
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
 
-## 📝 License
+##  License
 
 See [LICENSE](../LICENSE) for license information.
 

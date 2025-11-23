@@ -96,7 +96,7 @@ Provide clear mathematical reasoning."#;
 
 ## When to Use ReAct
 
-### ✅ Use ReAct When:
+###  Use ReAct When:
 
 - **Complex Multi-Step Tasks**: Tasks that require planning and coordination
 - **Debugging**: When you want to see how the agent approaches problems

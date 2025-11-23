@@ -1,4 +1,4 @@
-# 🧠 ReAct: Reasoning and Acting
+# ReAct: Reasoning and Acting
 
 ## Overview
 
@@ -27,7 +27,7 @@ async fn main() -> helios_engine::Result<()> {
     let mut agent = Agent::builder("ReActAgent")
         .config(config)
         .tool(Box::new(CalculatorTool))
-        .react()  // ✨ That's it!
+        .react()  // That's it!
         .build()
         .await?;
     
@@ -42,7 +42,7 @@ async fn main() -> helios_engine::Result<()> {
 
 The ReAct pattern follows a two-phase approach:
 
-### 1. Reasoning Phase 💭
+### 1. Reasoning Phase
 
 When you send a message to a ReAct-enabled agent, it first:
 
@@ -51,7 +51,7 @@ When you send a message to a ReAct-enabled agent, it first:
 3. **Creates** a step-by-step plan
 4. **Documents** its reasoning process
 
-### 2. Action Phase ⚡
+### 2. Action Phase
 
 After reasoning, the agent:
 
@@ -64,12 +64,12 @@ After reasoning, the agent:
 ```
 User Query: "Calculate (25 * 4) + (100 / 5)"
 
-💭 Reasoning Phase:
+Reasoning Phase:
    - User wants to perform arithmetic
    - Two operations needed: multiplication and division
    - Plan: Calculate 25*4, then 100/5, then add results
    
-⚡ Action Phase:
+Action Phase:
    - Tool: calculator(25 * 4) → 100
    - Tool: calculator(100 / 5) → 20
    - Tool: calculator(100 + 20) → 120
@@ -79,7 +79,7 @@ Response: "The result is 120"
 
 ## When to Use ReAct
 
-### ✅ Use ReAct When:
+### Use ReAct When:
 
 - **Complex Tasks**: Multi-step problems requiring coordination
 - **Planning Needed**: Tasks that benefit from upfront thinking
@@ -87,7 +87,7 @@ Response: "The result is 120"
 - **Critical Operations**: When accuracy is more important than speed
 - **Learning**: Understanding how agents approach problems
 
-### ❌ Don't Use ReAct When:
+### Don't Use ReAct When:
 
 - **Simple Queries**: "What's 2+2?" doesn't need reasoning overhead
 - **Speed Critical**: Real-time applications where latency matters
@@ -234,7 +234,7 @@ Complex tasks may need more iterations:
 The reasoning is printed to stdout, making it easy to debug:
 
 ```
-💭 ReAct Reasoning:
+ReAct Reasoning:
 Let me analyze this step by step...
 ```
 
@@ -277,7 +277,7 @@ When ReAct mode is enabled:
 
 1. **Before tool execution**: Agent generates reasoning
 2. **Reasoning prompt**: Internal prompt asks agent to think step-by-step
-3. **Output**: Reasoning is printed with `💭 ReAct Reasoning:` prefix
+3. **Output**: Reasoning is printed with `ReAct Reasoning:` prefix
 4. **Session**: Reasoning is stored in chat history for context
 
 ### Internal Implementation
@@ -352,7 +352,7 @@ cargo test test_react_agent_creation
 **Solution**: Reasoning is only generated when:
 - ReAct mode is enabled (`.react()`)
 - Agent has tools registered
-- Check stdout for `💭 ReAct Reasoning:` prefix
+- Check stdout for `ReAct Reasoning:` prefix
 
 ### Too Much Overhead
 

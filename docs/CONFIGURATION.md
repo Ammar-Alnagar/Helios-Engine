@@ -392,7 +392,7 @@ use helios_engine::Config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🔍 Validating Helios Engine configuration...");
+    println!("Validating Helios Engine configuration...");
 
     // Test config loading
     let config = Config::from_file("config.toml")?;
@@ -400,16 +400,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test LLM client creation
     let _client = helios_engine::LLMClient::new(config.llm_provider()).await?;
-    println!("✅ LLM client created successfully");
+    println!(" LLM client created successfully");
 
     // Test local model (if configured)
     if let Some(local_config) = &config.local {
-        println!("🔍 Testing local model configuration...");
+        println!("Testing local model configuration...");
         // Note: Actual model loading would happen on first use
-        println!("✅ Local model configuration is valid");
+        println!("Local model configuration is valid");
     }
 
-    println!("🎉 All configuration tests passed!");
+    println!("All configuration tests passed!");
     Ok(())
 }
 ```
