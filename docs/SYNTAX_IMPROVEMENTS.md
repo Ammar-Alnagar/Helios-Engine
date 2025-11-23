@@ -2,13 +2,13 @@
 
 This document highlights the new, improved syntax introduced in Helios Engine v0.4.3+.
 
-## 🎯 Overview
+## Overview
 
 The new syntax provides a cleaner, more ergonomic way to add multiple tools and agents while maintaining full backward compatibility.
 
 ---
 
-## 🔧 Tools Syntax
+## Tools Syntax
 
 ### Adding Multiple Tools
 
@@ -25,7 +25,7 @@ let agent = Agent::builder("MyAgent")
     .await?;
 ```
 
-#### New Syntax (Recommended) ✨
+#### New Syntax (Recommended)
 ```rust
 let agent = Agent::builder("MyAgent")
     .config(config)
@@ -41,10 +41,10 @@ let agent = Agent::builder("MyAgent")
 ```
 
 ### Benefits
-- ✅ Cleaner and more readable
-- ✅ Easier to organize tools into groups
-- ✅ Less repetitive code
-- ✅ Can combine with individual `.tool()` calls
+- Cleaner and more readable
+- Easier to organize tools into groups
+- Less repetitive code
+- Can combine with individual `.tool()` calls
 
 ### Advanced: Organizing Tools
 
@@ -88,7 +88,7 @@ let agent = Agent::builder("MixedAgent")
 
 ---
 
-## 🌲 Forest of Agents Syntax
+## Forest of Agents Syntax
 
 ### Adding Multiple Agents
 
@@ -115,7 +115,7 @@ let forest = ForestBuilder::new()
     .await?;
 ```
 
-#### New Syntax (Recommended) ✨
+#### New Syntax (Recommended)
 ```rust
 let forest = ForestBuilder::new()
     .config(config)
@@ -141,10 +141,10 @@ let forest = ForestBuilder::new()
 ```
 
 ### Benefits
-- ✅ See entire agent hierarchy at a glance
-- ✅ Easier to understand agent relationships
-- ✅ Better for large multi-agent systems
-- ✅ More consistent with Rust idioms
+- See entire agent hierarchy at a glance
+- Easier to understand agent relationships
+- Better for large multi-agent systems
+- More consistent with Rust idioms
 
 ### Advanced: Organizing Agents by Role
 
@@ -259,7 +259,7 @@ The new syntax aligns better with common Rust patterns where collections are pas
 
 ---
 
-## 💡 Pro Tips
+## Pro Tips
 
 ### 1. Create Tool Constants
 
@@ -318,7 +318,7 @@ let forest = ForestBuilder::new()
 
 ---
 
-## 📚 See Also
+## See Also
 
 - [Getting Started Guide](GETTING_STARTED.md) - Full tutorial
 - [Tools Guide](TOOLS.md) - Complete tools documentation

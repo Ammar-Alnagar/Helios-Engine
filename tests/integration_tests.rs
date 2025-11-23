@@ -357,6 +357,44 @@ async fn test_multiple_tools_in_registry() {
     assert_eq!(test_result.output, "Processed: integration test");
 }
 
+/// Tests that an agent can be created with ReAct mode enabled.
+#[tokio::test]
+async fn test_agent_with_react_mode() {
+    // Create a basic config for testing.
+    let config = Config {
+        llm: LLMConfig {
+            model_name: std::env::var("TEST_MODEL_NAME")
+                .unwrap_or_else(|_| "gpt-3.5-turbo".to_string()),
+            base_url: std::env::var("TEST_BASE_URL")
+                .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
+            api_key: std::env::var("TEST_API_KEY").unwrap_or_else(|_| "test-key".to_string()),
+            temperature: 0.7,
+            max_tokens: 2048,
+        },
+        #[cfg(feature = "local")]
+        local: None,
+    };
+
+    // Create an agent with ReAct mode enabled.
+    let agent = Agent::builder("react_test_agent")
+        .config(config)
+        .system_prompt("You are a helpful assistant that thinks before acting.")
+        .tool(Box::new(CalculatorTool))
+        .react()
+        .build()
+        .await
+        .expect("Failed to create agent with ReAct mode");
+
+    // Verify that the agent was created successfully.
+    assert_eq!(agent.name(), "react_test_agent");
+
+    // Verify the agent has tools registered
+    assert_eq!(
+        agent.tool_registry().list_tools(),
+        vec!["calculator".to_string()]
+    );
+}
+
 /// Tests the builder pattern for creating agents.
 #[tokio::test]
 async fn test_agent_builder_pattern() {

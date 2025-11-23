@@ -44,7 +44,7 @@ async fn main() -> helios_engine::Result<()> {
         println!("Skipping interactive chat.\n");
     }
 
-    println!("✅ All examples completed!");
+    println!(" All examples completed!");
     Ok(())
 }
 

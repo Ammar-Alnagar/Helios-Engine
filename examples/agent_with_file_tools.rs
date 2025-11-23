@@ -97,7 +97,7 @@ async fn main() -> helios_engine::Result<()> {
         agent.get_memory("last_task").unwrap_or(&"none".to_string())
     );
 
-    println!("\n✅ Example completed successfully!");
+    println!("\n Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");
     println!("  • File search with pattern matching and content search");
     println!("  • File reading with line range support");

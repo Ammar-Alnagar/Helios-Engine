@@ -108,7 +108,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    println!("\n✅ Example completed successfully!");
+    println!("\n Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");
     println!("  • In-memory vector storage (no external dependencies)");
     println!("  • Document embedding with OpenAI embeddings");

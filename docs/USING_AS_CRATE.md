@@ -503,7 +503,7 @@ async fn main() -> helios_engine::Result<()> {
     let mut session = ChatSession::new()
         .with_system_prompt("You are a helpful AI assistant.");
 
-    println!("🤖 AI Chat (type 'exit' to quit)\n");
+    println!("AI Chat (type 'exit' to quit)\n");
 
     // Chat loop
     loop {
@@ -528,10 +528,10 @@ async fn main() -> helios_engine::Result<()> {
         match client.chat(session.get_messages(), None).await {
             Ok(response) => {
                 session.add_assistant_message(&response.content);
-                println!("\n🤖: {}\n", response.content);
+                println!("\nAI: {}\n", response.content);
             }
             Err(e) => {
-                eprintln!("\n❌ Error: {}\n", e);
+                eprintln!("\nError: {}\n", e);
             }
         }
     }
@@ -556,6 +556,6 @@ cargo run
 
 ## Support
 
-- 📚 [Full Documentation](../README.md)
-- 💡 [Examples](../examples/)
-- 🐛 [Issue Tracker](https://github.com/Ammar-Alnagar/Helios-Engine/issues)
+- [Full Documentation](../README.md)
+- [Examples](../examples/)
+- [Issue Tracker](https://github.com/Ammar-Alnagar/Helios-Engine/issues)

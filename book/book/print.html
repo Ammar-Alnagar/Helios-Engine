@@ -315,6 +315,8 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
 <li><strong><code>tool(tool: Box&lt;dyn crate::tools::Tool&gt;)</code></strong>: Adds a single tool to the agent.</li>
 <li><strong><code>tools(tools: Vec&lt;Box&lt;dyn crate::tools::Tool&gt;&gt;)</code></strong>: Adds multiple tools to the agent at once.</li>
 <li><strong><code>max_iterations(max: usize)</code></strong>: Sets the maximum number of iterations for tool execution in a single turn.</li>
+<li><strong><code>react()</code></strong>: Enables ReAct mode for reasoning before acting. See <a href="core_concepts/./react.html">ReAct</a> for details.</li>
+<li><strong><code>react_with_prompt(prompt)</code></strong>: Enables ReAct mode with a custom reasoning prompt.</li>
 </ul>
 <p>Here's a more advanced example of how to create and configure an agent:</p>
 <pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
@@ -345,6 +347,375 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
 <li><strong><code>get_session_summary()</code></strong>: Returns a summary of the current chat session.</li>
 </ul>
 <p>The <code>Agent</code> also provides methods for managing its memory, which allows it to store and retrieve information between conversations. You can learn more about this in the <a href="core_concepts/./chat.html">Chat</a> chapter.</p>
+<h2 id="react-mode"><a class="header" href="#react-mode">ReAct Mode</a></h2>
+<p>Agents can be configured to use ReAct (Reasoning and Acting) mode, where they reason about tasks before taking actions:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("ReActAgent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .react()  // Enable ReAct mode
+        .build()
+        .await?;
+
+    let response = agent.chat("Calculate (25 * 4) + (100 / 5)").await?;
+    println!("{}", response);
+
+    Ok(())
+}</code></pre></pre>
+<p>This enables the agent to think through problems systematically before executing. Learn more in the <a href="core_concepts/./react.html">ReAct chapter</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="react-reasoning-and-acting"><a class="header" href="#react-reasoning-and-acting">ReAct (Reasoning and Acting)</a></h1>
+<p>ReAct is a powerful feature in Helios Engine that enables agents to reason about tasks before taking actions. This pattern leads to more thoughtful, systematic problem-solving and makes the agent's decision-making process transparent.</p>
+<h2 id="what-is-react"><a class="header" href="#what-is-react">What is ReAct?</a></h2>
+<p>ReAct (Reasoning and Acting) is a pattern where the agent follows a two-phase approach:</p>
+<ol>
+<li><strong>💭 Reasoning Phase</strong>: The agent analyzes the task, identifies what's needed, and creates a plan</li>
+<li><strong>⚡ Action Phase</strong>: The agent executes the plan using available tools</li>
+</ol>
+<p>This separation helps agents handle complex, multi-step tasks more effectively and provides visibility into their thinking process.</p>
+<h2 id="enabling-react-mode"><a class="header" href="#enabling-react-mode">Enabling ReAct Mode</a></h2>
+<p>Enabling ReAct is incredibly simple - just add <code>.react()</code> to your agent builder:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+    
+    let mut agent = Agent::builder("ReActAgent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .react()  // ✨ Enable ReAct mode
+        .build()
+        .await?;
+    
+    let response = agent.chat("Calculate (25 * 4) + (100 / 5)").await?;
+    println!("{}", response);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<p>When you send a message to a ReAct-enabled agent, here's what happens:</p>
+<pre><code>User Query: "Calculate (25 * 4) + (100 / 5)"
+
+💭 Reasoning Phase:
+   Agent thinks: "I need to:
+   1. Calculate 25 * 4 = 100
+   2. Calculate 100 / 5 = 20
+   3. Add the results: 100 + 20 = 120"
+   
+⚡ Action Phase:
+   - Uses calculator tool: 25 * 4 → 100
+   - Uses calculator tool: 100 / 5 → 20
+   - Uses calculator tool: 100 + 20 → 120
+   
+Response: "The result is 120"
+</code></pre>
+<p>The reasoning is displayed with a <code>💭 ReAct Reasoning:</code> prefix, making it easy to follow the agent's thought process.</p>
+<h2 id="custom-reasoning-prompts"><a class="header" href="#custom-reasoning-prompts">Custom Reasoning Prompts</a></h2>
+<p>For domain-specific tasks, you can customize the reasoning prompt:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+    
+    let math_prompt = r#"As a mathematical problem solver:
+1. Identify the mathematical operations needed
+2. Break down complex calculations into steps
+3. Determine the order of operations (PEMDAS)
+4. Plan which calculator functions to use
+5. Verify the logic of your approach
+
+Provide clear mathematical reasoning."#;
+    
+    let mut agent = Agent::builder("MathExpert")
+        .config(config)
+        .system_prompt("You are a mathematics expert.")
+        .tool(Box::new(CalculatorTool))
+        .react_with_prompt(math_prompt)  // 🎯 Custom reasoning
+        .build()
+        .await?;
+    
+    let response = agent.chat("Calculate ((15 * 8) + (20 * 3)) / 2").await?;
+    println!("{}", response);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="when-to-use-react"><a class="header" href="#when-to-use-react">When to Use ReAct</a></h2>
+<h3 id="-use-react-when"><a class="header" href="#-use-react-when"> Use ReAct When:</a></h3>
+<ul>
+<li><strong>Complex Multi-Step Tasks</strong>: Tasks that require planning and coordination</li>
+<li><strong>Debugging</strong>: When you want to see how the agent approaches problems</li>
+<li><strong>Critical Operations</strong>: When accuracy is more important than speed</li>
+<li><strong>Learning</strong>: Understanding agent behavior and decision-making</li>
+<li><strong>Domain-Specific Tasks</strong>: With custom prompts for specialized reasoning</li>
+</ul>
+<h3 id="-dont-use-react-when"><a class="header" href="#-dont-use-react-when">❌ Don't Use ReAct When:</a></h3>
+<ul>
+<li><strong>Simple Queries</strong>: Straightforward tasks where reasoning adds unnecessary overhead</li>
+<li><strong>Speed Critical</strong>: Applications where latency is paramount</li>
+<li><strong>No Tools Available</strong>: ReAct is designed for tool-using agents</li>
+<li><strong>High-Volume Operations</strong>: When the extra LLM call impacts throughput</li>
+</ul>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<h3 id="example-1-basic-react-agent"><a class="header" href="#example-1-basic-react-agent">Example 1: Basic ReAct Agent</a></h3>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+    
+    let mut agent = Agent::builder("Assistant")
+        .config(config)
+        .tools(vec![
+            Box::new(CalculatorTool),
+            Box::new(EchoTool),
+        ])
+        .react()
+        .build()
+        .await?;
+    
+    // Multi-step task
+    let response = agent
+        .chat("Calculate 15 * 7, then echo the result")
+        .await?;
+    println!("{}", response);
+    
+    Ok(())
+}</code></pre></pre>
+<h3 id="example-2-domain-specific-reasoning"><a class="header" href="#example-2-domain-specific-reasoning">Example 2: Domain-Specific Reasoning</a></h3>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, FileReadTool, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+    
+    let data_analysis_prompt = r#"As a data analyst:
+1. UNDERSTAND: What data am I working with?
+2. EXTRACT: What information do I need?
+3. PROCESS: What calculations are required?
+4. TOOLS: Which tools should I use?
+5. OUTPUT: How should I present the result?
+
+Think through the data pipeline systematically."#;
+    
+    let mut analyst = Agent::builder("DataAnalyst")
+        .config(config)
+        .system_prompt("You are a data analysis expert.")
+        .tools(vec![
+            Box::new(FileReadTool),
+            Box::new(CalculatorTool),
+        ])
+        .react_with_prompt(data_analysis_prompt)
+        .build()
+        .await?;
+    
+    let response = analyst
+        .chat("Analyze the numbers: 10, 20, 30, 40, 50. Calculate their average.")
+        .await?;
+    println!("{}", response);
+    
+    Ok(())
+}</code></pre></pre>
+<h3 id="example-3-comparing-with-and-without-react"><a class="header" href="#example-3-comparing-with-and-without-react">Example 3: Comparing With and Without ReAct</a></h3>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config1 = Config::from_file("config.toml")?;
+    let config2 = Config::from_file("config.toml")?;
+    
+    // Standard agent
+    let mut standard = Agent::builder("Standard")
+        .config(config1)
+        .tool(Box::new(CalculatorTool))
+        .build()
+        .await?;
+    
+    // ReAct agent
+    let mut react = Agent::builder("ReAct")
+        .config(config2)
+        .tool(Box::new(CalculatorTool))
+        .react()
+        .build()
+        .await?;
+    
+    let query = "Calculate (15 * 3) + (20 * 2)";
+    
+    println!("Standard agent:");
+    let r1 = standard.chat(query).await?;
+    println!("{}\n", r1);
+    
+    println!("ReAct agent:");
+    let r2 = react.chat(query).await?;
+    println!("{}\n", r2);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="builder-methods"><a class="header" href="#builder-methods">Builder Methods</a></h2>
+<h3 id="react"><a class="header" href="#react"><code>.react()</code></a></h3>
+<p>Enables ReAct mode with the default reasoning prompt.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let agent = Agent::builder("MyAgent")
+    .config(config)
+    .react()
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="react_with_promptprompt"><a class="header" href="#react_with_promptprompt"><code>.react_with_prompt(prompt)</code></a></h3>
+<p>Enables ReAct mode with a custom reasoning prompt.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let custom_prompt = "Think step by step about this problem...";
+
+let agent = Agent::builder("MyAgent")
+    .config(config)
+    .react_with_prompt(custom_prompt)
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<p>Both methods can be placed anywhere in the builder chain:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before tools
+let agent = Agent::builder("Agent")
+    .config(config)
+    .react()
+    .tool(Box::new(CalculatorTool))
+    .build()
+    .await?;
+
+// After tools
+let agent = Agent::builder("Agent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .react()
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="latency"><a class="header" href="#latency">Latency</a></h3>
+<p>ReAct adds one extra LLM call for reasoning:</p>
+<ul>
+<li><strong>Without ReAct</strong>: 1 LLM call + tool executions</li>
+<li><strong>With ReAct</strong>: 2 LLM calls + tool executions</li>
+</ul>
+<p><strong>Impact</strong>: Approximately 1-2 seconds additional latency (varies by model)</p>
+<h3 id="token-usage"><a class="header" href="#token-usage">Token Usage</a></h3>
+<p>Additional tokens are consumed for:</p>
+<ul>
+<li>Reasoning prompt: ~50 tokens</li>
+<li>Reasoning response: ~100-300 tokens</li>
+<li>Context storage: ~100-300 tokens</li>
+</ul>
+<p><strong>Impact</strong>: ~250-650 additional tokens per query</p>
+<h3 id="optimization-tips"><a class="header" href="#optimization-tips">Optimization Tips</a></h3>
+<p>For applications where performance matters:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Use ReAct selectively
+if query_is_complex {
+    react_agent.chat(query).await?
+} else {
+    standard_agent.chat(query).await?
+}
+
+// Or create specialized agents
+let quick_agent = Agent::builder("Quick")
+    .config(config)
+    .build()
+    .await?;
+
+let thinking_agent = Agent::builder("Thinker")
+    .config(config)
+    .react()
+    .build()
+    .await?;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="benefits"><a class="header" href="#benefits">Benefits</a></h2>
+<h3 id="1-better-accuracy"><a class="header" href="#1-better-accuracy">1. Better Accuracy</a></h3>
+<p>Thinking before acting reduces errors and improves decision quality.</p>
+<h3 id="2-transparency"><a class="header" href="#2-transparency">2. Transparency</a></h3>
+<p>See exactly how the agent approaches problems, making debugging easier.</p>
+<h3 id="3-complex-task-handling"><a class="header" href="#3-complex-task-handling">3. Complex Task Handling</a></h3>
+<p>Multi-step problems are handled more systematically with clear planning.</p>
+<h3 id="4-explainability"><a class="header" href="#4-explainability">4. Explainability</a></h3>
+<p>Understand agent reasoning for compliance, auditing, or learning purposes.</p>
+<h3 id="5-domain-adaptation"><a class="header" href="#5-domain-adaptation">5. Domain Adaptation</a></h3>
+<p>Custom prompts tailor reasoning to specific domains or tasks.</p>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-use-descriptive-system-prompts"><a class="header" href="#1-use-descriptive-system-prompts">1. Use Descriptive System Prompts</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>.system_prompt("You are a methodical assistant who thinks through problems carefully.")
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-combine-with-appropriate-tools"><a class="header" href="#2-combine-with-appropriate-tools">2. Combine with Appropriate Tools</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>.tools(vec![
+    Box::new(CalculatorTool),
+    Box::new(FileReadTool),
+    Box::new(JsonParserTool),
+])
+.react()
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-set-reasonable-iteration-limits"><a class="header" href="#3-set-reasonable-iteration-limits">3. Set Reasonable Iteration Limits</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>.max_iterations(15)  // Allow enough steps for complex reasoning
+.react()
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-monitor-reasoning-output"><a class="header" href="#4-monitor-reasoning-output">4. Monitor Reasoning Output</a></h3>
+<p>Watch the <code>💭 ReAct Reasoning:</code> output to understand agent behavior and optimize prompts.</p>
+<h3 id="5-use-custom-prompts-for-specific-domains"><a class="header" href="#5-use-custom-prompts-for-specific-domains">5. Use Custom Prompts for Specific Domains</a></h3>
+<p>Tailor the reasoning prompt to match your use case (mathematics, data analysis, planning, etc.).</p>
+<h2 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h2>
+<h3 id="reasoning-not-showing"><a class="header" href="#reasoning-not-showing">Reasoning Not Showing</a></h3>
+<p><strong>Problem</strong>: No reasoning output visible</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Ensure <code>.react()</code> or <code>.react_with_prompt()</code> is called</li>
+<li>Verify the agent has tools registered</li>
+<li>Check stdout for <code>💭 ReAct Reasoning:</code> prefix</li>
+</ul>
+<h3 id="too-much-overhead"><a class="header" href="#too-much-overhead">Too Much Overhead</a></h3>
+<p><strong>Problem</strong>: ReAct adds too much latency</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Use ReAct selectively for complex tasks only</li>
+<li>Consider disabling for simple queries</li>
+<li>Use faster models for reasoning phase</li>
+</ul>
+<h3 id="poor-reasoning-quality"><a class="header" href="#poor-reasoning-quality">Poor Reasoning Quality</a></h3>
+<p><strong>Problem</strong>: Agent reasoning is unclear or unhelpful</p>
+<p><strong>Solution</strong>:</p>
+<ul>
+<li>Improve the system prompt to encourage better thinking</li>
+<li>Use more capable models (e.g., GPT-4 vs GPT-3.5)</li>
+<li>Create custom reasoning prompts with examples</li>
+<li>Adjust the prompt structure for your specific domain</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Check out the <a href="core_concepts/../examples/overview.html">examples directory</a> for complete working examples</li>
+<li>See <a href="https://github.com/Ammar-Alnagar/Helios-Engine/blob/main/examples/react_agent.rs">react_agent.rs</a> for a basic demo</li>
+<li>See <a href="https://github.com/Ammar-Alnagar/Helios-Engine/blob/main/examples/react_custom_prompt.rs">react_custom_prompt.rs</a> for domain-specific examples</li>
+<li>Read the <a href="core_concepts/../tools/using_tools.html">Tools documentation</a> to learn about available tools</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>ReAct mode enables agents to think before acting, leading to:</p>
+<ul>
+<li>🎯 More accurate results</li>
+<li>👁️ Transparent decision-making</li>
+<li>🧩 Better handling of complex tasks</li>
+<li>🔧 Easier debugging and optimization</li>
+</ul>
+<p>Simply add <code>.react()</code> to your agent builder to enable this powerful feature!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="llms"><a class="header" href="#llms">LLMs</a></h1>
 <p>The <code>LLMClient</code> is the primary interface for interacting with Large Language Models (LLMs) in the Helios Engine. It provides a unified API for both remote LLMs (like OpenAI) and local LLMs (via <code>llama.cpp</code>).</p>
 <h2 id="the-llmclient"><a class="header" href="#the-llmclient">The <code>LLMClient</code></a></h2>
@@ -975,7 +1346,7 @@ for id in agent_ids {
 <span class="boring">}</span></code></pre></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="coordinator-based-planning"><a class="header" href="#coordinator-based-planning">Coordinator-Based Planning</a></h1>
 <p>The coordinator-based planning system enables automatic task decomposition and delegation. This is a powerful feature that allows you to create sophisticated multi-agent workflows with minimal effort.</p>
-<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h2>
 <ol>
 <li><strong>Task Analysis</strong>: The coordinator analyzes the incoming task.</li>
 <li><strong>Plan Creation</strong>: The coordinator creates a structured plan with subtasks.</li>
@@ -1465,22 +1836,6 @@ cargo test test_name
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

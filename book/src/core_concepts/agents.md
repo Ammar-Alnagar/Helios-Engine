@@ -45,6 +45,8 @@ The `AgentBuilder` provides several methods for configuring an agent:
 - **`tool(tool: Box<dyn crate::tools::Tool>)`**: Adds a single tool to the agent.
 - **`tools(tools: Vec<Box<dyn crate::tools::Tool>>)`**: Adds multiple tools to the agent at once.
 - **`max_iterations(max: usize)`**: Sets the maximum number of iterations for tool execution in a single turn.
+- **`react()`**: Enables ReAct mode for reasoning before acting. See [ReAct](./react.md) for details.
+- **`react_with_prompt(prompt)`**: Enables ReAct mode with a custom reasoning prompt.
 
 Here's a more advanced example of how to create and configure an agent:
 
@@ -80,3 +82,30 @@ Once you've created an agent, you can interact with it using the following metho
 - **`get_session_summary()`**: Returns a summary of the current chat session.
 
 The `Agent` also provides methods for managing its memory, which allows it to store and retrieve information between conversations. You can learn more about this in the [Chat](./chat.md) chapter.
+
+## ReAct Mode
+
+Agents can be configured to use ReAct (Reasoning and Acting) mode, where they reason about tasks before taking actions:
+
+```rust
+use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("ReActAgent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .react()  // Enable ReAct mode
+        .build()
+        .await?;
+
+    let response = agent.chat("Calculate (25 * 4) + (100 / 5)").await?;
+    println!("{}", response);
+
+    Ok(())
+}
+```
+
+This enables the agent to think through problems systematically before executing. Learn more in the [ReAct chapter](./react.md).

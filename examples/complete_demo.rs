@@ -170,7 +170,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("\n📊 Final Session Summary:");
     println!("{}", agent.get_session_summary());
 
-    println!("\n✅ Demo completed successfully!");
+    println!("\n Demo completed successfully!");
     println!("\n💡 Features Demonstrated:");
     println!("  ✓ Streaming responses (local/remote models)");
     println!("  ✓ File search with pattern matching");

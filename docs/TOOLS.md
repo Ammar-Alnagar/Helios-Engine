@@ -313,11 +313,11 @@ agent.tool(Box::new(rag_tool));
 
 ## Creating Custom Tools
 
-### 🆕 Easy Way: Using ToolBuilder (Recommended)
+### Easy Way: Using ToolBuilder (Recommended)
 
 The **ToolBuilder** provides a simplified way to create custom tools without implementing the Tool trait manually. This is the recommended approach for most use cases.
 
-> **✨ NEW: `quick_tool!` Macro - The EASIEST Way!**  
+> **NEW: `quick_tool!` Macro - The EASIEST Way!**  
 > We've added the `quick_tool!` macro that makes tool creation incredibly simple with ZERO boilerplate.  
 > See the [Quick Start](#quick-start-quick_tool-macro) below or the full [Simplified Tool Builder Guide](TOOL_BUILDER_SIMPLIFIED.md).
 
@@ -446,7 +446,7 @@ async fn main() -> helios_engine::Result<()> {
 
 #### Quick Start: `quick_tool!` Macro
 
-⭐ **This is the EASIEST way to create tools!** Zero boilerplate, automatic parameter extraction:
+**This is the EASIEST way to create tools!** Zero boilerplate, automatic parameter extraction:
 
 ```rust
 use helios_engine::quick_tool;

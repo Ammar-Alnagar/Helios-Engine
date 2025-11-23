@@ -132,7 +132,7 @@ async fn main() -> helios_engine::Result<()> {
 
     // Demonstrate in-memory RAG
     match demonstrate_in_memory().await {
-        Ok(_) => println!("✅ In-memory demonstration completed\n"),
+        Ok(_) => println!(" In-memory demonstration completed\n"),
         Err(e) => println!("❌ In-memory demonstration failed: {}\n", e),
     }
 
@@ -140,7 +140,7 @@ async fn main() -> helios_engine::Result<()> {
 
     // Demonstrate Qdrant RAG
     match demonstrate_qdrant().await {
-        Ok(_) => println!("✅ Qdrant demonstration completed\n"),
+        Ok(_) => println!(" Qdrant demonstration completed\n"),
         Err(e) => {
             println!("❌ Qdrant demonstration failed: {}", e);
             println!("   (Make sure Qdrant is running: docker run -p 6333:6333 qdrant/qdrant)\n");

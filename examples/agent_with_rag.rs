@@ -123,7 +123,7 @@ async fn main() -> helios_engine::Result<()> {
         .await?;
     println!("Agent: {}\n", response);
 
-    println!("\n✅ Example completed successfully!");
+    println!("\n Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");
     println!("  • Document embedding with OpenAI embeddings");
     println!("  • Vector storage in Qdrant database");

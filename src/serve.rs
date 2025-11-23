@@ -153,7 +153,8 @@ pub struct ModelsResponse {
     pub data: Vec<ModelInfo>,
 }
 
-/// Custom endpoint configuration.
+/// Legacy custom endpoint configuration for backward compatibility.
+/// Use the new `endpoint_builder` module for a better API.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CustomEndpoint {
     /// The HTTP method (GET, POST, PUT, DELETE, PATCH).
@@ -171,11 +172,33 @@ fn default_status_code() -> u16 {
     200
 }
 
-/// Custom endpoints configuration.
+/// Legacy custom endpoints configuration for backward compatibility.
+/// Use the new `Endpoints` builder for a better API.
 #[derive(Debug, Clone, Deserialize)]
 pub struct CustomEndpointsConfig {
     /// List of custom endpoints.
     pub endpoints: Vec<CustomEndpoint>,
+}
+
+impl CustomEndpointsConfig {
+    /// Creates a new empty custom endpoints configuration.
+    pub fn new() -> Self {
+        Self {
+            endpoints: Vec::new(),
+        }
+    }
+
+    /// Adds a custom endpoint to the configuration.
+    pub fn add_endpoint(mut self, endpoint: CustomEndpoint) -> Self {
+        self.endpoints.push(endpoint);
+        self
+    }
+}
+
+impl Default for CustomEndpointsConfig {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Server state containing the LLM client and agent (if any).
@@ -414,6 +437,113 @@ pub async fn start_server_with_agent_and_custom_endpoints(
     Ok(())
 }
 
+/// Builder for creating a server with agent and endpoints.
+/// This provides a more ergonomic API for server configuration.
+pub struct ServerBuilder {
+    agent: Option<Agent>,
+    model_name: String,
+    address: String,
+    endpoints: Vec<crate::endpoint_builder::CustomEndpoint>,
+}
+
+impl ServerBuilder {
+    /// Creates a new server builder with an agent.
+    pub fn with_agent(agent: Agent, model_name: impl Into<String>) -> Self {
+        Self {
+            agent: Some(agent),
+            model_name: model_name.into(),
+            address: "127.0.0.1:8000".to_string(),
+            endpoints: Vec::new(),
+        }
+    }
+
+    /// Sets the server address (default: "127.0.0.1:8000").
+    pub fn address(mut self, address: impl Into<String>) -> Self {
+        self.address = address.into();
+        self
+    }
+
+    /// Adds a custom endpoint to the server.
+    pub fn endpoint(mut self, endpoint: crate::endpoint_builder::CustomEndpoint) -> Self {
+        self.endpoints.push(endpoint);
+        self
+    }
+
+    /// Adds multiple custom endpoints to the server.
+    /// This is the preferred way to add multiple endpoints at once.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use helios_engine::{Agent, ServerBuilder, get};
+    /// # async fn example(agent: Agent) -> helios_engine::Result<()> {
+    /// let endpoints = vec![
+    ///     get("/api/v1", serde_json::json!({"version": "1.0"})),
+    ///     get("/api/status", serde_json::json!({"status": "ok"})),
+    /// ];
+    ///
+    /// ServerBuilder::with_agent(agent, "model")
+    ///     .endpoints(endpoints)
+    ///     .serve()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn endpoints(mut self, endpoints: Vec<crate::endpoint_builder::CustomEndpoint>) -> Self {
+        self.endpoints.extend(endpoints);
+        self
+    }
+
+    /// Alternative syntax: adds multiple endpoints using a slice.
+    /// This allows you to pass endpoints inline with array syntax.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use helios_engine::{Agent, ServerBuilder, get};
+    /// # async fn example(agent: Agent) -> helios_engine::Result<()> {
+    /// ServerBuilder::with_agent(agent, "model")
+    ///     .with_endpoints(&[
+    ///         get("/api/v1", serde_json::json!({"version": "1.0"})),
+    ///         get("/api/status", serde_json::json!({"status": "ok"})),
+    ///     ])
+    ///     .serve()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn with_endpoints(mut self, endpoints: &[crate::endpoint_builder::CustomEndpoint]) -> Self {
+        self.endpoints.extend_from_slice(endpoints);
+        self
+    }
+
+    /// Starts the server.
+    pub async fn serve(self) -> Result<()> {
+        let agent = self.agent.expect("Agent must be set");
+        let state = ServerState::with_agent(agent, self.model_name.clone());
+
+        let app = create_router_with_new_endpoints(state, self.endpoints);
+
+        info!(
+            "🚀 Starting Helios Engine server with agent on http://{}",
+            self.address
+        );
+        info!("📡 OpenAI-compatible API endpoints:");
+        info!("   POST /v1/chat/completions");
+        info!("   GET  /v1/models");
+
+        let listener = tokio::net::TcpListener::bind(&self.address)
+            .await
+            .map_err(|e| {
+                HeliosError::ConfigError(format!("Failed to bind to {}: {}", self.address, e))
+            })?;
+
+        axum::serve(listener, app)
+            .await
+            .map_err(|e| HeliosError::ConfigError(format!("Server error: {}", e)))?;
+
+        Ok(())
+    }
+}
+
 /// Loads custom endpoints configuration from a TOML file.
 ///
 /// # Arguments
@@ -479,6 +609,60 @@ fn create_router_with_custom_endpoints(
                     router = router.route(&endpoint.path, get(handler));
                 }
             }
+        }
+    }
+
+    router
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http())
+        .with_state(state)
+}
+
+/// Creates the router with new-style custom endpoints.
+fn create_router_with_new_endpoints(
+    state: ServerState,
+    endpoints: Vec<crate::endpoint_builder::CustomEndpoint>,
+) -> Router {
+    use crate::endpoint_builder::HttpMethod;
+
+    let mut router = Router::new()
+        .route("/v1/chat/completions", post(chat_completions))
+        .route("/v1/models", get(list_models))
+        .route("/health", get(health_check));
+
+    // Add new-style custom endpoints
+    for endpoint in endpoints {
+        let handler_fn = endpoint.handler.clone();
+
+        let handler = move || {
+            let handler_fn = handler_fn.clone();
+            async move {
+                let response = handler_fn(None);
+                response.into_response()
+            }
+        };
+
+        match endpoint.method {
+            HttpMethod::Get => router = router.route(&endpoint.path, get(handler)),
+            HttpMethod::Post => router = router.route(&endpoint.path, post(handler)),
+            HttpMethod::Put => router = router.route(&endpoint.path, put(handler)),
+            HttpMethod::Delete => router = router.route(&endpoint.path, delete(handler)),
+            HttpMethod::Patch => router = router.route(&endpoint.path, patch(handler)),
+        }
+
+        if let Some(desc) = &endpoint.description {
+            info!(
+                "   {} {} - {}",
+                match endpoint.method {
+                    HttpMethod::Get => "GET",
+                    HttpMethod::Post => "POST",
+                    HttpMethod::Put => "PUT",
+                    HttpMethod::Delete => "DELETE",
+                    HttpMethod::Patch => "PATCH",
+                },
+                endpoint.path,
+                desc
+            );
         }
     }
 

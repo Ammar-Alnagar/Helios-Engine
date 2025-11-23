@@ -146,7 +146,7 @@ async fn main() -> helios_engine::Result<()> {
     let final_count = rag_system.count().await?;
     println!("Documents after clear: {}\n", final_count);
 
-    println!("✅ Example completed successfully!");
+    println!(" Example completed successfully!");
     println!("\n💡 Key Features Demonstrated:");
     println!("  • Direct RAG system usage (no agent required)");
     println!("  • Documents with custom metadata");

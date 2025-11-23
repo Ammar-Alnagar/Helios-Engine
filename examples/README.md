@@ -852,7 +852,18 @@ async fn main() -> helios_engine::Result<()> {
 
 ### Serve with Custom Endpoints (`serve_with_custom_endpoints.rs`)
 
-Serve agents with additional custom API endpoints.
+Serve agents with additional custom API endpoints using the legacy API.
+
+### Serve with Simple Endpoints (`serve_simple_endpoints.rs`)
+
+**NEW!** Demonstrates the simplified endpoint builder API for creating custom endpoints with minimal code. This is the recommended approach for adding custom endpoints to your server.
+
+Features shown:
+- Simple helper functions (`get()`, `post()`, etc.)
+- Builder pattern for more control
+- Dynamic handlers that process request data
+- Multiple ways to add endpoints (vector, array, individual)
+- Response helpers for different HTTP status codes
 
 ### Streaming Chat (`streaming_chat.rs`)
 

@@ -48,7 +48,7 @@ async fn main() -> helios_engine::Result<()> {
         .build()
         .await?;
 
-    println!("✅ Forest created with 3 agents\n");
+    println!(" Forest created with 3 agents\n");
 
     // Simple task
     let task = "List 3 benefits of exercise. Keep it brief.";
@@ -75,7 +75,7 @@ async fn main() -> helios_engine::Result<()> {
 
         for task in plan.tasks_in_order() {
             let status = match task.status {
-                helios_engine::forest::TaskStatus::Completed => "✅",
+                helios_engine::forest::TaskStatus::Completed => "",
                 helios_engine::forest::TaskStatus::InProgress => "🔄",
                 helios_engine::forest::TaskStatus::Pending => "⏳",
                 helios_engine::forest::TaskStatus::Failed => "❌",
@@ -86,7 +86,7 @@ async fn main() -> helios_engine::Result<()> {
         println!("📊 No plan was created (coordinator handled directly)");
     }
 
-    println!("\n✅ Demo completed!");
+    println!("\n Demo completed!");
 
     Ok(())
 }
