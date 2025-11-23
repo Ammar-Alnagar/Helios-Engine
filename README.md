@@ -17,7 +17,7 @@
 
 **Helios Engine** is a powerful and flexible Rust framework for building LLM-powered agents with tool support, streaming chat capabilities, and easy configuration management. Create intelligent agents that can interact with users, call tools, and maintain conversation context - with both online and offline local model support.
 
-##  Key Features
+## Key Features
 
 - **🆕 ReAct Mode**: Enable agents to reason and plan before taking actions with a simple `.react()` call - includes custom reasoning prompts for domain-specific tasks
 - **🆕 Forest of Agents**: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context
