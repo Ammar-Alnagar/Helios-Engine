@@ -160,7 +160,7 @@ Provide your reasoning in a clear, structured way."#;
     /// This is a pure function that only generates and returns the reasoning.
     /// It does not modify the agent's state (chat history).
     /// The caller is responsible for displaying and storing the reasoning.
-    async fn generate_reasoning(&mut self) -> Result<String> {
+    async fn generate_reasoning(&self) -> Result<String> {
         let reasoning_prompt = self
             .react_prompt
             .as_deref()
