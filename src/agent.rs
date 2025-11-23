@@ -31,6 +31,8 @@ pub struct Agent {
     max_iterations: usize,
     /// Whether the agent uses ReAct mode (Reasoning and Acting).
     react_mode: bool,
+    /// Custom reasoning prompt for ReAct mode.
+    react_prompt: Option<String>,
 }
 
 impl Agent {
@@ -64,6 +66,7 @@ impl Agent {
             chat_session: ChatSession::new(),
             max_iterations: 10,
             react_mode: false,
+            react_prompt: None,
         })
     }
 
@@ -143,15 +146,26 @@ impl Agent {
         Ok(response)
     }
 
-    /// Generates reasoning for the current task in ReAct mode.
-    async fn generate_reasoning(&mut self) -> Result<String> {
-        let reasoning_prompt = r#"Before taking any action, think through this step by step:
+    /// Default reasoning prompt for ReAct mode.
+    const DEFAULT_REASONING_PROMPT: &'static str = r#"Before taking any action, think through this step by step:
 
 1. What is the user asking for?
 2. What information or tools do I need to answer this?
 3. What is my plan to solve this problem?
 
 Provide your reasoning in a clear, structured way."#;
+
+    /// Generates reasoning for the current task in ReAct mode.
+    ///
+    /// This is a pure function that only generates and returns the reasoning.
+    /// It does not modify the agent's state (chat history).
+    /// The caller is responsible for displaying and storing the reasoning.
+    async fn generate_reasoning(&mut self) -> Result<String> {
+        let reasoning_prompt = self
+            .react_prompt
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or(Self::DEFAULT_REASONING_PROMPT);
 
         // Create a temporary reasoning message
         let mut reasoning_messages = self.chat_session.get_messages();
@@ -162,15 +176,6 @@ Provide your reasoning in a clear, structured way."#;
             .llm_client
             .chat(reasoning_messages, None, None, None, None)
             .await?;
-
-        // Store reasoning in chat session as a system-like note
-        self.chat_session.add_message(ChatMessage::user(format!(
-            "[Internal Reasoning]\n{}",
-            response.content
-        )));
-        self.chat_session.add_message(ChatMessage::assistant(
-            "[Reasoning complete, proceeding with action]",
-        ));
 
         Ok(response.content)
     }
@@ -196,7 +201,17 @@ Provide your reasoning in a clear, structured way."#;
         // If ReAct mode is enabled, generate reasoning first
         if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
             let reasoning = self.generate_reasoning().await?;
+
+            // Display reasoning to user
             println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
+
+            // Add reasoning to chat history as an assistant message (not user)
+            // This represents the agent's internal thought process
+            self.chat_session
+                .add_message(ChatMessage::assistant(format!(
+                    "[Reasoning]: {}",
+                    reasoning
+                )));
         }
 
         let mut iterations = 0;
@@ -271,7 +286,17 @@ Provide your reasoning in a clear, structured way."#;
         // If ReAct mode is enabled, generate reasoning first
         if self.react_mode && !self.tool_registry.get_definitions().is_empty() {
             let reasoning = self.generate_reasoning().await?;
+
+            // Display reasoning to user
             println!("\n💭 ReAct Reasoning:\n{}\n", reasoning);
+
+            // Add reasoning to chat history as an assistant message (not user)
+            // This represents the agent's internal thought process
+            self.chat_session
+                .add_message(ChatMessage::assistant(format!(
+                    "[Reasoning]: {}",
+                    reasoning
+                )));
         }
 
         let mut iterations = 0;
@@ -675,6 +700,7 @@ pub struct AgentBuilder {
     tools: Vec<Box<dyn crate::tools::Tool>>,
     max_iterations: usize,
     react_mode: bool,
+    react_prompt: Option<String>,
 }
 
 impl AgentBuilder {
@@ -686,6 +712,7 @@ impl AgentBuilder {
             tools: Vec::new(),
             max_iterations: 10,
             react_mode: false,
+            react_prompt: None,
         }
     }
 
@@ -759,6 +786,43 @@ impl AgentBuilder {
         self
     }
 
+    /// Enables ReAct mode with a custom reasoning prompt.
+    ///
+    /// This allows you to customize how the agent reasons about tasks.
+    /// You can tailor the reasoning process to specific domains or tasks.
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - Custom prompt to guide the agent's reasoning
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::{Agent, Config};
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// # let config = Config::new_default();
+    /// let custom_prompt = r#"
+    /// As a mathematical problem solver:
+    /// 1. Identify the mathematical operations needed
+    /// 2. Break down complex calculations into steps
+    /// 3. Determine the order of operations
+    /// 4. Plan which calculator functions to use
+    /// "#;
+    ///
+    /// let agent = Agent::builder("MathAgent")
+    ///     .config(config)
+    ///     .react_with_prompt(custom_prompt)
+    ///     .build()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn react_with_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.react_mode = true;
+        self.react_prompt = Some(prompt.into());
+        self
+    }
+
     pub async fn build(self) -> Result<Agent> {
         let config = self
             .config
@@ -776,6 +840,7 @@ impl AgentBuilder {
 
         agent.set_max_iterations(self.max_iterations);
         agent.react_mode = self.react_mode;
+        agent.react_prompt = self.react_prompt;
 
         Ok(agent)
     }

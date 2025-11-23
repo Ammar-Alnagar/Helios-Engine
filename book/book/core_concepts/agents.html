@@ -211,6 +211,8 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
 <li><strong><code>tool(tool: Box&lt;dyn crate::tools::Tool&gt;)</code></strong>: Adds a single tool to the agent.</li>
 <li><strong><code>tools(tools: Vec&lt;Box&lt;dyn crate::tools::Tool&gt;&gt;)</code></strong>: Adds multiple tools to the agent at once.</li>
 <li><strong><code>max_iterations(max: usize)</code></strong>: Sets the maximum number of iterations for tool execution in a single turn.</li>
+<li><strong><code>react()</code></strong>: Enables ReAct mode for reasoning before acting. See <a href="./react.html">ReAct</a> for details.</li>
+<li><strong><code>react_with_prompt(prompt)</code></strong>: Enables ReAct mode with a custom reasoning prompt.</li>
 </ul>
 <p>Here's a more advanced example of how to create and configure an agent:</p>
 <pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool, EchoTool};
@@ -241,6 +243,27 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
 <li><strong><code>get_session_summary()</code></strong>: Returns a summary of the current chat session.</li>
 </ul>
 <p>The <code>Agent</code> also provides methods for managing its memory, which allows it to store and retrieve information between conversations. You can learn more about this in the <a href="./chat.html">Chat</a> chapter.</p>
+<h2 id="react-mode"><a class="header" href="#react-mode">ReAct Mode</a></h2>
+<p>Agents can be configured to use ReAct (Reasoning and Acting) mode, where they reason about tasks before taking actions:</p>
+<pre><pre class="playground"><code class="language-rust">use helios_engine::{Agent, Config, CalculatorTool};
+
+#[tokio::main]
+async fn main() -&gt; helios_engine::Result&lt;()&gt; {
+    let config = Config::from_file("config.toml")?;
+
+    let mut agent = Agent::builder("ReActAgent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .react()  // Enable ReAct mode
+        .build()
+        .await?;
+
+    let response = agent.chat("Calculate (25 * 4) + (100 / 5)").await?;
+    println!("{}", response);
+
+    Ok(())
+}</code></pre></pre>
+<p>This enables the agent to think through problems systematically before executing. Learn more in the <a href="./react.html">ReAct chapter</a>.</p>
 
                     </main>
 
@@ -250,7 +273,7 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../core_concepts/llms.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../core_concepts/react.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -264,29 +287,13 @@ async fn main() -&gt; helios_engine::Result&lt;()&gt; {
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../core_concepts/llms.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../core_concepts/react.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

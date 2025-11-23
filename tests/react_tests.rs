@@ -120,3 +120,73 @@ async fn test_react_builder_position_flexibility() {
 
     assert!(agent1.is_ok() && agent2.is_ok(), "Builder position matters");
 }
+
+/// Tests that ReAct can use a custom reasoning prompt.
+#[tokio::test]
+async fn test_react_with_custom_prompt() {
+    let config = create_test_config();
+
+    let custom_prompt = "Think carefully about this mathematical problem.";
+
+    let agent = Agent::builder("custom_prompt_agent")
+        .config(config)
+        .tool(Box::new(CalculatorTool))
+        .react_with_prompt(custom_prompt)
+        .build()
+        .await;
+
+    assert!(agent.is_ok(), "Failed to create agent with custom prompt");
+    let agent = agent.unwrap();
+    assert_eq!(agent.name(), "custom_prompt_agent");
+}
+
+/// Tests that custom prompt can be combined with other builder options.
+#[tokio::test]
+async fn test_react_custom_prompt_with_options() {
+    let config = create_test_config();
+
+    let custom_prompt = r#"As a math expert:
+1. Analyze the problem
+2. Plan your approach
+3. Execute step by step"#;
+
+    let agent = Agent::builder("math_expert")
+        .config(config)
+        .system_prompt("You are a mathematical assistant.")
+        .tools(vec![Box::new(CalculatorTool), Box::new(EchoTool)])
+        .react_with_prompt(custom_prompt)
+        .max_iterations(7)
+        .build()
+        .await;
+
+    assert!(agent.is_ok(), "Failed to build complex ReAct agent");
+    let agent = agent.unwrap();
+
+    // Verify configuration
+    assert_eq!(agent.name(), "math_expert");
+    let tools = agent.tool_registry().list_tools();
+    assert_eq!(tools.len(), 2);
+}
+
+/// Tests that react() and react_with_prompt() work interchangeably.
+#[tokio::test]
+async fn test_react_methods_interchangeable() {
+    let config1 = create_test_config();
+    let config2 = create_test_config();
+
+    // Using react()
+    let agent1 = Agent::builder("agent1")
+        .config(config1)
+        .react()
+        .build()
+        .await;
+
+    // Using react_with_prompt()
+    let agent2 = Agent::builder("agent2")
+        .config(config2)
+        .react_with_prompt("Custom prompt")
+        .build()
+        .await;
+
+    assert!(agent1.is_ok() && agent2.is_ok(), "Both methods should work");
+}

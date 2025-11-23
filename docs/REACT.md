@@ -377,12 +377,25 @@ cargo test test_react_agent_creation
 Complete working examples available:
 
 - `examples/react_agent.rs` - Full ReAct demonstration
+- `examples/react_custom_prompt.rs` - Domain-specific custom prompts (Math, Data Analysis, Planning, Scientific)
+- `examples/react_comparison.rs` - Side-by-side comparison of standard vs ReAct agents
+- `examples/react_debugging.rs` - Using ReAct for debugging and understanding agent behavior
 - `examples/agent_with_tools.rs` - Compare with/without ReAct
 
 Run examples:
 
 ```bash
+# Basic ReAct demo
 cargo run --example react_agent
+
+# Custom prompts for different domains
+cargo run --example react_custom_prompt
+
+# Compare standard vs ReAct agents
+cargo run --example react_comparison
+
+# Debugging with ReAct
+cargo run --example react_debugging
 ```
 
 ## Further Reading

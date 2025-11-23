@@ -9,6 +9,7 @@
 
 # Core Concepts
 - [Agents](./core_concepts/agents.md)
+- [ReAct (Reasoning and Acting)](./core_concepts/react.md)
 - [LLMs](./core_concepts/llms.md)
 - [Chat](./core_concepts/chat.md)
 - [Error Handling](./core_concepts/error_handling.md)

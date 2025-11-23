@@ -166,6 +166,9 @@ Check out the `examples/` directory for working code:
 - `basic_chat.rs` - Simple chat example
 - `agent_with_tools.rs` - Agent with tools (uses new syntax!)
 - `react_agent.rs` - ReAct (Reasoning and Acting) example 🆕
+- `react_custom_prompt.rs` - Custom reasoning prompts for different domains 🆕
+- `react_comparison.rs` - Compare standard vs ReAct agents 🆕
+- `react_debugging.rs` - Using ReAct for debugging 🆕
 - `forest_of_agents.rs` - Multi-agent system (uses new syntax!)
 - `forest_with_coordinator.rs` - Coordinator-based planning
 - `streaming_chat.rs` - Streaming responses

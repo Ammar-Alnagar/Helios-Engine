@@ -19,7 +19,7 @@
 
 ##  Key Features
 
-- **🆕 ReAct Mode**: Enable agents to reason and plan before taking actions with a simple `.react()` call
+- **🆕 ReAct Mode**: Enable agents to reason and plan before taking actions with a simple `.react()` call - includes custom reasoning prompts for domain-specific tasks
 - **🆕 Forest of Agents**: Multi-agent collaboration system where agents can communicate, delegate tasks, and share context
 - **Agent System**: Create multiple agents with different personalities and capabilities
 - **🆕 Tool Builder**: Simplified tool creation with builder pattern - wrap any function as a tool without manual trait implementation
