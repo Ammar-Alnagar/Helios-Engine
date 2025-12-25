@@ -94,6 +94,11 @@ impl ChatMessage {
         }
     }
 
+    /// Creates a new system message. Alias for `system()`.
+    pub fn sys(content: impl Into<String>) -> Self {
+        Self::system(content)
+    }
+
     /// Creates a new user message.
     pub fn user(content: impl Into<String>) -> Self {
         Self {
@@ -105,6 +110,11 @@ impl ChatMessage {
         }
     }
 
+    /// Creates a new user message. Alias for `user()`.
+    pub fn msg(content: impl Into<String>) -> Self {
+        Self::user(content)
+    }
+
     /// Creates a new assistant message.
     pub fn assistant(content: impl Into<String>) -> Self {
         Self {
@@ -114,6 +124,11 @@ impl ChatMessage {
             tool_calls: None,
             tool_call_id: None,
         }
+    }
+
+    /// Creates a new assistant message. Alias for `assistant()`.
+    pub fn reply(content: impl Into<String>) -> Self {
+        Self::assistant(content)
     }
 
     /// Creates a new tool message.
@@ -167,6 +182,21 @@ impl ChatSession {
 
     /// Adds an assistant message to the chat session.
     pub fn add_assistant_message(&mut self, content: impl Into<String>) {
+        self.messages.push(ChatMessage::assistant(content));
+    }
+
+    /// Shorthand for adding a system message
+    pub fn add_sys(&mut self, content: impl Into<String>) {
+        self.messages.push(ChatMessage::system(content));
+    }
+
+    /// Shorthand for adding a user message (alias for add_user_message)
+    pub fn add_msg(&mut self, content: impl Into<String>) {
+        self.messages.push(ChatMessage::user(content));
+    }
+
+    /// Shorthand for adding an assistant message (alias for add_assistant_message)
+    pub fn add_reply(&mut self, content: impl Into<String>) {
         self.messages.push(ChatMessage::assistant(content));
     }
 

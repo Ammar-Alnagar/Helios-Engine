@@ -105,6 +105,44 @@ impl Config {
         }
     }
 
+    /// Loads configuration from a file or falls back to defaults.
+    ///
+    /// This is a convenience method that attempts to load from the specified file
+    /// and returns the default configuration if the file doesn't exist or can't be read.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the configuration file (typically "config.toml")
+    ///
+    /// # Returns
+    ///
+    /// The loaded configuration, or default if loading fails
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use helios_engine::Config;
+    /// let config = Config::load_or_default("config.toml");
+    /// ```
+    pub fn load_or_default<P: AsRef<Path>>(path: P) -> Self {
+        Self::from_file(path).unwrap_or_else(|_| Self::new_default())
+    }
+
+    /// Creates a new configuration builder for fluent initialization.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::Config;
+    /// let config = Config::builder()
+    ///     .model("gpt-4")
+    ///     .api_key("your-key")
+    ///     .build();
+    /// ```
+    pub fn builder() -> ConfigBuilder {
+        ConfigBuilder::new()
+    }
+
     /// Saves the configuration to a TOML file.
     ///
     /// # Arguments
@@ -122,6 +160,105 @@ impl Config {
             .map_err(|e| HeliosError::ConfigError(format!("Failed to write config file: {}", e)))?;
 
         Ok(())
+    }
+}
+
+/// A builder for creating configurations with a fluent API.
+pub struct ConfigBuilder {
+    model_name: String,
+    base_url: String,
+    api_key: String,
+    temperature: f32,
+    max_tokens: u32,
+}
+
+impl ConfigBuilder {
+    /// Creates a new configuration builder with default values.
+    pub fn new() -> Self {
+        Self {
+            model_name: "gpt-3.5-turbo".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            api_key: std::env::var("OPENAI_API_KEY")
+                .unwrap_or_else(|_| "your-api-key-here".to_string()),
+            temperature: 0.7,
+            max_tokens: 2048,
+        }
+    }
+
+    /// Sets the model name.
+    pub fn model(mut self, model: impl Into<String>) -> Self {
+        self.model_name = model.into();
+        self
+    }
+
+    /// Shorthand: set model with 'm'
+    pub fn m(self, model: impl Into<String>) -> Self {
+        self.model(model)
+    }
+
+    /// Sets the API key.
+    pub fn api_key(mut self, key: impl Into<String>) -> Self {
+        self.api_key = key.into();
+        self
+    }
+
+    /// Shorthand: set API key with 'key'
+    pub fn key(self, key: impl Into<String>) -> Self {
+        self.api_key(key)
+    }
+
+    /// Sets the base URL for the API.
+    pub fn base_url(mut self, url: impl Into<String>) -> Self {
+        self.base_url = url.into();
+        self
+    }
+
+    /// Shorthand: set base URL with 'url'
+    pub fn url(self, url: impl Into<String>) -> Self {
+        self.base_url(url)
+    }
+
+    /// Sets the temperature for generation.
+    pub fn temperature(mut self, temp: f32) -> Self {
+        self.temperature = temp;
+        self
+    }
+
+    /// Shorthand: set temperature with 'temp'
+    pub fn temp(self, temp: f32) -> Self {
+        self.temperature(temp)
+    }
+
+    /// Sets the maximum tokens for generation.
+    pub fn max_tokens(mut self, tokens: u32) -> Self {
+        self.max_tokens = tokens;
+        self
+    }
+
+    /// Shorthand: set max tokens with 'tokens'
+    pub fn tokens(self, tokens: u32) -> Self {
+        self.max_tokens(tokens)
+    }
+
+    /// Builds the configuration.
+    pub fn build(self) -> Config {
+        Config {
+            llm: LLMConfig {
+                model_name: self.model_name,
+                base_url: self.base_url,
+                api_key: self.api_key,
+                temperature: self.temperature,
+                max_tokens: self.max_tokens,
+            },
+            #[cfg(feature = "local")]
+            local: None,
+        }
+    }
+}
+
+impl Default for ConfigBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

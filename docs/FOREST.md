@@ -27,16 +27,17 @@ The Forest of Agents is a multi-agent system where multiple AI agents collaborat
 
 ### Creating a Simple Forest
 
+**Old way** (still supported):
 ```rust
 use helios_engine::{Agent, Config, ForestBuilder};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
     let config = Config::from_file("config.toml")?;
-    
+
     let mut forest = ForestBuilder::new()
         .config(config)
-        .agent("worker1".to_string(), 
+        .agent("worker1".to_string(),
             Agent::builder("worker1")
                 .system_prompt("You are a data analyst."))
         .agent("worker2".to_string(),
@@ -45,18 +46,19 @@ async fn main() -> helios_engine::Result<()> {
         .max_iterations(15)
         .build()
         .await?;
-    
+
     // Execute a task
     let result = forest.execute("Analyze sales data and write a report").await?;
     println!("Result: {}", result);
-    
+
     Ok(())
 }
 ```
 
-### Adding Multiple Agents at Once (New Syntax!)
+### Adding Multiple Agents at Once (New Improved Syntax!)
 
-Instead of chaining multiple `.agent()` calls:
+**New improved way** (recommended):
+Instead of chaining multiple `.agent()` calls, you can add multiple agents at once using `.agents()`:
 
 ```rust
 let mut forest = ForestBuilder::new()
@@ -74,6 +76,13 @@ let mut forest = ForestBuilder::new()
     .max_iterations(25)
     .build()
     .await?;
+```
+
+**Benefits of the new syntax:**
+- Cleaner and more readable
+- Easier to organize agents into teams or roles
+- Less repetitive code
+- Can combine with individual `.agent()` calls
 ```
 
 ### Forest Configuration Options

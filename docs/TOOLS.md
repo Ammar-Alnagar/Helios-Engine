@@ -58,10 +58,9 @@ agent.tool(Box::new(FileSearchTool));
 ```
 
 **Parameters:**
-- `path` (string, optional): Directory path to search (default: current directory)
-- `pattern` (string, optional): File name pattern with wildcards (e.g., `*.rs`)
-- `content` (string, optional): Text content to search for within files
-- `max_results` (number, optional): Maximum number of results (default: 50)
+- `pattern` (string, required): Search pattern (supports glob patterns like "*.rs")
+- `search_content` (boolean, optional): Whether to search within file contents (default: false)
+- `path` (string, optional): Directory path to search in (default: current directory)
 
 **Examples:**
 ```rust
@@ -95,6 +94,42 @@ agent.chat("Read the file config.toml").await?;
 agent.chat("Read lines 10-20 of main.rs").await?;
 ```
 
+### Adding Multiple Tools (New Improved Syntax!)
+
+**Old way** (still supported):
+```rust
+let mut agent = Agent::builder("MyAgent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .tool(Box::new(EchoTool))
+    .tool(Box::new(FileSearchTool))
+    .tool(Box::new(FileReadTool))
+    .tool(Box::new(FileWriteTool))
+    .build()
+    .await?;
+```
+
+**New improved way** (recommended):
+```rust
+let mut agent = Agent::builder("MyAgent")
+    .config(config)
+    .tools(vec![
+        Box::new(CalculatorTool),
+        Box::new(EchoTool),
+        Box::new(FileSearchTool),
+        Box::new(FileReadTool),
+        Box::new(FileWriteTool),
+    ])
+    .build()
+    .await?;
+```
+
+**Benefits of the new syntax:**
+- Cleaner and more readable
+- Easier to organize tools into groups
+- Less repetitive code
+- Can combine with individual `.tool()` calls
+
 #### FileWriteTool
 Write content to a file (creates new or overwrites existing).
 
@@ -113,25 +148,6 @@ agent.tool(Box::new(FileWriteTool));
 agent.chat("Create a new file called notes.txt with content 'Hello World'").await?;
 ```
 
-#### FileEditTool
-Edit a file by replacing specific text (find and replace).
-
-```rust
-use helios_engine::FileEditTool;
-
-agent.tool(Box::new(FileEditTool));
-```
-
-**Parameters:**
-- `path` (string, required): File path to edit
-- `find` (string, required): Text to find
-- `replace` (string, required): Replacement text
-
-**Example:**
-```rust
-agent.chat("In main.rs, replace 'old_function' with 'new_function'").await?;
-```
-
 #### FileIOTool
 Unified file operations: read, write, append, delete, copy, move, exists, size.
 
@@ -142,9 +158,44 @@ agent.tool(Box::new(FileIOTool));
 ```
 
 **Parameters:**
-- `operation` (string, required): Operation type (read, write, append, delete, copy, move, exists)
+- `operation` (string, required): Operation type (read, write, append, delete, copy, move, exists, size)
 - `path` (string, required): File path
-- Additional parameters depending on operation
+- Additional parameters depending on operation:
+  - For write/append: `content` (string, required)
+  - For copy/move: `destination` (string, required)
+  - For exists: none additional
+
+**Examples:**
+```rust
+// Check if file exists
+agent.chat("Check if config.json exists").await?;
+
+// Copy a file
+agent.chat("Copy file1.txt to backup/file1.txt").await?;
+
+// Get file size
+agent.chat("Get the size of data.log").await?;
+```
+
+#### FileEditTool
+Edit file contents by finding and replacing text patterns.
+
+```rust
+use helios_engine::FileEditTool;
+
+agent.tool(Box::new(FileEditTool));
+```
+
+**Parameters:**
+- `path` (string, required): File path to edit
+- `find` (string, required): Text pattern to find
+- `replace` (string, required): Replacement text
+- `regex` (boolean, optional): Whether to treat 'find' as a regex pattern (default: false)
+
+**Example:**
+```rust
+agent.chat("In main.rs, replace 'old_function' with 'new_function'").await?;
+```
 
 #### FileListTool
 List directory contents with detailed metadata.

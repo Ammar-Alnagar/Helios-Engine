@@ -79,6 +79,31 @@ impl Agent {
         AgentBuilder::new(name)
     }
 
+    /// Creates a quick-start agent with minimal configuration.
+    ///
+    /// This is the simplest way to create an agent - just provide a name and it uses
+    /// the default configuration (reads from config.toml if available, otherwise uses defaults).
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the agent.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # use helios_engine::Agent;
+    /// # async fn example() -> helios_engine::Result<()> {
+    /// let mut agent = Agent::quick("MyAgent").await?;
+    /// let response = agent.chat("Hello!").await?;
+    /// println!("{}", response);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn quick(name: impl Into<String>) -> Result<Self> {
+        let config = Config::load_or_default("config.toml");
+        Agent::builder(name).config(config).build().await
+    }
+
     /// Returns the name of the agent.
     pub fn name(&self) -> &str {
         &self.name
@@ -378,6 +403,31 @@ Provide your reasoning in a clear, structured way."#;
     /// A convenience method for sending a message to the agent.
     pub async fn chat(&mut self, message: impl Into<String>) -> Result<String> {
         self.send_message(message).await
+    }
+
+    /// Ultra-simple alias for chat - just ask a question!
+    pub async fn ask(&mut self, question: impl Into<String>) -> Result<String> {
+        self.chat(question).await
+    }
+
+    /// Sets system prompt and returns self for chaining
+    pub fn with_system_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.set_system_prompt(prompt);
+        self
+    }
+
+    /// Registers a tool and returns self for chaining
+    pub fn with_tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
+        self.register_tool(tool);
+        self
+    }
+
+    /// Registers multiple tools and returns self for chaining
+    pub fn with_tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
+        for tool in tools {
+            self.register_tool(tool);
+        }
+        self
     }
 
     /// Sets the maximum number of iterations for tool execution.
@@ -718,13 +768,30 @@ impl AgentBuilder {
         self
     }
 
+    /// Shorthand: set config directly from a file or use defaults
+    pub fn auto_config(mut self) -> Self {
+        self.config = Some(Config::load_or_default("config.toml"));
+        self
+    }
+
     pub fn system_prompt(mut self, prompt: impl Into<String>) -> Self {
         self.system_prompt = Some(prompt.into());
         self
     }
 
+    /// Shorthand: use 'prompt' instead of 'system_prompt'
+    pub fn prompt(self, prompt: impl Into<String>) -> Self {
+        self.system_prompt(prompt)
+    }
+
     /// Adds a single tool to the agent.
     pub fn tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
+        self.tools.push(tool);
+        self
+    }
+
+    /// Shorthand: add a single tool (alias for `tool()`)
+    pub fn with_tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
         self.tools.push(tool);
         self
     }
@@ -749,6 +816,12 @@ impl AgentBuilder {
     /// # }
     /// ```
     pub fn tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
+        self.tools.extend(tools);
+        self
+    }
+
+    /// Shorthand: add multiple tools (alias for `tools()`)
+    pub fn with_tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
         self.tools.extend(tools);
         self
     }

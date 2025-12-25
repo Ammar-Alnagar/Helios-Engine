@@ -46,10 +46,16 @@ Helios Engine comes with 18+ built-in tools for various tasks:
 - **Qdrant RAG Tool**: RAG system with vector database support (add_document, search, delete, clear operations)
 
 #### Advanced Tools
-- **Multi-Agent Communication Tools**: 
+- **Multi-Agent Communication Tools**:
   - SendMessageTool: Send messages between agents or broadcast to all
   - DelegateTaskTool: Assign tasks to other specialized agents
   - ShareContextTool: Share information in the shared context accessible to all agents
+
+#### Improved Syntax for Adding Tools
+- **New Bulk Tool Addition**: Use `.tools(vec![...])` to add multiple tools at once instead of chaining multiple `.tool()` calls
+- **Cleaner Code**: More readable syntax when adding multiple tools to agents
+- **Easy Organization**: Group related tools together for better code organization
+- **Backward Compatible**: Old `.tool()` syntax still supported alongside new `.tools()` syntax
 
 ### ReAct (Reasoning and Acting)
 
@@ -143,6 +149,10 @@ See `examples/react_agent.rs` for a complete working example!
 - **Context Sharing**: Shared information can be accessed by all agents in the forest
 - **Broadcast Messaging**: Agents can broadcast messages to all other agents
 - **Team-based Processing**: Complex tasks can be broken down and distributed among specialized agents
+- **Improved Syntax for Adding Multiple Agents**: Use `.agents(vec![...])` to add multiple agents at once instead of chaining multiple `.agent()` calls
+- **Cleaner Code**: More readable syntax when adding multiple agents to forests
+- **Easy Organization**: Group related agents together for better code organization
+- **Backward Compatible**: Old `.agent()` syntax still supported alongside new `.agents()` syntax
 
 ### RAG (Retrieval-Augmented Generation) System
 - **Vector Stores**: Support for both in-memory and Qdrant vector stores

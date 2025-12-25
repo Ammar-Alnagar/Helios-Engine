@@ -158,6 +158,54 @@ ServerBuilder::with_agent(agent, "model-name")
     .await?;
 ```
 
+### New Simplified API Benefits
+
+The new simplified API offers several advantages over the old approach:
+
+**New API (Recommended):**
+```rust
+use helios_engine::{ServerBuilder, get, post, EndpointBuilder, EndpointResponse};
+
+let endpoints = vec![
+    // Simple static endpoint
+    get("/api/version", serde_json::json!({
+        "version": "1.0.0",
+        "service": "Helios Engine"
+    })),
+
+    // Dynamic endpoint with handler
+    EndpointBuilder::post("/api/echo")
+        .handle(|req| {
+            let message = req
+                .and_then(|r| r.body)
+                .and_then(|b| b.get("message").cloned())
+                .unwrap_or_else(|| serde_json::json!("No message"));
+
+            EndpointResponse::ok(serde_json::json!({
+                "echo": message
+            }))
+        })
+        .build(),
+];
+
+ServerBuilder::with_agent(agent, "local-model")
+    .address("127.0.0.1:8000")
+    .endpoints(endpoints)
+    .serve()
+    .await?;
+```
+
+**Benefits of the New API:**
+1. **Simpler syntax** - Less boilerplate code
+2. **Builder pattern** - Consistent with Agent API
+3. **Dynamic handlers** - Process request data and return dynamic responses
+4. **Type safety** - Better compile-time guarantees
+5. **Helper functions** - Quick creation with `get()`, `post()`, etc.
+6. **Response helpers** - Easy status code management
+7. **Descriptions** - Document your endpoints inline
+8. **Cleaner** - Vector-based endpoint management
+```
+
 ### Option 2: Using Array Slice Syntax
 
 Pass endpoints inline without creating a variable:
