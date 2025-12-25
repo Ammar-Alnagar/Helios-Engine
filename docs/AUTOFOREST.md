@@ -7,9 +7,10 @@ AutoForest is an advanced feature in the Helios Engine that automatically orches
 - **Analyzes** the task to understand its complexity and requirements
 - **Determines** the optimal number of agents needed
 - **Generates** specialized system prompts for each agent
-- **Distributes** available tools among agents based on their roles
 - **Coordinates** task execution across all agents
 - **Aggregates** results into a comprehensive final response
+
+> **Note**: While AutoForest plans for tool distribution among agents (as shown in the `AgentConfig.tool_indices` field), tools currently cannot be cloned and individually assigned to agents. All agents work without direct tool access, relying on LLM capabilities and specialized prompts that guide them to explain what tools would be needed and how they would use them.
 
 ## How It Works
 
@@ -20,7 +21,7 @@ When you submit a task to AutoForest, it creates an orchestrator agent that anal
 - **Number of agents**: How many specialized agents should be spawned (1-5)
 - **Agent roles**: What each agent specializes in
 - **System prompts**: Customized instructions for each agent's expertise
-- **Tool assignments**: Which tools each agent has access to (see Limitations)
+- **Tool assignments**: Planned tool distribution among agents (see Limitations)
 - **Task breakdown**: Specific subtasks for each agent
 
 ### 2. Dynamic Agent Spawning
@@ -186,9 +187,9 @@ AutoForest might spawn:
 
 ## Advanced Features
 
-### Custom Tool Assignment
+### Planned Tool Assignment
 
-The orchestrator can intelligently assign tools:
+The orchestrator plans for tool assignments among agents:
 
 ```rust
 let auto_forest = AutoForest::new(config)
@@ -201,10 +202,10 @@ let auto_forest = AutoForest::new(config)
     .build()
     .await?;
 
-// The orchestrator will decide which tools go to which agents
+// The orchestrator plans which tools go to which agents (see Limitations)
 ```
 
-The `AgentConfig.tool_indices` field specifies which tools each agent receives.
+The `AgentConfig.tool_indices` field indicates planned tool assignments, though tools are not currently distributed to individual agents.
 
 ### Result Aggregation
 
