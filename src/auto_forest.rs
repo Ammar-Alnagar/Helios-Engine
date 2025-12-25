@@ -235,27 +235,37 @@ Respond with ONLY a JSON object with this structure (no markdown, no extra text)
 
             let future = async move {
                 let mut agent = spawned_agent.agent;
+                let config = spawned_agent.config;
                 let result = agent.chat(&agent_task).await;
-                (spawned_agent.config.name.clone(), result)
+                (agent, config, result)
             };
 
             futures.push(future);
         }
 
         // Wait for all agents to complete in parallel
-        let results_vec = futures::future::join_all(futures).await;
+        let completed_agents = futures::future::join_all(futures).await;
 
         // Collect results and restore agents
         let mut results = HashMap::new();
-        for (agent_name, result) in results_vec {
-            match result {
-                Ok(output) => {
-                    results.insert(agent_name.clone(), output);
-                }
+        self.spawned_agents.clear(); // Ensure vector is empty before repopulating
+
+        for (agent, config, result) in completed_agents {
+            let agent_name = config.name.clone();
+            let (result_string, result_for_map) = match result {
+                Ok(output) => (Some(output.clone()), output),
                 Err(e) => {
-                    results.insert(agent_name.clone(), format!("Error: {}", e));
+                    let err_msg = format!("Error: {}", e);
+                    (Some(err_msg.clone()), err_msg)
                 }
-            }
+            };
+            results.insert(agent_name, result_for_map);
+
+            self.spawned_agents.push(SpawnedAgent {
+                agent,
+                config,
+                result: result_string,
+            });
         }
 
         // Aggregate results
