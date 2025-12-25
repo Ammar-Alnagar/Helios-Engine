@@ -271,17 +271,39 @@ Respond with ONLY a JSON object with this structure (no markdown, no extra text)
         // Spawn agents according to plan
         self.spawn_agents_from_plan(&plan).await?;
 
-        // Execute tasks on spawned agents
-        let mut results = HashMap::new();
-        for spawned_agent in self.spawned_agents.iter_mut() {
+        // Execute tasks on spawned agents IN PARALLEL using tokio::join_all
+        let mut futures = Vec::new();
+
+        for spawned_agent in self.spawned_agents.drain(..) {
             let agent_task = plan
                 .task_breakdown
                 .get(&spawned_agent.config.name)
                 .cloned()
                 .unwrap_or_else(|| format!("Complete your assigned portion of: {}", task));
 
-            let result = spawned_agent.agent.chat(&agent_task).await?;
-            results.insert(spawned_agent.config.name.clone(), result.clone());
+            let future = async move {
+                let mut agent = spawned_agent.agent;
+                let result = agent.chat(&agent_task).await;
+                (spawned_agent.config.name.clone(), result)
+            };
+
+            futures.push(future);
+        }
+
+        // Wait for all agents to complete in parallel
+        let results_vec = futures::future::join_all(futures).await;
+
+        // Collect results and restore agents
+        let mut results = HashMap::new();
+        for (agent_name, result) in results_vec {
+            match result {
+                Ok(output) => {
+                    results.insert(agent_name.clone(), output);
+                }
+                Err(e) => {
+                    results.insert(agent_name.clone(), format!("Error: {}", e));
+                }
+            }
         }
 
         // Aggregate results

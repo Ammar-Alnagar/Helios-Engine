@@ -20,7 +20,7 @@ When you submit a task to AutoForest, it creates an orchestrator agent that anal
 - **Number of agents**: How many specialized agents should be spawned (1-5)
 - **Agent roles**: What each agent specializes in
 - **System prompts**: Customized instructions for each agent's expertise
-- **Tool assignments**: Which tools each agent has access to
+- **Tool assignments**: Which tools each agent has access to (see Limitations)
 - **Task breakdown**: Specific subtasks for each agent
 
 ### 2. Dynamic Agent Spawning
@@ -28,11 +28,11 @@ When you submit a task to AutoForest, it creates an orchestrator agent that anal
 Based on the orchestration plan, AutoForest spawns specialized agents with:
 - Unique configurations tailored to their role
 - Specific system prompts guiding their behavior
-- Access to relevant tools for their task
+- Customized instructions for their assigned subtask
 
 ### 3. Parallel Execution
 
-Each agent works on their assigned subtask in parallel, enabling efficient distributed task completion.
+Each agent works on their assigned subtask **in parallel** using Tokio's async/await, enabling efficient distributed task completion. All agents execute concurrently, significantly improving performance for complex tasks.
 
 ### 4. Result Aggregation
 
@@ -321,18 +321,30 @@ let complex_result = auto_forest.execute_task("Complex analysis task").await?;
 
 ### Current Limitations
 
-1. **Tool Cloning**: Tools cannot be cloned and assigned individually (all agents work without direct tool access, relying on LLM capabilities)
-2. **Sequential Planning**: The orchestrator generates the full plan before execution
-3. **Agent Count Cap**: Maximum 5 agents (to avoid excessive parallelization)
-4. **No Inter-Agent Communication**: Agents work independently without direct messaging
+1. **Tool Distribution**: While the orchestration plan includes tool assignments, tools currently cannot be cloned and individually assigned to agents. All agents work without direct tool access, relying on LLM capabilities and the task descriptions provided by the orchestrator.
+   
+2. **Tool Access Method**: To work around tool limitations, agents receive specialized prompts that guide them to explain what tools would be needed and how they would use them. This allows the orchestrator (or external systems) to delegate actual tool execution.
+
+3. **Agent Count Cap**: Maximum 5 agents per orchestration (to avoid excessive parallelization overhead).
+
+4. **No Inter-Agent Communication**: Agents work independently without direct messaging. Communication happens only through the task breakdown and final result aggregation.
+
+### How Agents Get Tool Information
+
+Even though tools aren't directly assigned, agents receive:
+- A specialized system prompt tailored to their role
+- Information about available tools through the task description
+- Guidance on what they should focus on
+
+This allows agents to be effective specialists even without direct tool access.
 
 ### Future Enhancements
 
-- Dynamic tool cloning for tool assignment
-- Real-time plan adjustment based on agent progress
-- Inter-agent communication and collaboration
-- Agent team formation based on historical performance
-- Hierarchical orchestration (orchestrators managing sub-forests)
+- ✨ **Tool Cloning**: Enable dynamic tool assignment by making tools Clone or using Arc
+- ✨ **Real-time Planning**: Adjust orchestration plan based on agent progress
+- ✨ **Inter-Agent Communication**: Allow agents to collaborate directly
+- ✨ **Performance Tracking**: Learn from historical agent performance
+- ✨ **Hierarchical Orchestration**: Multi-level orchestrator networks
 
 ## Troubleshooting
 
