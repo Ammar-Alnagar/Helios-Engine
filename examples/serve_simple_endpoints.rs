@@ -1,4 +1,4 @@
-//! Example: Serving with Simple Custom Endpoints
+Example: Serving with Simple Custom Endpoints
 //!
 //! This example demonstrates the new simplified API for creating custom endpoints.
 //! It's much easier and more intuitive than the old API!
