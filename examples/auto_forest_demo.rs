@@ -9,7 +9,7 @@
 //! 3. Inspecting the generated orchestration plan
 //! 4. Getting the synthesized results
 
-use helios_engine::{AutoForest, Config, CalculatorTool};
+use helios_engine::{AutoForest, CalculatorTool, Config};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
@@ -18,10 +18,7 @@ async fn main() -> helios_engine::Result<()> {
 
     // Step 1: Load or create configuration
     println!("📋 Creating configuration...");
-    let config = Config::builder()
-        .temperature(0.7)
-        .max_tokens(2048)
-        .build();
+    let config = Config::builder().temperature(0.7).max_tokens(2048).build();
     println!("✓ Configuration ready\n");
 
     // Step 2: Create AutoForest with available tools
@@ -64,7 +61,12 @@ async fn main() -> helios_engine::Result<()> {
         println!("Agent Configurations:");
         println!("-----------------");
         for (i, agent_config) in plan.agents.iter().enumerate() {
-            println!("Agent {}: {} ({})", i + 1, agent_config.name, agent_config.role);
+            println!(
+                "Agent {}: {} ({})",
+                i + 1,
+                agent_config.name,
+                agent_config.role
+            );
             println!("  Prompt: {}", agent_config.system_prompt);
             if !agent_config.tool_indices.is_empty() {
                 println!("  Tools: {:?}", agent_config.tool_indices);
@@ -115,7 +117,10 @@ async fn main() -> helios_engine::Result<()> {
     println!("Result:\n{}\n", result2);
 
     if let Some(plan) = auto_forest.orchestration_plan() {
-        println!("This task resulted in {} agent(s) - a simpler orchestration plan.", plan.num_agents);
+        println!(
+            "This task resulted in {} agent(s) - a simpler orchestration plan.",
+            plan.num_agents
+        );
         println!("Reasoning: {}\n", plan.reasoning);
     }
 

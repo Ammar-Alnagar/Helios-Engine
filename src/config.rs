@@ -168,10 +168,20 @@ impl ConfigBuilder {
         self
     }
 
+    /// Shorthand: set model with 'm'
+    pub fn m(self, model: impl Into<String>) -> Self {
+        self.model(model)
+    }
+
     /// Sets the API key.
     pub fn api_key(mut self, key: impl Into<String>) -> Self {
         self.api_key = key.into();
         self
+    }
+
+    /// Shorthand: set API key with 'key'
+    pub fn key(self, key: impl Into<String>) -> Self {
+        self.api_key(key)
     }
 
     /// Sets the base URL for the API.
@@ -180,16 +190,31 @@ impl ConfigBuilder {
         self
     }
 
+    /// Shorthand: set base URL with 'url'
+    pub fn url(self, url: impl Into<String>) -> Self {
+        self.base_url(url)
+    }
+
     /// Sets the temperature for generation.
     pub fn temperature(mut self, temp: f32) -> Self {
         self.temperature = temp;
         self
     }
 
+    /// Shorthand: set temperature with 'temp'
+    pub fn temp(self, temp: f32) -> Self {
+        self.temperature(temp)
+    }
+
     /// Sets the maximum tokens for generation.
     pub fn max_tokens(mut self, tokens: u32) -> Self {
         self.max_tokens = tokens;
         self
+    }
+
+    /// Shorthand: set max tokens with 'tokens'
+    pub fn tokens(self, tokens: u32) -> Self {
+        self.max_tokens(tokens)
     }
 
     /// Builds the configuration.

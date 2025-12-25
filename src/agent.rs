@@ -797,6 +797,12 @@ impl AgentBuilder {
         self
     }
 
+    /// Shorthand: add a single tool (alias for `tool()`)
+    pub fn with_tool(mut self, tool: Box<dyn crate::tools::Tool>) -> Self {
+        self.tools.push(tool);
+        self
+    }
+
     /// Adds multiple tools to the agent at once.
     ///
     /// # Example
@@ -817,6 +823,12 @@ impl AgentBuilder {
     /// # }
     /// ```
     pub fn tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
+        self.tools.extend(tools);
+        self
+    }
+
+    /// Shorthand: add multiple tools (alias for `tools()`)
+    pub fn with_tools(mut self, tools: Vec<Box<dyn crate::tools::Tool>>) -> Self {
         self.tools.extend(tools);
         self
     }
