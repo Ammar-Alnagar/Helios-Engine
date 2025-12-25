@@ -106,6 +106,9 @@ pub mod rag_tool;
 /// Forest of Agents - Multi-agent collaboration system.
 pub mod forest;
 
+/// AutoForest - Automatic orchestration of agent forests for complex tasks.
+pub mod auto_forest;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -115,10 +118,10 @@ pub use agent::{Agent, AgentBuilder};
 pub use chat::{ChatMessage, ChatSession, Role};
 
 #[cfg(not(feature = "local"))]
-pub use config::{Config, LLMConfig};
+pub use config::{Config, ConfigBuilder, LLMConfig};
 /// Re-export of configuration types.
 #[cfg(feature = "local")]
-pub use config::{Config, LLMConfig, LocalConfig};
+pub use config::{Config, ConfigBuilder, LLMConfig, LocalConfig};
 
 /// Re-export of the custom error and result types.
 pub use error::{HeliosError, Result};
@@ -167,4 +170,9 @@ pub use forest::{
     AgentId, CreatePlanTool, DelegateTaskTool, ForestBuilder, ForestMessage, ForestOfAgents,
     SendMessageTool, ShareContextTool, SharedContext, TaskItem, TaskPlan, TaskStatus,
     UpdateTaskMemoryTool,
+};
+
+/// Re-export of AutoForest functionality.
+pub use auto_forest::{
+    AgentConfig, AutoForest, AutoForestBuilder, OrchestrationPlan, SpawnedAgent,
 };
