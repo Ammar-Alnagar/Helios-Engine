@@ -100,10 +100,7 @@ impl Agent {
     /// # }
     /// ```
     pub async fn quick(name: impl Into<String>) -> Result<Self> {
-        let config = match Config::from_file("config.toml") {
-            Ok(cfg) => cfg,
-            Err(_) => Config::new_default(),
-        };
+        let config = Config::load_or_default("config.toml");
         Agent::builder(name).config(config).build().await
     }
 
@@ -773,11 +770,7 @@ impl AgentBuilder {
 
     /// Shorthand: set config directly from a file or use defaults
     pub fn auto_config(mut self) -> Self {
-        let config = match Config::from_file("config.toml") {
-            Ok(cfg) => cfg,
-            Err(_) => Config::new_default(),
-        };
-        self.config = Some(config);
+        self.config = Some(Config::load_or_default("config.toml"));
         self
     }
 

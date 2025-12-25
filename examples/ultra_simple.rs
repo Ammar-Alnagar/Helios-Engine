@@ -32,7 +32,7 @@ async fn main() -> helios_engine::Result<()> {
     println!("3️⃣  Creating config with shortest syntax:\n");
 
     // Ultra-short config creation
-    let config = Config::builder()
+    let _config = Config::builder()
         .m("gpt-4") // .m() is shorthand for .model()
         .key("your-api-key") // .key() is shorthand for .api_key()
         .temp(0.8) // .temp() is shorthand for .temperature()
@@ -68,9 +68,9 @@ async fn main() -> helios_engine::Result<()> {
     use helios_engine::ChatMessage;
 
     // Short aliases for message creation
-    let sys_msg = ChatMessage::sys("You are helpful"); // .sys() not .system()
-    let user_msg = ChatMessage::msg("Hello there"); // .msg() not .user()
-    let reply_msg = ChatMessage::reply("Hi! How can I help?"); // .reply() not .assistant()
+    let _sys_msg = ChatMessage::sys("You are helpful"); // .sys() not .system()
+    let _user_msg = ChatMessage::msg("Hello there"); // .msg() not .user()
+    let _reply_msg = ChatMessage::reply("Hi! How can I help?"); // .reply() not .assistant()
 
     println!("✓ Messages created with ultra-short syntax!\n");
 

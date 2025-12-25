@@ -43,9 +43,19 @@ pub struct AgentConfig {
     /// Specialized system prompt for this agent
     pub system_prompt: String,
     /// Indices of tools this agent has access to
+    #[serde(default)]
     pub tool_indices: Vec<usize>,
     /// Role/specialty of this agent
     pub role: String,
+}
+
+/// Internal struct for deserializing the orchestration plan from LLM response
+#[derive(Debug, Deserialize)]
+struct OrchestrationPlanJson {
+    num_agents: usize,
+    reasoning: String,
+    agents: Vec<AgentConfig>,
+    task_breakdown: HashMap<String, String>,
 }
 
 /// An auto-spawned agent with its assigned configuration
@@ -160,76 +170,18 @@ Respond with ONLY a JSON object with this structure (no markdown, no extra text)
         // Ask orchestrator to generate plan
         let response = orchestrator.chat(&format!("Task: {}", task)).await?;
 
-        // Parse the response as JSON
-        let plan_json: serde_json::Value = serde_json::from_str(&response).map_err(|e| {
+        // Parse the response as JSON using serde for type-safe deserialization
+        let plan_data: OrchestrationPlanJson = serde_json::from_str(&response).map_err(|e| {
             HeliosError::AgentError(format!("Failed to parse orchestration plan: {}", e))
         })?;
 
-        // Extract plan data
-        let num_agents = plan_json["num_agents"]
-            .as_u64()
-            .ok_or_else(|| HeliosError::AgentError("Missing num_agents in plan".to_string()))?
-            as usize;
-
-        let reasoning = plan_json["reasoning"]
-            .as_str()
-            .unwrap_or("Task orchestrated")
-            .to_string();
-
-        let agents_array = plan_json["agents"]
-            .as_array()
-            .ok_or_else(|| HeliosError::AgentError("Missing agents array in plan".to_string()))?;
-
-        let mut agents = Vec::new();
-        for agent_obj in agents_array {
-            let name = agent_obj["name"]
-                .as_str()
-                .ok_or_else(|| HeliosError::AgentError("Missing agent name".to_string()))?
-                .to_string();
-
-            let role = agent_obj["role"]
-                .as_str()
-                .unwrap_or("Assistant")
-                .to_string();
-
-            let system_prompt = agent_obj["system_prompt"]
-                .as_str()
-                .ok_or_else(|| HeliosError::AgentError("Missing system_prompt".to_string()))?
-                .to_string();
-
-            let tool_indices: Vec<usize> = agent_obj["tool_indices"]
-                .as_array()
-                .unwrap_or(&vec![])
-                .iter()
-                .filter_map(|v| v.as_u64())
-                .map(|v| v as usize)
-                .collect();
-
-            agents.push(AgentConfig {
-                name,
-                role,
-                system_prompt,
-                tool_indices,
-            });
-        }
-
-        // Extract task breakdown
-        let mut task_breakdown = HashMap::new();
-        if let Some(breakdown) = plan_json["task_breakdown"].as_object() {
-            for (agent_name, task_desc) in breakdown {
-                task_breakdown.insert(
-                    agent_name.clone(),
-                    task_desc.as_str().unwrap_or("").to_string(),
-                );
-            }
-        }
-
+        // Construct the orchestration plan from the parsed data
         let plan = OrchestrationPlan {
             task: task.to_string(),
-            num_agents,
-            reasoning,
-            agents,
-            task_breakdown,
+            num_agents: plan_data.num_agents,
+            reasoning: plan_data.reasoning,
+            agents: plan_data.agents,
+            task_breakdown: plan_data.task_breakdown,
         };
 
         self.orchestration_plan = Some(plan.clone());

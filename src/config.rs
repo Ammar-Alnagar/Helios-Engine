@@ -105,6 +105,29 @@ impl Config {
         }
     }
 
+    /// Loads configuration from a file or falls back to defaults.
+    ///
+    /// This is a convenience method that attempts to load from the specified file
+    /// and returns the default configuration if the file doesn't exist or can't be read.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Path to the configuration file (typically "config.toml")
+    ///
+    /// # Returns
+    ///
+    /// The loaded configuration, or default if loading fails
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use helios_engine::Config;
+    /// let config = Config::load_or_default("config.toml");
+    /// ```
+    pub fn load_or_default<P: AsRef<Path>>(path: P) -> Self {
+        Self::from_file(path).unwrap_or_else(|_| Self::new_default())
+    }
+
     /// Creates a new configuration builder for fluent initialization.
     ///
     /// # Example
