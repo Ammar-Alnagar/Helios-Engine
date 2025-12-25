@@ -65,30 +65,59 @@ Welcome to the Helios Engine documentation! This guide has been reorganized and 
 
 ## Quick Start
 
-### Installation
-```bash
-cargo install helios-engine
+### Absolute Easiest Way (3 lines!)
+
+```rust
+use helios_engine::Agent;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let mut agent = Agent::quick("MyBot").await?;
+    let response = agent.ask("What is 2+2?").await?;
+    println!("{}", response);
+    Ok(())
+}
 ```
 
-### First Agent
+### Traditional Builder Approach (With Custom Config)
+
 ```rust
 use helios_engine::{Agent, Config, CalculatorTool};
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
+    // Using shortened syntax for config
+    let config = Config::builder()
+        .m("gpt-4")
+        .key("your-api-key")
+        .temp(0.7)
+        .build();
     
     let mut agent = Agent::builder("MyAgent")
         .config(config)
-        .tools(vec![Box::new(CalculatorTool)])
+        .prompt("You are a helpful math assistant")
+        .with_tools(vec![Box::new(CalculatorTool)])
         .build()
         .await?;
     
-    let response = agent.chat("What is 15 * 8?").await?;
+    let response = agent.ask("What is 15 * 8?").await?;
     println!("{}", response);
     
     Ok(())
 }
+```
+
+### With Auto Config
+
+```rust
+let mut agent = Agent::builder("MyAgent")
+    .auto_config()  // Automatically loads config.toml or uses defaults
+    .prompt("You are helpful")
+    .with_tool(Box::new(CalculatorTool))
+    .build()
+    .await?;
+
+let response = agent.ask("What is 15 * 8?").await?;
 ```
 
 ## What's New

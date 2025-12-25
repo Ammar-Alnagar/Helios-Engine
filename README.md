@@ -33,6 +33,7 @@
 - **Dual Mode Support**: Auto, online (remote API), and offline (local) modes
 - **CLI & Library**: Use as both a command-line tool and a Rust library crate
 - **🆕 Feature Flags**: Optional `local` feature for offline model support - build only what you need!
+- **🆕 Improved Syntax**: Cleaner, more ergonomic API for adding multiple tools and agents - use `.tools(vec![...])` and `.agents(vec![...])` for bulk operations
 
 ## Documentation
 
@@ -86,17 +87,56 @@ helios-engine ask "What is Rust?"
 ```
 
 #### As a Library Crate
+
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-helios-engine = "0.4.4"
+helios-engine = "0.5.0"
 tokio = { version = "1.35", features = ["full"] }
+```
+
+##### Simplest Agent (3 lines!)
+```rust
+use helios_engine::Agent;
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let mut agent = Agent::quick("Bot").await?;
+    let response = agent.ask("What is 2+2?").await?;
+    println!("{}", response);
+    Ok(())
+}
+```
+
+##### With Tools & Custom Config
+```rust
+use helios_engine::{Agent, CalculatorTool, Config};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::builder()
+        .m("gpt-4")
+        .key("your-api-key")
+        .temp(0.7)
+        .build();
+    
+    let mut agent = Agent::builder("MathBot")
+        .config(config)
+        .prompt("You are a helpful math assistant")
+        .with_tool(Box::new(CalculatorTool))
+        .build()
+        .await?;
+    
+    let response = agent.ask("What is 15 * 8?").await?;
+    println!("{}", response);
+    Ok(())
+}
 ```
 
 For local model support:
 ```toml
 [dependencies]
-helios-engine = { version = "0.4.4", features = ["local"] }
+helios-engine = { version = "0.5.0", features = ["local"] }
 tokio = { version = "1.35", features = ["full"] }
 ```
 

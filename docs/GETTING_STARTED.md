@@ -22,7 +22,8 @@ cargo install helios-engine
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-helios-engine = "0.4"
+helios-engine = "0.5"
+tokio = { version = "1.35", features = ["full"] }
 ```
 
 ## Quick Start
@@ -102,28 +103,107 @@ let response2 = client.chat(session.get_messages(), None).await?;
 
 ## Building Your First Agent
 
-Agents are autonomous entities that can use tools to accomplish tasks:
+Agents are autonomous entities that can use tools to accomplish tasks.
 
+### Simplest Way (1 line!)
 ```rust
-use helios_engine::{Agent, Config, CalculatorTool};
+use helios_engine::Agent;
 
 #[tokio::main]
 async fn main() -> helios_engine::Result<()> {
-    let config = Config::from_file("config.toml")?;
-    
-    let mut agent = Agent::builder("MathAgent")
-        .config(config)
-        .system_prompt("You are a helpful math assistant.")
-        .tool(Box::new(CalculatorTool))
-        .max_iterations(5)
-        .build()
-        .await?;
-    
-    let response = agent.chat("What is 15 * 8 + 42?").await?;
+    let mut agent = Agent::quick("Assistant").await?;
+    let response = agent.ask("What is 15 * 8 + 42?").await?;
     println!("Agent: {}", response);
-    
     Ok(())
 }
+```
+
+### With Tools & Config
+```rust
+use helios_engine::{Agent, CalculatorTool, Config};
+
+#[tokio::main]
+async fn main() -> helios_engine::Result<()> {
+    let config = Config::builder()
+        .m("gpt-4")
+        .key("your-api-key")
+        .build();
+
+    let mut agent = Agent::builder("MathAgent")
+        .config(config)
+        .prompt("You are a helpful math assistant.")
+        .with_tool(Box::new(CalculatorTool))
+        .build()
+        .await?;
+
+    let response = agent.ask("What is 15 * 8 + 42?").await?;
+    println!("Agent: {}", response);
+
+    Ok(())
+}
+```
+
+### New Improved Syntax for Adding Multiple Tools and Agents!
+
+**New Feature**: Helios Engine now supports adding multiple tools and agents at once with cleaner syntax!
+
+#### Adding Multiple Tools (New Syntax!)
+
+**Old way** (still supported):
+```rust
+let agent = Agent::builder("MyAgent")
+    .config(config)
+    .tool(Box::new(CalculatorTool))
+    .tool(Box::new(EchoTool))
+    .tool(Box::new(FileSearchTool))
+    .build()
+    .await?;
+```
+
+**New improved way** (recommended):
+```rust
+let agent = Agent::builder("MyAgent")
+    .config(config)
+    .tools(vec![
+        Box::new(CalculatorTool),
+        Box::new(EchoTool),
+        Box::new(FileSearchTool),
+    ])
+    .build()
+    .await?;
+```
+
+#### Adding Multiple Agents in Forest (New Syntax!)
+
+**Old way** (still supported):
+```rust
+let forest = ForestBuilder::new()
+    .config(config)
+    .agent("coordinator".to_string(),
+        Agent::builder("coordinator")
+            .system_prompt("You coordinate tasks."))
+    .agent("worker1".to_string(),
+        Agent::builder("worker1")
+            .system_prompt("You handle data processing."))
+    .build()
+    .await?;
+```
+
+**New improved way** (recommended):
+```rust
+let forest = ForestBuilder::new()
+    .config(config)
+    .agents(vec![
+        ("coordinator".to_string(), Agent::builder("coordinator")
+            .system_prompt("You coordinate tasks.")),
+        ("worker1".to_string(), Agent::builder("worker1")
+            .system_prompt("You handle data processing.")),
+    ])
+    .build()
+    .await?;
+```
+
+The new syntax is cleaner, more readable, and makes it easier to organize related tools and agents!
 ```
 
 ## Working with Tools

@@ -41,7 +41,7 @@ async fn main() -> helios_engine::Result<()> {
 | Chat | `agent.ask("question")` | `agent.chat("question")` |
 | With prompt | `.prompt("text")` | `.system_prompt("text")` |
 | Add tool | `.with_tool(tool)` | `.tool(tool)` |
-| Add tools | `.with_tools(vec![...])` | `.tools(vec![...])` |
+| Add multiple tools | `.with_tools(vec![...])` | `.tools(vec![...])` |
 
 ### Config
 
@@ -67,6 +67,13 @@ async fn main() -> helios_engine::Result<()> {
 |------|----------|--------|
 | Execute task | `forest.run("task")` | `forest.execute_task("task")` |
 | Execute task | `forest.do_task("task")` | `forest.execute_task("task")` |
+
+### ForestBuilder
+
+| What | Shortest | Normal |
+|------|----------|--------|
+| Add agents | `.agents(vec![...])` | `.add_agents(vec![...])` |
+| Add single agent | `.agent(name, builder)` | `.add_agent(name, builder)` |
 
 ### ChatSession
 
