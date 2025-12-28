@@ -297,22 +297,35 @@ async fn ask_once(config_path: &str, message: &str, mode: &str) -> helios_engine
     let mut config = load_config(config_path)?;
     apply_mode_override(&mut config, mode);
 
-    // Determine if we're using local or remote
-    #[cfg(feature = "local")]
-    let is_local = config.local.is_some();
-    #[cfg(not(feature = "local"))]
-    let is_local = false;
+    // Priority: Candle > Local > Remote (API)
+    #[cfg(feature = "candle")]
+    let provider_type = if let Some(candle_config) = config.candle {
+        helios_engine::llm::LLMProviderType::Candle(candle_config)
+    } else {
+        #[cfg(feature = "local")]
+        {
+            if let Some(local_config) = config.local {
+                helios_engine::llm::LLMProviderType::Local(local_config)
+            } else {
+                helios_engine::llm::LLMProviderType::Remote(config.llm)
+            }
+        }
+        #[cfg(not(feature = "local"))]
+        {
+            helios_engine::llm::LLMProviderType::Remote(config.llm)
+        }
+    };
 
-    // Use streaming for direct LLM call
-    #[cfg(feature = "local")]
-    let provider_type = if is_local {
-        helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
+    #[cfg(all(feature = "local", not(feature = "candle")))]
+    let provider_type = if let Some(local_config) = config.local {
+        helios_engine::llm::LLMProviderType::Local(local_config)
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
 
-    #[cfg(not(feature = "local"))]
+    #[cfg(not(any(feature = "local", feature = "candle")))]
     let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
+
     let client = LLMClient::new(provider_type).await?;
     let messages = vec![
         ChatMessage::system("You are a helpful AI assistant. Provide direct, concise answers without internal reasoning or thinking tags."),
@@ -353,15 +366,35 @@ async fn interactive_chat(
     apply_mode_override(&mut config, mode);
 
     // Create LLM client for streaming
-    #[cfg(feature = "local")]
-    let provider_type = if config.local.is_some() {
-        helios_engine::llm::LLMProviderType::Local(config.local.unwrap())
+    // Priority: Candle > Local > Remote (API)
+    #[cfg(feature = "candle")]
+    let provider_type = if let Some(candle_config) = config.candle {
+        helios_engine::llm::LLMProviderType::Candle(candle_config)
+    } else {
+        #[cfg(feature = "local")]
+        {
+            if let Some(local_config) = config.local {
+                helios_engine::llm::LLMProviderType::Local(local_config)
+            } else {
+                helios_engine::llm::LLMProviderType::Remote(config.llm)
+            }
+        }
+        #[cfg(not(feature = "local"))]
+        {
+            helios_engine::llm::LLMProviderType::Remote(config.llm)
+        }
+    };
+
+    #[cfg(all(feature = "local", not(feature = "candle")))]
+    let provider_type = if let Some(local_config) = config.local {
+        helios_engine::llm::LLMProviderType::Local(local_config)
     } else {
         helios_engine::llm::LLMProviderType::Remote(config.llm)
     };
 
-    #[cfg(not(feature = "local"))]
+    #[cfg(not(any(feature = "local", feature = "candle")))]
     let provider_type = helios_engine::llm::LLMProviderType::Remote(config.llm);
+
     let client = LLMClient::new(provider_type).await?;
     let mut session = helios_engine::ChatSession::new().with_system_prompt(system_prompt);
 
@@ -470,10 +503,14 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
 fn apply_mode_override(config: &mut Config, mode: &str) {
     match mode {
         "online" => {
-            // Force online mode by removing local config
+            // Force online mode by removing local and candle config
             #[cfg(feature = "local")]
             {
                 config.local = None;
+            }
+            #[cfg(feature = "candle")]
+            {
+                config.candle = None;
             }
             println!("🌐 Online mode: Using remote API");
 
@@ -485,47 +522,49 @@ fn apply_mode_override(config: &mut Config, mode: &str) {
             }
         }
         "offline" => {
-            // Force offline mode - require local config to be present
+            // Force offline mode - require candle or local config to be present
+            #[cfg(feature = "candle")]
+            {
+                if config.candle.is_some() {
+                    println!("🏠 Offline mode: Using Candle model");
+                    return;
+                }
+            }
             #[cfg(feature = "local")]
             {
-                if config.local.is_none() {
-                    eprintln!("❌ Offline mode requested but no [local] section found in config");
-                    eprintln!("💡 Add a [local] section to your config.toml for offline mode");
-                    std::process::exit(1);
+                if config.local.is_some() {
+                    println!("🏠 Offline mode: Using local models");
+                    return;
                 }
-                println!("🏠 Offline mode: Using local models");
             }
-            #[cfg(not(feature = "local"))]
-            {
-                eprintln!("❌ Offline mode requested but 'local' feature is not enabled");
-                eprintln!("💡 Rebuild with --features local to enable offline mode");
-                std::process::exit(1);
-            }
+            eprintln!(
+                "❌ Offline mode requested but no [candle] or [local] section found in config"
+            );
+            eprintln!("💡 Add a [candle] or [local] section to your config.toml for offline mode");
+            std::process::exit(1);
         }
         "auto" => {
-            // Use existing logic (local if present, otherwise remote)
+            // Priority: Candle > Local > Remote (API)
+            #[cfg(feature = "candle")]
+            {
+                if config.candle.is_some() {
+                    println!("🔄 Auto mode: Using Candle model (configured)");
+                    return;
+                }
+            }
             #[cfg(feature = "local")]
             {
                 if config.local.is_some() {
                     println!("🔄 Auto mode: Using local models (configured)");
-                } else {
-                    println!("🔄 Auto mode: Using remote API (no local config)");
-                    // Check if API key is set for remote mode in auto mode
-                    if config.llm.api_key == "your-api-key-here" {
-                        eprintln!("⚠ Warning: API key not configured!");
-                        eprintln!("Please edit your config file and set your API key.\n");
-                        std::process::exit(1);
-                    }
+                    return;
                 }
             }
-            #[cfg(not(feature = "local"))]
-            {
-                println!("🔄 Auto mode: Using remote API");
-                if config.llm.api_key == "your-api-key-here" {
-                    eprintln!("⚠ Warning: API key not configured!");
-                    eprintln!("Please edit your config file and set your API key.\n");
-                    std::process::exit(1);
-                }
+            println!("🔄 Auto mode: Using remote API (no local config)");
+            // Check if API key is set for remote mode in auto mode
+            if config.llm.api_key == "your-api-key-here" {
+                eprintln!("⚠ Warning: API key not configured!");
+                eprintln!("Please edit your config file and set your API key.\n");
+                std::process::exit(1);
             }
         }
         _ => {

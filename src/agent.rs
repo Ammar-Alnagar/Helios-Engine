@@ -47,24 +47,28 @@ impl Agent {
     ///
     /// A `Result` containing the new `Agent` instance.
     async fn new(name: impl Into<String>, config: Config) -> Result<Self> {
-        #[cfg(all(feature = "candle", not(feature = "local")))]
+        // Priority: Candle > Local > Remote (API)
+
+        #[cfg(feature = "candle")]
         let provider_type = if let Some(candle_config) = config.candle {
             LLMProviderType::Candle(candle_config)
         } else {
-            LLMProviderType::Remote(config.llm)
+            #[cfg(feature = "local")]
+            {
+                if let Some(local_config) = config.local {
+                    LLMProviderType::Local(local_config)
+                } else {
+                    LLMProviderType::Remote(config.llm)
+                }
+            }
+            #[cfg(not(feature = "local"))]
+            {
+                LLMProviderType::Remote(config.llm)
+            }
         };
 
         #[cfg(all(feature = "local", not(feature = "candle")))]
         let provider_type = if let Some(local_config) = config.local {
-            LLMProviderType::Local(local_config)
-        } else {
-            LLMProviderType::Remote(config.llm)
-        };
-
-        #[cfg(all(feature = "local", feature = "candle"))]
-        let provider_type = if let Some(candle_config) = config.candle {
-            LLMProviderType::Candle(candle_config)
-        } else if let Some(local_config) = config.local {
             LLMProviderType::Local(local_config)
         } else {
             LLMProviderType::Remote(config.llm)
