@@ -7,12 +7,7 @@ use crate::error::{HeliosError, Result};
 use std::path::Path;
 
 #[cfg(feature = "candle")]
-use {
-    candle_core::{Device, Tensor},
-    candle_nn::VarBuilder,
-    candle_transformers::generation::LogitsProcessor,
-    std::collections::HashMap,
-};
+use candle_core::Device;
 
 /// Trait for model inference implementations
 #[cfg(feature = "candle")]
@@ -27,16 +22,20 @@ pub trait ModelInference: Send + Sync {
 /// Qwen model wrapper for text generation
 #[cfg(feature = "candle")]
 pub struct QwenModel {
+    #[allow(dead_code)]
     model: Box<dyn std::any::Any>,
+    #[allow(dead_code)]
     device: Device,
+    #[allow(dead_code)]
     tokenizer: tokenizers::Tokenizer,
+    #[allow(dead_code)]
     max_seq_len: usize,
 }
 
 #[cfg(feature = "candle")]
 impl QwenModel {
     /// Create a new Qwen model
-    pub fn new(model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
+    pub fn new(_model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
         let device = if use_gpu {
             candle_core::Device::cuda_if_available(0).unwrap_or(Device::Cpu)
         } else {
@@ -57,7 +56,7 @@ impl QwenModel {
     }
 
     /// Generate text from the model
-    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+    pub fn generate(&mut self, _prompt: &str, _max_tokens: usize) -> Result<String> {
         // Placeholder implementation
         // This will be replaced with actual Qwen inference code
         Err(HeliosError::LLMError(
@@ -70,16 +69,20 @@ impl QwenModel {
 /// Llama model wrapper for text generation
 #[cfg(feature = "candle")]
 pub struct LlamaModel {
+    #[allow(dead_code)]
     model: Box<dyn std::any::Any>,
+    #[allow(dead_code)]
     device: Device,
+    #[allow(dead_code)]
     tokenizer: tokenizers::Tokenizer,
+    #[allow(dead_code)]
     max_seq_len: usize,
 }
 
 #[cfg(feature = "candle")]
 impl LlamaModel {
     /// Create a new Llama model
-    pub fn new(model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
+    pub fn new(_model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
         let device = if use_gpu {
             candle_core::Device::cuda_if_available(0).unwrap_or(Device::Cpu)
         } else {
@@ -98,7 +101,7 @@ impl LlamaModel {
     }
 
     /// Generate text from the model
-    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+    pub fn generate(&mut self, _prompt: &str, _max_tokens: usize) -> Result<String> {
         // Placeholder implementation
         Err(HeliosError::LLMError(
             "Llama model inference not yet fully implemented. Weights loading in progress."
@@ -110,16 +113,20 @@ impl LlamaModel {
 /// Gemma model wrapper for text generation
 #[cfg(feature = "candle")]
 pub struct GemmaModel {
+    #[allow(dead_code)]
     model: Box<dyn std::any::Any>,
+    #[allow(dead_code)]
     device: Device,
+    #[allow(dead_code)]
     tokenizer: tokenizers::Tokenizer,
+    #[allow(dead_code)]
     max_seq_len: usize,
 }
 
 #[cfg(feature = "candle")]
 impl GemmaModel {
     /// Create a new Gemma model
-    pub fn new(model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
+    pub fn new(_model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
         let device = if use_gpu {
             candle_core::Device::cuda_if_available(0).unwrap_or(Device::Cpu)
         } else {
@@ -138,7 +145,7 @@ impl GemmaModel {
     }
 
     /// Generate text from the model
-    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+    pub fn generate(&mut self, _prompt: &str, _max_tokens: usize) -> Result<String> {
         // Placeholder implementation
         Err(HeliosError::LLMError(
             "Gemma model inference not yet fully implemented. Weights loading in progress."
@@ -150,16 +157,20 @@ impl GemmaModel {
 /// Mistral model wrapper for text generation
 #[cfg(feature = "candle")]
 pub struct MistralModel {
+    #[allow(dead_code)]
     model: Box<dyn std::any::Any>,
+    #[allow(dead_code)]
     device: Device,
+    #[allow(dead_code)]
     tokenizer: tokenizers::Tokenizer,
+    #[allow(dead_code)]
     max_seq_len: usize,
 }
 
 #[cfg(feature = "candle")]
 impl MistralModel {
     /// Create a new Mistral model
-    pub fn new(model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
+    pub fn new(_model_path: &Path, tokenizer_path: &Path, use_gpu: bool) -> Result<Self> {
         let device = if use_gpu {
             candle_core::Device::cuda_if_available(0).unwrap_or(Device::Cpu)
         } else {
@@ -178,7 +189,7 @@ impl MistralModel {
     }
 
     /// Generate text from the model
-    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+    pub fn generate(&mut self, _prompt: &str, _max_tokens: usize) -> Result<String> {
         // Placeholder implementation
         Err(HeliosError::LLMError(
             "Mistral model inference not yet fully implemented. Weights loading in progress."

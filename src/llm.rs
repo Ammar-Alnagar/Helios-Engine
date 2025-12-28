@@ -1060,7 +1060,7 @@ impl LLMClient {
         temperature: Option<f32>,
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
-        on_chunk: F,
+        mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
         F: FnMut(&str) + Send,
