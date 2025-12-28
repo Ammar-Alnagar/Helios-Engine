@@ -172,6 +172,14 @@ impl CandleLLMProvider {
     async fn download_model_and_tokenizer(config: &CandleConfig) -> Result<(PathBuf, PathBuf)> {
         #[cfg(feature = "candle")]
         {
+            // First, try to find model in local cache
+            if let Some((cached_model_path, cached_tokenizer_path)) =
+                Self::find_model_in_cache(&config.huggingface_repo, &config.model_file)
+            {
+                return Ok((cached_model_path, cached_tokenizer_path));
+            }
+
+            // If not in cache, download from HuggingFace
             let api = Api::new().map_err(|e| {
                 HeliosError::LLMError(format!("Failed to initialize HF API: {}", e))
             })?;
@@ -213,6 +221,60 @@ impl CandleLLMProvider {
                 "Candle feature is not enabled".to_string(),
             ))
         }
+    }
+
+    /// Find model and tokenizer in local HuggingFace cache
+    fn find_model_in_cache(repo: &str, model_file: &str) -> Option<(PathBuf, PathBuf)> {
+        // Get HuggingFace cache directory
+        let cache_dir = std::env::var("HF_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                PathBuf::from(home)
+                    .join(".cache")
+                    .join("huggingface")
+            });
+
+        let hub_dir = cache_dir.join("hub");
+
+        // Convert repo name to HuggingFace cache format
+        // e.g., "unsloth/Qwen3-0.6B-GGUF" -> "models--unsloth--Qwen3-0.6B-GGUF"
+        let cache_repo_name = format!("models--{}", repo.replace("/", "--"));
+        let repo_dir = hub_dir.join(&cache_repo_name);
+
+        if !repo_dir.exists() {
+            return None;
+        }
+
+        // Check in snapshots directory (standard HuggingFace cache format)
+        let snapshots_dir = repo_dir.join("snapshots");
+        if snapshots_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&snapshots_dir) {
+                for entry in entries.flatten() {
+                    let snapshot_path = entry.path();
+                    
+                    // Look for model file
+                    let model_path = snapshot_path.join(model_file);
+                    if model_path.exists() {
+                        // Try to find tokenizer in the same snapshot
+                        let tokenizer_names = vec![
+                            "tokenizer.json",
+                            "tokenizer.model",
+                            "special_tokens_map.json",
+                        ];
+
+                        for tokenizer_name in tokenizer_names {
+                            let tokenizer_path = snapshot_path.join(tokenizer_name);
+                            if tokenizer_path.exists() {
+                                return Some((model_path, tokenizer_path));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        None
     }
 
     /// Format messages into a prompt string
