@@ -230,9 +230,7 @@ impl CandleLLMProvider {
             .map(PathBuf::from)
             .unwrap_or_else(|_| {
                 let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-                PathBuf::from(home)
-                    .join(".cache")
-                    .join("huggingface")
+                PathBuf::from(home).join(".cache").join("huggingface")
             });
 
         let hub_dir = cache_dir.join("hub");
@@ -252,7 +250,7 @@ impl CandleLLMProvider {
             if let Ok(entries) = std::fs::read_dir(&snapshots_dir) {
                 for entry in entries.flatten() {
                     let snapshot_path = entry.path();
-                    
+
                     // Look for model file
                     let model_path = snapshot_path.join(model_file);
                     if model_path.exists() {
