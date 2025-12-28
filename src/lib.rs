@@ -113,6 +113,10 @@ pub mod auto_forest;
 #[cfg(feature = "candle")]
 pub mod candle_provider;
 
+/// Candle model implementations for various architectures.
+#[cfg(feature = "candle")]
+pub mod candle_models;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.

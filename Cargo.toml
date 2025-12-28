@@ -25,24 +25,18 @@ anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8.5", features = ["json", "macros"] }
 base64 = "0.22"
-<<<<<<< Updated upstream
-candle-core = { path = "candle/candle-core", optional = true }
-candle-transformers = { path = "candle/candle-transformers", optional = true }
-candle-nn = { path = "candle/candle-nn", optional = true }
-=======
 candle-core = { version = "0.9", optional = true }
 candle-transformers = { version = "0.9", optional = true }
 candle-nn = { version = "0.9", optional = true }
->>>>>>> Stashed changes
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"
-hf-hub = { version = "0.4.1", optional = true }
+hf-hub = { version = "0.3", optional = true }
 hostname = "0.4.0"
 libc = { version = "0.2", optional = true }
 llama-cpp-2 = { version = "0.1.122", optional = true }
 md5 = "0.8.0"
-tokenizers = { version = "0.21.0", default-features = false, optional = true }
+tokenizers = { version = "0.20", optional = true }
 regex = "1.10"
 reqwest = { version = "0.12.23", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }

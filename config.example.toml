@@ -5,9 +5,28 @@ api_key = "your-api-key-here"
 temperature = 0.7
 max_tokens = 2048
 
+# Local llama.cpp backend configuration
+# Enable with: cargo run --features local
 [local]
 huggingface_repo = "unsloth/Qwen3-0.6B-GGUF"
 model_file = "Qwen3-0.6B-Q4_K_M.gguf"
 context_size = 2048
 temperature = 0.7
 max_tokens = 2048
+
+# Candle backend configuration
+# Enable with: cargo run --features candle
+# Supports models: Qwen, Llama, Gemma, Mistral, and more
+[candle]
+huggingface_repo = "unsloth/Qwen2-7B"
+model_file = "model.safetensors"
+context_size = 4096
+temperature = 0.7
+max_tokens = 2048
+use_gpu = true
+
+# Alternative model examples for Candle:
+# Qwen3: huggingface_repo = "unsloth/Qwen3-7B"
+# Llama2: huggingface_repo = "meta-llama/Llama-2-7b"
+# Gemma: huggingface_repo = "google/gemma-7b"
+# Mistral: huggingface_repo = "mistralai/Mistral-7B"
