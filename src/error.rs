@@ -44,6 +44,11 @@ pub enum HeliosError {
     #[cfg(feature = "local")]
     #[error("Llama C++ error: {0}")]
     LlamaCppError(String),
+
+    /// An error from the Candle backend.
+    #[cfg(feature = "candle")]
+    #[error("Candle error: {0}")]
+    CandleError(#[from] candle_core::Error),
 }
 
 /// A convenient `Result` type alias for the Helios Engine.

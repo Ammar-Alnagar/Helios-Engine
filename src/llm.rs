@@ -27,6 +27,9 @@ use {
     tokio::task,
 };
 
+#[cfg(feature = "candle")]
+use crate::candle_provider::CandleLLMProvider;
+
 // Add From trait for LLamaCppError to convert to HeliosError
 #[cfg(feature = "local")]
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
@@ -43,6 +46,9 @@ pub enum LLMProviderType {
     /// A local LLM provider, using `llama.cpp`.
     #[cfg(feature = "local")]
     Local(LocalConfig),
+    /// A local LLM provider, using Candle.
+    #[cfg(feature = "candle")]
+    Candle(crate::config::CandleConfig),
 }
 
 /// A request to an LLM.
@@ -198,6 +204,10 @@ impl LLMClient {
             #[cfg(feature = "local")]
             LLMProviderType::Local(config) => {
                 Box::new(LocalLLMProvider::new(config.clone()).await?)
+            }
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(config) => {
+                Box::new(CandleLLMProvider::new(config.clone()).await?)
             }
         };
 
@@ -1009,6 +1019,12 @@ impl LLMClient {
                 config.temperature,
                 config.max_tokens,
             ),
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(config) => (
+                config.huggingface_repo.clone(),
+                config.temperature,
+                config.max_tokens,
+            ),
         };
 
         let request = LLMRequest {
@@ -1044,7 +1060,7 @@ impl LLMClient {
         temperature: Option<f32>,
         max_tokens: Option<u32>,
         stop: Option<Vec<String>>,
-        on_chunk: F,
+        mut on_chunk: F,
     ) -> Result<ChatMessage>
     where
         F: FnMut(&str) + Send,
@@ -1068,6 +1084,41 @@ impl LLMClient {
                 } else {
                     Err(HeliosError::AgentError("Provider type mismatch".into()))
                 }
+            }
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(config) => {
+                // For Candle, use non-streaming generate and call on_chunk with full response
+                let (model_name, default_temperature, default_max_tokens) = (
+                    config.huggingface_repo.clone(),
+                    config.temperature,
+                    config.max_tokens,
+                );
+
+                let request = LLMRequest {
+                    model: model_name,
+                    messages,
+                    temperature: temperature.or(Some(default_temperature)),
+                    max_tokens: max_tokens.or(Some(default_max_tokens)),
+                    tools: tools.clone(),
+                    tool_choice: if tools.is_some() {
+                        Some("auto".to_string())
+                    } else {
+                        None
+                    },
+                    stream: None,
+                    stop,
+                };
+
+                let response = self.provider.generate(request).await?;
+                if let Some(choice) = response.choices.first() {
+                    on_chunk(&choice.message.content);
+                }
+                response
+                    .choices
+                    .into_iter()
+                    .next()
+                    .map(|choice| choice.message)
+                    .ok_or_else(|| HeliosError::LLMError("No response from LLM".to_string()))
             }
         }
     }

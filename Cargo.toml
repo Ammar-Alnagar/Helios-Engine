@@ -1,6 +1,6 @@
 [package]
 name = "helios-engine"
-version = "0.5.0"
+version = "0.5.5"
 edition = "2021"
 rust-version = "1.70"
 description = "A powerful and flexible Rust framework for building LLM-powered agents with tool support, both locally and online"
@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://github.com/Ammar-Alnagar/Helios-Engine.git"
 repository = "https://github.com/Ammar-Alnagar/Helios-Engine.git"
 license = "Apache-2.0 OR MIT"
-keywords = ["Llama_cpp", "agent", "ai", "helios", "llm"]
+keywords = ["Llama_cpp", "agent", "candle", "helios-engine", "llm"]
 categories = ["api-bindings", "asynchronous", "command-line-utilities"]
 
 [lib]
@@ -25,13 +25,18 @@ anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8.5", features = ["json", "macros"] }
 base64 = "0.22"
+candle-core = { version = "0.9", optional = true }
+candle-transformers = { version = "0.9", optional = true }
+candle-nn = { version = "0.9", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"
+hf-hub = { version = "0.3", optional = true }
 hostname = "0.4.0"
 libc = { version = "0.2", optional = true }
 llama-cpp-2 = { version = "0.1.122", optional = true }
 md5 = "0.8.0"
+tokenizers = { version = "0.20", optional = true }
 regex = "1.10"
 reqwest = { version = "0.12.23", features = ["json", "stream"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -53,3 +58,4 @@ walkdir = "2.4"
 [features]
 default = []
 local = ["libc", "llama-cpp-2"]
+candle = ["candle-core", "candle-transformers", "candle-nn", "tokenizers", "hf-hub"]

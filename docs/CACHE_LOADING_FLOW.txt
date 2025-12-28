@@ -1,0 +1,275 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║           CANDLE MODEL CACHE LOADING FLOW - QWEN2.5-0.5B                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. APPLICATION STARTUP                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    $ cargo run --features candle --release
+         ↓
+    Reads config.toml
+         ↓
+    [candle]
+    huggingface_repo = "Qwen/Qwen2.5-0.5B-Instruct"
+    model_file = "model.safetensors"
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. CACHE LOOKUP STARTS                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    CandleProvider::download_model_and_tokenizer()
+         ↓
+    Call find_model_in_cache() ← NEW FUNCTION!
+         ↓
+    Check HF_HOME env variable
+    └─ If set: use $HF_HOME/hub/
+    └─ If not: use ~/.cache/huggingface/hub/
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. BUILD CACHE PATH                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Repository name: "Qwen/Qwen2.5-0.5B-Instruct"
+         ↓
+    Convert to cache format:
+    "Qwen/Qwen2.5-0.5B-Instruct" 
+         ↓
+    Replace "/" with "--":
+    "models--Qwen--Qwen2.5-0.5B-Instruct"
+         ↓
+    Final cache path:
+    ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. SEARCH SNAPSHOTS DIRECTORY                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Check if cache exists:
+    ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+         │
+         ├─ EXISTS? Continue ✓
+         └─ NOT FOUND? Skip to download (fallback)
+         ↓
+    Search snapshots:
+    ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/
+         │
+         └─ 7ae557604adf67be50417f59c2c2f167def9a775/  ← hash directory
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 5. FIND MODEL FILE                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Look for model_file from config:
+    ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+    snapshots/7ae557604adf67be50417f59c2c2f167def9a775/model.safetensors
+         │
+         ├─ EXISTS? ✓ Found!
+         └─ NOT FOUND? ✗ Skip to download
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6. FIND TOKENIZER FILE                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Look for tokenizer (tries multiple names):
+    
+    Priority order:
+    1. tokenizer.json
+         ├─ EXISTS? ✓ FOUND! Use this
+         └─ NOT FOUND? Try next...
+    
+    2. tokenizer.model
+         ├─ EXISTS? ✓ FOUND! Use this
+         └─ NOT FOUND? Try next...
+    
+    3. special_tokens_map.json
+         ├─ EXISTS? ✓ FOUND! Use this
+         └─ NOT FOUND? Continue to download
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 7. DECISION POINT                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Both model and tokenizer found?
+         │
+         ├─ YES ✓ → CACHE HIT! Load from cache (FAST!)
+         │           Return (model_path, tokenizer_path)
+         │
+         └─ NO ✗ → CACHE MISS → Download from HuggingFace Hub
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 8A. CACHE HIT - LOAD FROM LOCAL CACHE                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Return cached paths:
+    
+    model_path = 
+      ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+      snapshots/7ae557604adf67be50417f59c2c2f167def9a775/
+      model.safetensors
+    
+    tokenizer_path = 
+      ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+      snapshots/7ae557604adf67be50417f59c2c2f167def9a775/
+      tokenizer.json
+         ↓
+    Load model & tokenizer from these paths ⚡ INSTANT!
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 8B. CACHE MISS - DOWNLOAD FROM HF HUB                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Initialize HF API:
+    let api = Api::new()?
+         ↓
+    Create repo handle:
+    api.repo(Repo::new("Qwen/Qwen2.5-0.5B-Instruct", RepoType::Model))
+         ↓
+    Download model file:
+    repo.get("model.safetensors")  [~400-600 MB]
+         ↓
+    Download tokenizer:
+    repo.get("tokenizer.json")     [~100 KB]
+         ↓
+    Files automatically cached in:
+    ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/
+         ↓
+    Return paths (same as cache hit case)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 9. LOAD MODEL & TOKENIZER                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Model ready for inference!
+         ↓
+    Create Device (CPU or GPU based on use_gpu setting)
+         ↓
+    Load model weights from safetensors file
+         ↓
+    Load tokenizer for text encoding/decoding
+         ↓
+    Ready to accept prompts!
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 10. INFERENCE                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    User: "What is Rust?"
+         ↓
+    Tokenizer encodes text
+         ↓
+    Model processes tokens
+         ↓
+    Model generates output tokens
+         ↓
+    Tokenizer decodes to text
+         ↓
+    Response: "Rust is a systems programming language..."
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                            CACHE STRUCTURE                                 ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+~/.cache/huggingface/hub/
+│
+└── models--Qwen--Qwen2.5-0.5B-Instruct/          ← Your model cache
+    │
+    ├── snapshots/                                 ← Version snapshots
+    │   └── 7ae557604adf67be50417f59c2c2f167def9a775/  ← Latest version
+    │       ├── model.safetensors                  ← Main model (400-600 MB)
+    │       ├── tokenizer.json                     ← Tokenizer (~100 KB)
+    │       ├── config.json                        ← Config metadata
+    │       ├── generation_config.json
+    │       ├── tokenizer_config.json
+    │       ├── vocab.json
+    │       └── merges.txt
+    │
+    ├── blobs/                                     ← Actual file storage
+    │   ├── fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe
+    │   ├── 443909a61d429dff23010e5bddd28ff530edda00
+    │   └── ... (symlinked from snapshots)
+    │
+    └── refs/                                      ← Version references
+        └── main                                   ← Current branch
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          TIMING COMPARISON                                 ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+FIRST RUN (model not cached):
+├─ Download model.safetensors:    ~2-5 minutes (depends on connection)
+├─ Download tokenizer.json:        ~1 second
+├─ Compile & load model:           ~5-30 seconds
+└─ Total first inference:          ~2-6 minutes
+
+SUBSEQUENT RUNS (cache hit):
+├─ Load model from cache:          ~1-3 seconds
+├─ Load tokenizer from cache:      <1 second
+└─ Total time to first inference:  ~2-5 seconds ⚡ 100x FASTER!
+
+AFTER FIRST COMPILE:
+├─ Binary compilation:             ~30 seconds (only once)
+├─ Cargo run overhead:             ~1-2 seconds
+└─ Application startup:            ~2-3 seconds
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          CONFIGURATION MATRIX                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+SETTING                  VALUE              EFFECT
+────────────────────────────────────────────────────────────────────────────
+use_gpu                  true               Uses GPU (10-20x faster)
+                         false              Uses CPU (slower but no GPU needed)
+
+context_size             32768              Max tokens model can process
+                         16384              Reduces memory usage
+                         4096               Very conservative
+
+temperature              0.0                Deterministic (always same output)
+                         0.7                Balanced (default)
+                         1.0                Maximum randomness
+
+max_tokens               2048               Moderate output length
+                         1024               Short responses
+                         4096               Long responses
+
+HF_HOME env              ~/.cache/hf        Custom cache location
+                         /data/models       Any accessible path
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                              QUICK COMMANDS                                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Check cache:
+  $ ls ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/*/
+
+Download model:
+  $ huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct
+
+Create config:
+  $ cp config.example.toml config.toml
+
+Build:
+  $ cargo build --features candle --release
+
+Run:
+  $ cargo run --features candle --release
+
+Custom cache:
+  $ export HF_HOME=/path/to/cache
+  $ cargo run --features candle --release
+
