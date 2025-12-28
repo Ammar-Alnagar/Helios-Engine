@@ -497,12 +497,13 @@ impl CandleLLMProvider {
     }
 
     #[cfg(feature = "candle")]
-    fn get_next_token_simple(tokenizer: &Arc<Tokenizer>, prev_tokens: &[u32]) -> u32 {
+    fn get_next_token_simple(_tokenizer: &Arc<Tokenizer>, prev_tokens: &[u32]) -> u32 {
         // Simplified token generation - in reality this would use the model's logits
-        // For demonstration, return common tokens that form reasonable responses
+        // For a proper implementation, load actual model weights and call model.forward()
+        // to get logits, then sample from them.
 
-        // Generate a sensible response pattern
-        let common_tokens = vec![
+        // For now, generate a simple response pattern using common Qwen tokens
+        let response_tokens = vec![
             264,  // space
             1602, // word token
             311,  // .
@@ -511,8 +512,8 @@ impl CandleLLMProvider {
         ];
 
         // Return a deterministic token based on sequence length
-        let idx = prev_tokens.len() % common_tokens.len();
-        common_tokens[idx]
+        let idx = prev_tokens.len() % response_tokens.len();
+        response_tokens[idx]
     }
 }
 
