@@ -25,9 +25,15 @@ anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8.5", features = ["json", "macros"] }
 base64 = "0.22"
+<<<<<<< Updated upstream
 candle-core = { path = "candle/candle-core", optional = true }
 candle-transformers = { path = "candle/candle-transformers", optional = true }
 candle-nn = { path = "candle/candle-nn", optional = true }
+=======
+candle-core = { version = "0.9", optional = true }
+candle-transformers = { version = "0.9", optional = true }
+candle-nn = { version = "0.9", optional = true }
+>>>>>>> Stashed changes
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.4", features = ["derive"] }
 futures = "0.3"

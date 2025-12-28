@@ -109,6 +109,10 @@ pub mod forest;
 /// AutoForest - Automatic orchestration of agent forests for complex tasks.
 pub mod auto_forest;
 
+/// Candle backend provider for running local models.
+#[cfg(feature = "candle")]
+pub mod candle_provider;
+
 // Re-exports
 
 /// Re-export of the `Agent` and `AgentBuilder` for convenient access.
@@ -117,11 +121,12 @@ pub use agent::{Agent, AgentBuilder};
 /// Re-export of chat-related types.
 pub use chat::{ChatMessage, ChatSession, Role};
 
-#[cfg(not(feature = "local"))]
-pub use config::{Config, ConfigBuilder, LLMConfig};
-/// Re-export of configuration types.
+#[cfg(feature = "candle")]
+pub use config::CandleConfig;
 #[cfg(feature = "local")]
-pub use config::{Config, ConfigBuilder, LLMConfig, LocalConfig};
+pub use config::LocalConfig;
+/// Re-export of configuration types.
+pub use config::{Config, ConfigBuilder, LLMConfig};
 
 /// Re-export of the custom error and result types.
 pub use error::{HeliosError, Result};

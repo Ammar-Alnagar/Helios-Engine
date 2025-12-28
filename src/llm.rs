@@ -27,6 +27,9 @@ use {
     tokio::task,
 };
 
+#[cfg(feature = "candle")]
+use crate::candle_provider::CandleLLMProvider;
+
 // Add From trait for LLamaCppError to convert to HeliosError
 #[cfg(feature = "local")]
 impl From<llama_cpp_2::LLamaCppError> for HeliosError {
@@ -201,6 +204,10 @@ impl LLMClient {
             #[cfg(feature = "local")]
             LLMProviderType::Local(config) => {
                 Box::new(LocalLLMProvider::new(config.clone()).await?)
+            }
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(config) => {
+                Box::new(CandleLLMProvider::new(config.clone()).await?)
             }
         };
 
@@ -1012,6 +1019,12 @@ impl LLMClient {
                 config.temperature,
                 config.max_tokens,
             ),
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(config) => (
+                config.huggingface_repo.clone(),
+                config.temperature,
+                config.max_tokens,
+            ),
         };
 
         let request = LLMRequest {
@@ -1072,6 +1085,10 @@ impl LLMClient {
                     Err(HeliosError::AgentError("Provider type mismatch".into()))
                 }
             }
+            #[cfg(feature = "candle")]
+            LLMProviderType::Candle(_) => Err(HeliosError::LLMError(
+                "Streaming is not yet implemented for Candle provider".to_string(),
+            )),
         }
     }
 }

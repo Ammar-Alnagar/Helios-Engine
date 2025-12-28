@@ -93,7 +93,7 @@ fn default_max_tokens() -> u32 {
 }
 
 /// Returns the default context size.
-#[cfg(feature = "local")]
+#[cfg(any(feature = "local", feature = "candle"))]
 fn default_context_size() -> usize {
     2048
 }
