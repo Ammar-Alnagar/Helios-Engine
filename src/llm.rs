@@ -43,6 +43,9 @@ pub enum LLMProviderType {
     /// A local LLM provider, using `llama.cpp`.
     #[cfg(feature = "local")]
     Local(LocalConfig),
+    /// A local LLM provider, using Candle.
+    #[cfg(feature = "candle")]
+    Candle(crate::config::CandleConfig),
 }
 
 /// A request to an LLM.

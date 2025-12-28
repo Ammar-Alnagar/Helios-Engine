@@ -18,6 +18,10 @@ pub struct Config {
     #[cfg(feature = "local")]
     #[serde(default)]
     pub local: Option<LocalConfig>,
+    /// The configuration for the Candle-based local LLM (optional).
+    #[cfg(feature = "candle")]
+    #[serde(default)]
+    pub candle: Option<CandleConfig>,
 }
 
 /// Configuration for a remote Language Model (LLM).
@@ -56,6 +60,28 @@ pub struct LocalConfig {
     pub max_tokens: u32,
 }
 
+/// Configuration for a Candle-based local Language Model (LLM).
+#[cfg(feature = "candle")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CandleConfig {
+    /// The Hugging Face repository of the model.
+    pub huggingface_repo: String,
+    /// The model file to use (e.g., model.safetensors).
+    pub model_file: String,
+    /// The context size to use for the LLM.
+    #[serde(default = "default_context_size")]
+    pub context_size: usize,
+    /// The temperature to use for the LLM.
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+    /// The maximum number of tokens to generate.
+    #[serde(default = "default_max_tokens")]
+    pub max_tokens: u32,
+    /// Whether to use GPU if available.
+    #[serde(default = "default_use_gpu")]
+    pub use_gpu: bool,
+}
+
 /// Returns the default temperature value.
 fn default_temperature() -> f32 {
     0.7
@@ -70,6 +96,12 @@ fn default_max_tokens() -> u32 {
 #[cfg(feature = "local")]
 fn default_context_size() -> usize {
     2048
+}
+
+/// Returns the default use_gpu setting.
+#[cfg(feature = "candle")]
+fn default_use_gpu() -> bool {
+    true
 }
 
 impl Config {
@@ -102,6 +134,8 @@ impl Config {
             },
             #[cfg(feature = "local")]
             local: None,
+            #[cfg(feature = "candle")]
+            candle: None,
         }
     }
 
@@ -252,6 +286,8 @@ impl ConfigBuilder {
             },
             #[cfg(feature = "local")]
             local: None,
+            #[cfg(feature = "candle")]
+            candle: None,
         }
     }
 }
