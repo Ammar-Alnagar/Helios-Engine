@@ -17,15 +17,15 @@ max_tokens = 2048
 # Candle backend configuration
 # Enable with: cargo run --features candle
 # Supports models: Qwen, Llama, Gemma, Mistral, and more
-# 
+#
 # IMPORTANT: Models are automatically loaded from your local HuggingFace cache first.
 # If the model is not cached, it will be downloaded from HuggingFace Hub.
 # HuggingFace cache location: ~/.cache/huggingface/
 # Or set custom location with: export HF_HOME=/path/to/cache
 [candle]
-# Example: Qwen2.5-0.5B-Instruct (lightweight, fast)
-huggingface_repo = "Qwen/Qwen2.5-0.5B-Instruct"
-model_file = "model.safetensors"
+# Example: Qwen2-0.5B-Instruct-GGUF (quantized, lightweight, fast)
+huggingface_repo = "Qwen/Qwen2-0.5B-Instruct-GGUF"
+model_file = "qwen2-0_5b-instruct-q4_0.gguf"
 context_size = 32768
 temperature = 0.7
 max_tokens = 2048
