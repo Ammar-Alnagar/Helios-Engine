@@ -212,7 +212,8 @@ impl CandleLLMProvider {
                 "Qwen/Qwen2-0.5B-Instruct",   // Qwen2
             ];
 
-            let tokenizer_path = base_repos.iter()
+            let tokenizer_path = base_repos
+                .iter()
                 .find_map(|repo| Self::find_tokenizer_in_cache(repo))
                 .or_else(|| {
                     // Try to download from the first base repo
@@ -220,7 +221,9 @@ impl CandleLLMProvider {
                     let tok_repo = tok_api.model(base_repos[0].to_string());
                     tok_repo.get("tokenizer.json").ok()
                 })
-                .ok_or_else(|| HeliosError::LLMError("Failed to find or download tokenizer.json".to_string()))?;
+                .ok_or_else(|| {
+                    HeliosError::LLMError("Failed to find or download tokenizer.json".to_string())
+                })?;
 
             Ok((model_path, tokenizer_path))
         }
@@ -489,7 +492,8 @@ impl CandleLLMProvider {
     #[cfg(feature = "candle")]
     async fn inference_qwen(&self, prompt: &str, max_tokens: u32) -> Result<String> {
         // Tokenize the prompt
-        let tokens = self.tokenizer
+        let tokens = self
+            .tokenizer
             .encode(prompt, true)
             .map_err(|e| HeliosError::LLMError(format!("Tokenization error: {}", e)))?
             .get_ids()
@@ -503,10 +507,12 @@ impl CandleLLMProvider {
         let device = self.device.clone();
         let tokenizer = self.tokenizer.clone();
         let model = self.model.clone();
-            let max_tokens = max_tokens as usize;
+        let max_tokens = max_tokens as usize;
 
         let result = tokio::task::block_in_place(move || {
-            let mut model = model.lock().map_err(|e| HeliosError::LLMError(format!("Model lock error: {}", e)))?;
+            let mut model = model
+                .lock()
+                .map_err(|e| HeliosError::LLMError(format!("Model lock error: {}", e)))?;
 
             // Create logits processor
             let mut logits_processor = LogitsProcessor::new(299792458, None, None);
@@ -517,8 +523,7 @@ impl CandleLLMProvider {
 
             for index in 0..max_tokens {
                 // Create input tensor with just the next token (autoregressive)
-                let input = candle_core::Tensor::new(&[next_token], &*device)?
-                    .unsqueeze(0)?;
+                let input = candle_core::Tensor::new(&[next_token], &*device)?.unsqueeze(0)?;
 
                 // Forward pass - position is the current index
                 let logits = model.forward(&input, index)?;
