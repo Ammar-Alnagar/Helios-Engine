@@ -9,7 +9,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/helios-engine.svg)](https://crates.io/crates/helios-engine)
 [![docs.rs](https://docs.rs/helios-engine/badge.svg)](https://docs.rs/helios-engine)
-[![Book](https://img.shields.io/badge/book-online-brightgreen.svg)](https://helios-engine.vercel.app/)
+[![Book](https://img.shields.io/badge/book-online-brightgreen.svg)](https://ammar-alnagar.github.io/Helios-Engine/)
 [![downloads](https://img.shields.io/crates/d/helios-engine.svg)](https://crates.io/crates/helios-engine)
 [![issues](https://img.shields.io/github/issues/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/issues)
 [![stars](https://img.shields.io/github/stars/Ammar-Alnagar/Helios-Engine.svg)](https://github.com/Ammar-Alnagar/Helios-Engine/stargazers)
