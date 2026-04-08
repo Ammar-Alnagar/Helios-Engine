@@ -485,16 +485,13 @@ fn load_config(config_path: &str) -> helios_engine::Result<Config> {
             println!("✓ Loaded configuration from {}\n", config_path);
             Ok(cfg)
         }
-        Err(_) => {
-            eprintln!("❌ Configuration file '{}' not found!", config_path);
+        Err(e) => {
+            eprintln!("❌ Failed to load configuration: {}", e);
             eprintln!("\nTo create a new config file, run:");
             eprintln!("  helios-engine init");
             eprintln!("\nOr specify a different config file:");
             eprintln!("  helios-engine --config /path/to/config.toml chat\n");
-            Err(helios_engine::HeliosError::ConfigError(format!(
-                "Configuration file '{}' not found",
-                config_path
-            )))
+            Err(e)
         }
     }
 }

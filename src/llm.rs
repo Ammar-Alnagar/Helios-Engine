@@ -30,10 +30,10 @@ use {
 #[cfg(feature = "candle")]
 use crate::candle_provider::CandleLLMProvider;
 
-// Add From trait for LLamaCppError to convert to HeliosError
+// Add From trait for LlamaCppError to convert to HeliosError
 #[cfg(feature = "local")]
-impl From<llama_cpp_2::LLamaCppError> for HeliosError {
-    fn from(err: llama_cpp_2::LLamaCppError) -> Self {
+impl From<llama_cpp_2::LlamaCppError> for HeliosError {
+    fn from(err: llama_cpp_2::LlamaCppError) -> Self {
         HeliosError::LlamaCppError(format!("{:?}", err))
     }
 }
